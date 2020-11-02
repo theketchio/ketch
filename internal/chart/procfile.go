@@ -23,6 +23,15 @@ func (p *Procfile) IsRoutable(processName string) bool {
 	return p.RoutableProcessName == processName
 }
 
+func (p *Procfile) SortedNames() []string {
+	names := make([]string, 0, len(p.Processes))
+	for name := range p.Processes {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
 // ParseProcfile parses the content of Procfile and returns a Procfile instance.
 func ParseProcfile(content string) (*Procfile, error) {
 	procfile := strings.Split(content, "\n")

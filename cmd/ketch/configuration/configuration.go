@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,6 +46,20 @@ func (cfg *Configuration) Client() client.Client {
 		log.Fatalf("can't create kubernetes client: %v", err)
 	}
 	return cfg.cli
+}
+
+func (cfg *Configuration) KubernetesClient() kubernetes.Interface {
+	configFlags := genericclioptions.NewConfigFlags(true)
+	factory := cmdutil.NewFactory(configFlags)
+	kubeCfg, err := factory.ToRESTConfig()
+	if err != nil {
+		log.Fatalf("can't create kubernetes client: %v", err)
+	}
+	clientset, err := kubernetes.NewForConfig(kubeCfg)
+	if err != nil {
+		log.Fatalf("can't create kubernetes client: %v", err)
+	}
+	return clientset
 }
 
 // Client returns initialized templates.Client to perform CRUD operations on templates.

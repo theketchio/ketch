@@ -1,0 +1,2 @@
+web: /app/app :$PORT web
+worker: /app/app :$PORT worker

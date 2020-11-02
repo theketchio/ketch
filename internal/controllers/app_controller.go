@@ -131,14 +131,13 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) ketchv1
 			Message: fmt.Sprintf(`failed to read configmap with the app's chart templates: %v`, err),
 		}
 	}
-	fmt.Printf("app = %v, pool = %v, apps = %v\n", app.Name, pool.Name, pool.Status.Apps)
 	if !pool.HasApp(app.Name) && len(pool.Status.Apps) >= pool.Spec.AppQuotaLimit && pool.Spec.AppQuotaLimit != -1 {
 		return ketchv1.AppStatus{
 			Phase:   ketchv1.AppFailed,
 			Message: fmt.Sprintf(`you have reached the limit of apps`),
 		}
 	}
-	appChrt, err := chart.New(app.Name, app.Spec, pool.Spec, chart.WithExposedPorts([]chart.ExposedPort{{Port: chart.DefaultApplicationPort, Protocol: "TCP"}}), chart.WithTemplates(*tpls))
+	appChrt, err := chart.New(app.Name, app.Spec, pool.Spec, chart.WithExposedPorts(app.ExposedPorts()), chart.WithTemplates(*tpls))
 	if err != nil {
 		return ketchv1.AppStatus{
 			Phase:   ketchv1.AppFailed,
