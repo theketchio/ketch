@@ -14,6 +14,10 @@ func intRef(i int) *int {
 	return &i
 }
 
+func versionRef(i DeploymentVersion) *DeploymentVersion {
+	return &i
+}
+
 func stringRef(s string) *string {
 	return &s
 }
@@ -58,7 +62,7 @@ func TestApp_SetUnits(t *testing.T) {
 		{
 			name:     "empty selector, deployment not found",
 			spec:     defaultSpec(),
-			selector: Selector{DeploymentVersion: intRef(8)},
+			selector: Selector{DeploymentVersion: versionRef(8)},
 			wantErr:  ErrDeploymentNotFound,
 		},
 		{
@@ -110,7 +114,7 @@ func TestApp_SetUnits(t *testing.T) {
 		{
 			name:     "filter by deployment",
 			spec:     defaultSpec(),
-			selector: Selector{DeploymentVersion: intRef(2)},
+			selector: Selector{DeploymentVersion: versionRef(2)},
 			wantSpec: AppSpec{
 				Deployments: []AppDeploymentSpec{
 					{
@@ -133,7 +137,7 @@ func TestApp_SetUnits(t *testing.T) {
 		{
 			name:     "filter by deployment and process",
 			spec:     defaultSpec(),
-			selector: Selector{DeploymentVersion: intRef(2), Process: stringRef("worker")},
+			selector: Selector{DeploymentVersion: versionRef(2), Process: stringRef("worker")},
 			wantSpec: AppSpec{
 				Deployments: []AppDeploymentSpec{
 					{
@@ -189,7 +193,7 @@ func TestApp_AddUnits(t *testing.T) {
 		{
 			name:     "empty selector, deployment not found",
 			spec:     defaultSpec(),
-			selector: Selector{DeploymentVersion: intRef(8)},
+			selector: Selector{DeploymentVersion: versionRef(8)},
 			wantErr:  ErrDeploymentNotFound,
 		},
 		{
@@ -242,7 +246,7 @@ func TestApp_AddUnits(t *testing.T) {
 		{
 			name:     "filter by deployment",
 			spec:     defaultSpec(),
-			selector: Selector{DeploymentVersion: intRef(2)},
+			selector: Selector{DeploymentVersion: versionRef(2)},
 			quantity: 3,
 			wantSpec: AppSpec{
 				Deployments: []AppDeploymentSpec{
@@ -266,7 +270,7 @@ func TestApp_AddUnits(t *testing.T) {
 		{
 			name:     "filter by deployment and process",
 			spec:     defaultSpec(),
-			selector: Selector{DeploymentVersion: intRef(2), Process: stringRef("worker")},
+			selector: Selector{DeploymentVersion: versionRef(2), Process: stringRef("worker")},
 			quantity: 3,
 			wantSpec: AppSpec{
 				Deployments: []AppDeploymentSpec{
@@ -769,7 +773,7 @@ func TestApp_Stop(t *testing.T) {
 		},
 		{
 			name:     "stop by deployment",
-			selector: Selector{DeploymentVersion: intRef(1)},
+			selector: Selector{DeploymentVersion: versionRef(1)},
 			wantSpec: AppSpec{
 				Deployments: []AppDeploymentSpec{
 					{
@@ -791,7 +795,7 @@ func TestApp_Stop(t *testing.T) {
 		},
 		{
 			name:     "stop by deployment and process",
-			selector: Selector{DeploymentVersion: intRef(2), Process: stringRef("worker")},
+			selector: Selector{DeploymentVersion: versionRef(2), Process: stringRef("worker")},
 			wantSpec: AppSpec{
 				Deployments: []AppDeploymentSpec{
 					{
@@ -931,7 +935,7 @@ func TestApp_Start(t *testing.T) {
 		},
 		{
 			name:     "start by deployment",
-			selector: Selector{DeploymentVersion: intRef(2)},
+			selector: Selector{DeploymentVersion: versionRef(2)},
 			wantSpec: AppSpec{
 				Deployments: []AppDeploymentSpec{
 					{
@@ -957,7 +961,7 @@ func TestApp_Start(t *testing.T) {
 		},
 		{
 			name:     "start by deployment and process",
-			selector: Selector{DeploymentVersion: intRef(1), Process: stringRef("db")},
+			selector: Selector{DeploymentVersion: versionRef(1), Process: stringRef("db")},
 			wantSpec: AppSpec{
 				Deployments: []AppDeploymentSpec{
 					{

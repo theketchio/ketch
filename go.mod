@@ -4,7 +4,8 @@ go 1.15
 
 require (
 	github.com/go-logr/logr v0.1.0
-	github.com/google/go-cmp v0.4.0
+	github.com/google/go-cmp v0.4.1
+	github.com/google/go-containerregistry v0.1.4
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/onsi/ginkgo v1.12.1 // indirect
 	github.com/onsi/gomega v1.10.1 // indirect

@@ -43,12 +43,12 @@ type app struct {
 }
 
 type deployment struct {
-	Image           string                  `json:"image"`
-	Version         int                     `json:"version"`
-	Processes       []process               `json:"processes"`
-	Labels          []ketchv1.Label         `json:"labels"`
-	RoutingSettings ketchv1.RoutingSettings `json:"routingSettings"`
-	DeploymentExtra deploymentExtra         `json:"extra"`
+	Image           string                    `json:"image"`
+	Version         ketchv1.DeploymentVersion `json:"version"`
+	Processes       []process                 `json:"processes"`
+	Labels          []ketchv1.Label           `json:"labels"`
+	RoutingSettings ketchv1.RoutingSettings   `json:"routingSettings"`
+	DeploymentExtra deploymentExtra           `json:"extra"`
 }
 
 type deploymentExtra struct {
@@ -64,14 +64,23 @@ type dockerRegistrySpec struct {
 }
 
 type Option func(opts *Options)
+
 type Options struct {
-	ExposedPorts []ExposedPort
+	// ExposedPorts are ports exposed by an image of each deployment.
+	ExposedPorts map[ketchv1.DeploymentVersion][]ketchv1.ExposedPort
 	Templates    templates.Templates
 }
 
-func WithExposedPorts(ports []ExposedPort) Option {
+func WithExposedPorts(ports map[ketchv1.DeploymentVersion][]ketchv1.ExposedPort) Option {
 	return func(opts *Options) {
-		opts.ExposedPorts = ports
+		opts.ExposedPorts = make(map[ketchv1.DeploymentVersion][]ketchv1.ExposedPort, len(ports))
+		for version, ps := range ports {
+			if len(ps) == 0 {
+				opts.ExposedPorts[version] = []ketchv1.ExposedPort{{Port: DefaultApplicationPort, Protocol: "TCP"}}
+			} else {
+				opts.ExposedPorts[version] = ps
+			}
+		}
 	}
 }
 
@@ -124,8 +133,8 @@ func New(name string, appSpec ketchv1.AppSpec, pool ketchv1.PoolSpec, opts ...Op
 		if err != nil {
 			return nil, err
 		}
-
-		c := NewConfigurator(deploymentSpec.KetchYaml, *procfile, options.ExposedPorts, DefaultApplicationPort)
+		exposedPorts := options.ExposedPorts[deployment.Version]
+		c := NewConfigurator(deploymentSpec.KetchYaml, *procfile, exposedPorts, DefaultApplicationPort)
 		for _, processSpec := range deploymentSpec.Processes {
 			name := processSpec.Name
 			isRoutable := procfile.IsRoutable(name)

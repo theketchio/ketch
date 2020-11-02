@@ -17,17 +17,12 @@ import (
 type Configurator struct {
 	data         ketchv1.KetchYamlData
 	procfile     Procfile
-	exposedPorts []ExposedPort
+	exposedPorts []ketchv1.ExposedPort
 	defaultPort  int
 }
 
-type ExposedPort struct {
-	Port     int
-	Protocol string
-}
-
 // NewConfigurator returns a Configurator instance.
-func NewConfigurator(data *ketchv1.KetchYamlData, procfile Procfile, exposedPorts []ExposedPort, defaultPort int) Configurator {
+func NewConfigurator(data *ketchv1.KetchYamlData, procfile Procfile, exposedPorts []ketchv1.ExposedPort, defaultPort int) Configurator {
 	shipaYaml := ketchv1.KetchYamlData{}
 	if data != nil {
 		shipaYaml = *data
