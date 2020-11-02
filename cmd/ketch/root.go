@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/shipa-corp/ketch/internal/templates"
@@ -12,6 +13,7 @@ import (
 type config interface {
 	Client() client.Client
 	Storage() templates.Client
+	KubernetesClient() kubernetes.Interface
 }
 
 // RootCmd represents the base command when called without any subcommands

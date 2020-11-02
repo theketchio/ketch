@@ -58,6 +58,21 @@ spec:
               description: Deployments is a list of running deployments.
               items:
                 properties:
+                  exposedPorts:
+                    items:
+                      description: ExposedPort represents a port exposed by a docker
+                        image. Native format is "port/PROTOCOL" string, we parse it
+                        and keep it as ExposedPort.
+                      properties:
+                        port:
+                          type: integer
+                        protocol:
+                          type: string
+                      required:
+                      - port
+                      - protocol
+                      type: object
+                    type: array
                   image:
                     type: string
                   ketchYaml:

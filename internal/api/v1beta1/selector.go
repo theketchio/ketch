@@ -11,7 +11,7 @@ type Selector struct {
 	Process *string
 
 	// DeploymentVersion if specified an action will be applied to a particular deployment otherwise to all deployments.
-	DeploymentVersion *int
+	DeploymentVersion *DeploymentVersion
 }
 
 // NewSelector returns a Selector instance.
@@ -20,8 +20,10 @@ func NewSelector(deploymentVersion int, processName string) Selector {
 	if processName != "" {
 		s.Process = &processName
 	}
+
 	if deploymentVersion > 0 {
-		s.DeploymentVersion = &deploymentVersion
+		version := DeploymentVersion(deploymentVersion)
+		s.DeploymentVersion = &version
 	}
 	return s
 }

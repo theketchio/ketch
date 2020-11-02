@@ -82,14 +82,17 @@ type ProcessSpec struct {
 	SecurityContext *v1.SecurityContext `json:"securityContext,omitempty"`
 }
 
+type DeploymentVersion int
+
 type AppDeploymentSpec struct {
-	Image           string          `json:"image"`
-	Version         int             `json:"version"`
-	WorkingDir      string          `json:"workingDir,omitempty"`
-	Processes       []ProcessSpec   `json:"processes,omitempty"`
-	KetchYaml       *KetchYamlData  `json:"ketchYaml,omitempty"`
-	Labels          []Label         `json:"labels,omitempty"`
-	RoutingSettings RoutingSettings `json:"routingSettings,omitempty"`
+	Image           string            `json:"image"`
+	Version         DeploymentVersion `json:"version"`
+	WorkingDir      string            `json:"workingDir,omitempty"`
+	Processes       []ProcessSpec     `json:"processes,omitempty"`
+	KetchYaml       *KetchYamlData    `json:"ketchYaml,omitempty"`
+	Labels          []Label           `json:"labels,omitempty"`
+	RoutingSettings RoutingSettings   `json:"routingSettings,omitempty"`
+	ExposedPorts    []ExposedPort     `json:"exposedPorts,omitempty"`
 }
 
 // IngressSpec configures entrypoints to access an application.
@@ -429,4 +432,13 @@ func (app *App) Units() int {
 		}
 	}
 	return units
+}
+
+// ExposedPorts returns ports exposed by an image of each deployment.
+func (app *App) ExposedPorts() map[DeploymentVersion][]ExposedPort {
+	ports := make(map[DeploymentVersion][]ExposedPort, len(app.Spec.Deployments))
+	for _, deployment := range app.Spec.Deployments {
+		ports[deployment.Version] = deployment.ExposedPorts
+	}
+	return ports
 }
