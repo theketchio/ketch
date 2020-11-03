@@ -1,0 +1,90 @@
+{{ range $_, $deployment := .Values.app.deployments }}
+  {{ range $_, $process := $deployment.processes }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+    shipa.io/app-name: {{ $.Values.app.name }}
+    shipa.io/app-process: {{ $process.name }}
+    shipa.io/app-process-replicas: {{ $process.units | quote }}
+    shipa.io/app-deployment-version: {{ $deployment.version | quote }}
+    shipa.io/is-isolated-run: "false"
+    {{- range $i, $label := $deployment.labels }}
+    {{ $label.name }}: {{ $label.value }}
+    {{- end }}
+  name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
+spec:
+  replicas: {{ $process.units }}
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+      shipa.io/app-name: {{ $.Values.app.name }}
+      shipa.io/app-process: {{ $process.name }}
+      shipa.io/app-deployment-version: {{ $deployment.version | quote }}
+      shipa.io/is-isolated-run: "false"
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+        shipa.io/app-name: {{ $.Values.app.name }}
+        shipa.io/app-process: {{ $process.name }}
+        shipa.io/app-deployment-version: {{ $deployment.version | quote }}
+        shipa.io/is-isolated-run: "false"
+    spec:
+      containers:
+        - name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
+          command: {{ $process.cmd | toJson }}
+          {{- if or $process.env $.Values.app.env }}
+          env:
+          {{- if $process.env }}
+{{ $process.env | toYaml | indent 12 }}
+          {{- end }}
+          {{- if $.Values.app.env }}
+{{ $.Values.app.env | toYaml | indent 12 }}
+          {{- end }}
+          {{- end }}
+          image: {{ $deployment.image }}
+          {{- if $process.containerPorts }}
+          ports:
+{{ $process.containerPorts | toYaml | indent 10 }}
+          {{- end }}
+          {{- if $process.extra.volumeMounts }}
+          volumeMounts:
+{{ $process.extra.volumeMounts | toYaml | indent 12 }}
+          {{- end }}
+          {{- if $process.extra.resourceRequirements }}
+          resources:
+{{ $process.extra.resourceRequirements | toYaml | indent 12 }}
+          {{- end }}
+          {{- if $process.extra.lifecycle }}
+          lifecycle:
+{{ $process.extra.lifecycle | toYaml | indent 12 }}
+          {{- end }}
+          {{- if $process.extra.securityContext }}
+          securityContext:
+{{ $process.extra.securityContext | toYaml | indent 12 }}
+          {{- end }}
+      {{- if or $.Values.dockerRegistry.imagePullSecret $.Values.dockerRegistry.createImagePullSecret }}
+      imagePullSecrets:
+      {{- if $.Values.dockerRegistry.imagePullSecret }}
+        - name: {{ $.Values.dockerRegistry.imagePullSecret }}
+      {{- end }}
+      {{- if $.Values.dockerRegistry.createImagePullSecret }}
+        - name: {{ $.Values.app.name }}-image-pull-secret
+      {{- end }}
+      {{- end }}
+      {{- if $deployment.extra.volumes }}
+      volumes:
+{{ $deployment.extra.volumes | toYaml | indent 12 }}
+      {{- end }}
+      {{- if $process.extra.nodeSelectorTerms }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+{{ $process.extra.nodeSelectorTerms | toYaml | indent 14 }}
+      {{- end }}
+---
+{{ end }}
+{{ end }}

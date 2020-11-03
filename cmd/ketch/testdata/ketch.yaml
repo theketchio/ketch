@@ -1,0 +1,20 @@
+hooks:
+  restart:
+    before:
+      - echo "before"
+    after:
+      - echo "after"
+
+kubernetes:
+  processes:
+    web:
+      ports:
+        - name: web
+          protocol: TCP
+          target_port: 5000
+          port: 8080
+        - name: socket-port
+          protocol: TCP
+          port: 4000
+    worker:
+      ports: []

@@ -1,0 +1,15 @@
+project_name: ketch
+builds:
+  - id: ketch
+    binary: ketch
+    main: ./cmd/ketch/
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+archives:
+  - id: default
+    builds:
+      - ketch
+    format: binary

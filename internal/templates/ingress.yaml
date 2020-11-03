@@ -1,0 +1,39 @@
+{{- if .Values.app.deployments }}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    {{- if .Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
+    {{- end }}
+    {{- if .Values.ingressController.traefik }}
+    traefik.ingress.kubernetes.io/frontend-entry-points: {{ join "," .Values.ingressController.traefik.entryPoints }}
+    traefik.ingress.kubernetes.io/service-weights: |
+	  {{- range $_, $deployment := .Values.app.deployments }}
+      {{- range $_, $process := $deployment.processes }}
+      {{- if $process.routable }}
+      {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}: {{ $deployment.routingSettings.weight }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+  labels:
+    shipa.io/app-name: {{ $.Values.app.name }}
+  name: {{ $.Values.app.name }}-http
+spec:
+  rules:
+    {{- range $_, $cname := .Values.app.cnames }}
+    - host: {{ $cname }}
+      http:
+        paths:
+          {{- range $_, $deployment := $.Values.app.deployments }}
+          {{- range $_, $process := $deployment.processes }}
+          {{- if $process.routable }}
+          - backend:
+              serviceName: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+              servicePort: {{ $process.publicServicePort }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+    {{- end }}
+{{- end }}
