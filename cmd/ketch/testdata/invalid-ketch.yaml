@@ -1,0 +1,7 @@
+hooks:
+  restart:
+    before:
+      - echo "before"
+    after:
+      - echo "after"
+  invalidField: "100"

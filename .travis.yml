@@ -1,0 +1,56 @@
+stages:
+  - test
+  - build
+
+sudo: required
+
+jobs:
+  include:
+    - stage: test
+      language: go
+      go: "1.15"
+      script:
+        - make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
+        - export TEST_ASSET_KUBECTL=/tmp/kubebuilder/bin/kubectl
+        - export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
+        - export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
+        - make test
+
+    - stage: build
+      if: tag =~ ^v
+      language: go
+      go: "1.15"
+      script:
+        - test -n "$TRAVIS_TAG" && curl -sL https://git.io/goreleaser | bash
+
+    - stage: build
+      if: type == pull_request
+      branches:
+        except:
+          - master
+      language: bash
+      sudo: required
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
+        - docker build -t shipasoftware/ketch:$TRAVIS_PULL_REQUEST_BRANCH .
+        - docker push shipasoftware/ketch:$TRAVIS_PULL_REQUEST_BRANCH
+
+    - stage: build
+      if: tag =~ ^v
+      language: bash
+      sudo: required
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
+        - docker build -t shipasoftware/ketch:$TRAVIS_TAG .
+        - docker push shipasoftware/ketch:$TRAVIS_TAG
+      before_deploy:
+        - mkdir /tmp/kustomize
+        - make install-kustomize KUSTOMIZE_INSTALL_DIR=/tmp/kustomize
+        - make create-controller-yaml KUSTOMIZE=/tmp/kustomize/kustomize IMG=shipasoftware/ketch:$TRAVIS_TAG
+      deploy:
+        provider: releases
+        api_key: $GITHUB_TOKEN
+        file: "ketch-controller.yaml"
+        skip_cleanup: true
+        on:
+          tags: true
