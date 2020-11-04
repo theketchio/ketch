@@ -1,0 +1,24 @@
+# permissions for end users to edit pools.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pool-editor-role
+rules:
+- apiGroups:
+  - theketch.io
+  resources:
+  - pools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - theketch.io
+  resources:
+  - pools/status
+  verbs:
+  - get

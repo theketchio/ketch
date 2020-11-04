@@ -1,0 +1,29 @@
+{{ range $_, $deployment := .Values.app.deployments }}
+  {{ range $_, $process := $deployment.processes }}
+  {{- if $process.servicePorts }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+    theketch.io/app-name: {{ $.Values.app.name }}
+    theketch.io/app-process: {{ $process.name }}
+    theketch.io/app-deployment-version: {{ $deployment.version | quote }}
+    theketch.io/is-isolated-run: "false"
+    {{- range $i, $label := $deployment.labels }}
+    {{ $label.name }}: {{ $label.value }}
+    {{- end }}
+  name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
+spec:
+  type: ClusterIP
+  ports:
+{{ $process.servicePorts | toYaml | indent 4 }}
+  selector:
+    theketch.io/app-name: {{ $.Values.app.name }}
+    theketch.io/app-process: {{ $process.name }}
+    theketch.io/app-deployment-version: {{ $deployment.version | quote }}
+    theketch.io/is-isolated-run: "false"
+---
+  {{- end }}
+  {{ end }}
+{{ end }}

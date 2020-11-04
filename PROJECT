@@ -1,0 +1,10 @@
+domain: theketch.io
+repo: github.com/shipa-corp/ketch
+resources:
+- group: resources
+  kind: App
+  version: v1beta1
+- group: resources
+  kind: Pool
+  version: v1beta1
+version: "2"
