@@ -1,9 +1,0 @@
-hooks:
-  restart:
-    before:
-      - echo "before" 
-    after:
-      - echo "after" 
-  builder:
-   - echo "build 1"
-   - echo "build 2"
