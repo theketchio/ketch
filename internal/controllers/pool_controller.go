@@ -108,6 +108,26 @@ func (r *PoolReconciler) reconcile(ctx context.Context, pool *ketchv1.Pool) ketc
 			time.Sleep(1 * time.Second)
 		}
 	}
+	// we rely on istio automatic sidecar injection
+	// https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
+	istioInjectionValue := "disabled"
+	if pool.Spec.IngressController.IngressType == ketchv1.IstioIngressControllerType {
+		istioInjectionValue = "enabled"
+	}
+	if namespace.Annotations == nil {
+		namespace.Annotations = map[string]string{}
+	}
+	namespace.Annotations["istio-injection"] = istioInjectionValue
+	err = r.Update(ctx, &namespace)
+	if err != nil {
+		return ketchv1.PoolStatus{
+			Phase:     ketchv1.PoolFailed,
+			Message:   fmt.Sprintf("failed to update namespace annotations: %v", err),
+			Apps:      pool.Status.Apps,
+			Namespace: pool.Status.Namespace,
+		}
+	}
+
 	ref, err := reference.GetReference(r.Scheme, &namespace)
 	if err != nil {
 		return ketchv1.PoolStatus{

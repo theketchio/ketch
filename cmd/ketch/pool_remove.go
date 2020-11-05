@@ -43,5 +43,6 @@ func poolRemove(ctx context.Context, cfg config, options poolRemoveOptions, out 
 	if err := cfg.Client().Delete(ctx, &pool); err != nil {
 		return fmt.Errorf("failed to remove the pool: %w", err)
 	}
+	fmt.Fprintln(out, "Successfully removed!")
 	return nil
 }

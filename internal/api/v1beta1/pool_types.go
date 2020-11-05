@@ -72,11 +72,25 @@ type Traefik struct {
 	EntryPoints []string `json:"entryPoints"`
 }
 
+// +kubebuilder:validation:Enum=traefik17;istio
+
+// IngressControllerType is a type of an ingress controller for this pool.
+type IngressControllerType string
+
+func (t IngressControllerType) String() string { return string(t) }
+
+const (
+	Traefik17IngressControllerType IngressControllerType = "traefik17"
+	IstioIngressControllerType     IngressControllerType = "istio"
+)
+
+// IngressControllerSpec contains configuration for an ingress controller.
 type IngressControllerSpec struct {
-	ClassName       string   `json:"className,omitempty"`
-	Domain          string   `json:"domain,omitempty"`
-	ServiceEndpoint string   `json:"serviceEndpoint,omitempty"`
-	Traefik         *Traefik `json:"traefik,omitempty"`
+	ClassName       string                `json:"className,omitempty"`
+	Domain          string                `json:"domain,omitempty"`
+	ServiceEndpoint string                `json:"serviceEndpoint,omitempty"`
+	IngressType     IngressControllerType `json:"type"`
+	Traefik         *Traefik              `json:"traefik,omitempty"`
 }
 
 // PoolStatus defines the observed state of Pool

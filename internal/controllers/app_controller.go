@@ -64,6 +64,8 @@ type Helm interface {
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="networking.istio.io",resources=gateways,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="networking.istio.io",resources=virtualservices,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -124,7 +126,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) ketchv1
 			Message: fmt.Sprintf(`pool "%s" is not linked to a kubernetes namespace`, pool.Name),
 		}
 	}
-	tpls, err := r.TemplateReader.Get(app.TemplatesConfigMapName())
+	tpls, err := r.TemplateReader.Get(app.TemplatesConfigMapName(pool.Spec.IngressController.IngressType))
 	if err != nil {
 		return ketchv1.AppStatus{
 			Phase:   ketchv1.AppFailed,

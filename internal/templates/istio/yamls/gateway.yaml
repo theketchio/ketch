@@ -1,0 +1,20 @@
+{{- if .Values.app.isAccessible }}
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  generation: 1
+  name: ketch-{{ $.Values.app.name }}-gateway
+spec:
+  selector:
+    # might need to be configurable based on istio installation: (kubectl get svc/istio-ingressgateway -n istio-system -o jsonpath='{.metadata.labels.istio}')
+    istio: ingressgateway
+  servers:
+  - hosts:
+{{- range $_, $cname := .Values.app.cnames }}
+    - {{ $cname }}
+{{- end }}
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+{{- end }}

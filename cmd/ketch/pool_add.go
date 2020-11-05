@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"github.com/thediveo/enumflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -15,6 +16,18 @@ import (
 const poolAddHelp = `
 Add a new pool.
 `
+
+type ingressType enumflag.Flag
+
+const (
+	traefik17 ingressType = iota
+	istio
+)
+
+var ingressTypeIds = map[ingressType][]string{
+	traefik17: {ketchv1.Traefik17IngressControllerType.String()},
+	istio:     {ketchv1.IstioIngressControllerType.String()},
+}
 
 func newPoolAddCmd(cfg config, out io.Writer) *cobra.Command {
 	options := poolAddOptions{}
@@ -33,6 +46,7 @@ func newPoolAddCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
 	cmd.Flags().StringVar(&options.ingressDomainName, "ingress-domain", "shipa.cloud", "domain name for the default URL")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
+	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik17 or istio")
 	cmd.MarkFlagRequired("kube-namespace")
 	return cmd
 }
@@ -46,6 +60,7 @@ type poolAddOptions struct {
 	ingressClassName       string
 	ingressDomainName      string
 	ingressServiceEndpoint string
+	ingressType            ingressType
 }
 
 func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Writer) error {
@@ -64,6 +79,7 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 				ClassName:       options.ingressClassName,
 				Domain:          options.ingressDomainName,
 				ServiceEndpoint: options.ingressServiceEndpoint,
+				IngressType:     options.ingressType.ingressControllerType(),
 			},
 		},
 		Status: ketchv1.PoolStatus{},
@@ -71,5 +87,15 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 	if err := cfg.Client().Create(ctx, &pool); err != nil {
 		return fmt.Errorf("failed to create pool: %w", err)
 	}
+	fmt.Fprintln(out, "Successfully added!")
 	return nil
+}
+
+func (t ingressType) ingressControllerType() ketchv1.IngressControllerType {
+	switch t {
+	case istio:
+		return ketchv1.IstioIngressControllerType
+	default:
+		return ketchv1.Traefik17IngressControllerType
+	}
 }

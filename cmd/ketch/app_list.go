@@ -38,15 +38,15 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 	if err := cfg.Client().List(ctx, &pools); err != nil {
 		return fmt.Errorf("failed to list pools: %w", err)
 	}
-	poolsByName := make(map[string]*ketchv1.Pool, len(pools.Items))
+	poolsByName := make(map[string]ketchv1.Pool, len(pools.Items))
 	for _, pool := range pools.Items {
-		poolsByName[pool.Name] = &pool
+		poolsByName[pool.Name] = pool
 	}
 	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
 	fmt.Fprintln(w, "NAME\tPOOL\tSTATUS\tUNITS\tADDRESSES\tDESCRIPTION")
 	for _, item := range apps.Items {
 		pool := poolsByName[item.Spec.Pool]
-		urls := strings.Join(item.URLs(pool), " ")
+		urls := strings.Join(item.URLs(&pool), " ")
 		line := []string{item.Name, item.Spec.Pool, string(item.Status.Phase), fmt.Sprintf("%d", item.Units()), urls, item.Spec.Description}
 		fmt.Fprintln(w, strings.Join(line, "\t"))
 	}

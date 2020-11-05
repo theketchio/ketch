@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"github.com/thediveo/enumflag"
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -29,6 +30,7 @@ func newPoolUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 			options.ingressClassNameSet = cmd.Flags().Changed("ingress-class-name")
 			options.ingressDomainNameSet = cmd.Flags().Changed("ingress-domain")
 			options.ingressServiceEndpointSet = cmd.Flags().Changed("ingress-service-endpoint")
+			options.ingressTypeSet = cmd.Flags().Changed("ingress-type")
 			return poolUpdate(cmd.Context(), cfg, options, out)
 		},
 	}
@@ -37,6 +39,7 @@ func newPoolUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
 	cmd.Flags().StringVar(&options.ingressDomainName, "ingress-domain", "shipa.cloud", "domain name for the default URL")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
+	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik17 or istio")
 	return cmd
 }
 
@@ -53,6 +56,8 @@ type poolUpdateOptions struct {
 	ingressDomainName         string
 	ingressServiceEndpointSet bool
 	ingressServiceEndpoint    string
+	ingressTypeSet            bool
+	ingressType               ingressType
 }
 
 func poolUpdate(ctx context.Context, cfg config, options poolUpdateOptions, out io.Writer) error {
@@ -75,8 +80,12 @@ func poolUpdate(ctx context.Context, cfg config, options poolUpdateOptions, out 
 	if options.ingressServiceEndpointSet {
 		pool.Spec.IngressController.ServiceEndpoint = options.ingressServiceEndpoint
 	}
+	if options.ingressTypeSet {
+		pool.Spec.IngressController.IngressType = options.ingressType.ingressControllerType()
+	}
 	if err := cfg.Client().Update(ctx, &pool); err != nil {
 		return fmt.Errorf("failed to update the pool: %w", err)
 	}
+	fmt.Fprintln(out, "Successfully updated!")
 	return nil
 }

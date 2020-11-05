@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,9 +22,11 @@ func TestPoolReconciler_Reconcile(t *testing.T) {
 				Name: "default-pool",
 			},
 			Spec: ketchv1.PoolSpec{
-				NamespaceName:     "default-namespace",
-				AppQuotaLimit:     100,
-				IngressController: ketchv1.IngressControllerSpec{},
+				NamespaceName: "default-namespace",
+				AppQuotaLimit: 100,
+				IngressController: ketchv1.IngressControllerSpec{
+					IngressType: ketchv1.IstioIngressControllerType,
+				},
 			},
 		},
 	}
@@ -32,10 +35,11 @@ func TestPoolReconciler_Reconcile(t *testing.T) {
 
 	defer teardown(ctx)
 	tests := []struct {
-		name              string
-		pool              ketchv1.Pool
-		wantStatusPhase   ketchv1.PoolPhase
-		wantStatusMessage string
+		name                     string
+		pool                     ketchv1.Pool
+		wantStatusPhase          ketchv1.PoolPhase
+		wantStatusMessage        string
+		wantNamespaceAnnotations map[string]string
 	}{
 		{
 			name: "namespace is used by another pool",
@@ -45,22 +49,49 @@ func TestPoolReconciler_Reconcile(t *testing.T) {
 				},
 				Spec: ketchv1.PoolSpec{
 					NamespaceName: "default-namespace",
+					IngressController: ketchv1.IngressControllerSpec{
+						IngressType: ketchv1.IstioIngressControllerType,
+					},
 				},
 			},
 			wantStatusPhase:   ketchv1.PoolFailed,
 			wantStatusMessage: "Target namespace is already used by another pool",
 		},
 		{
-			name: "everything is ok",
+			name: "istio controller - everything is ok",
 			pool: ketchv1.Pool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "pool-3",
 				},
 				Spec: ketchv1.PoolSpec{
 					NamespaceName: "another-namespace-3",
+					IngressController: ketchv1.IngressControllerSpec{
+						IngressType: ketchv1.IstioIngressControllerType,
+					},
 				},
 			},
 			wantStatusPhase: ketchv1.PoolCreated,
+			wantNamespaceAnnotations: map[string]string{
+				"istio-injection": "enabled",
+			},
+		},
+		{
+			name: "traefik controller - everything is ok",
+			pool: ketchv1.Pool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "pool-4",
+				},
+				Spec: ketchv1.PoolSpec{
+					NamespaceName: "another-namespace-4",
+					IngressController: ketchv1.IngressControllerSpec{
+						IngressType: ketchv1.Traefik17IngressControllerType,
+					},
+				},
+			},
+			wantStatusPhase: ketchv1.PoolCreated,
+			wantNamespaceAnnotations: map[string]string{
+				"istio-injection": "disabled",
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -85,10 +116,13 @@ func TestPoolReconciler_Reconcile(t *testing.T) {
 			if tt.wantStatusPhase == ketchv1.PoolCreated {
 				assert.NotNil(t, resultPool.Status.Namespace.Name)
 				assert.NotNil(t, resultPool.Status.Namespace.UID)
+
+				gotNamespace := v1.Namespace{}
+				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.pool.Spec.NamespaceName}, &gotNamespace)
+				assert.Equal(t, tt.wantNamespaceAnnotations, gotNamespace.Annotations)
 			} else {
 				assert.Nil(t, resultPool.Status.Namespace)
 			}
-
 		})
 	}
 }

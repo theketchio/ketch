@@ -412,11 +412,11 @@ func (app *App) DefaultURL(pool *Pool) *string {
 // TemplatesConfigMapName returns a name of a configmap that contains templates used to render a helm chart.
 // If an application hasn't changed its templates,
 // TemplatesConfigMapName returns a name of a configmap with the default templates.
-func (app *App) TemplatesConfigMapName() string {
-	if app.Spec.Chart.TemplatesConfigMapName == nil {
-		return templates.DefaultConfigMapName
+func (app *App) TemplatesConfigMapName(ingressControllerType IngressControllerType) string {
+	if app.Spec.Chart.TemplatesConfigMapName != nil {
+		return *app.Spec.Chart.TemplatesConfigMapName
 	}
-	return *app.Spec.Chart.TemplatesConfigMapName
+	return templates.IngressConfigMapName(ingressControllerType.String())
 }
 
 // Units returns a total number units.

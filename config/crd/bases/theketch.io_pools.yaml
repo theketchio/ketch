@@ -52,6 +52,8 @@ spec:
             appQuotaLimit:
               type: integer
             ingressController:
+              description: IngressControllerSpec contains configuration for an ingress
+                controller.
               properties:
                 className:
                   type: string
@@ -68,6 +70,15 @@ spec:
                   required:
                   - entryPoints
                   type: object
+                type:
+                  description: IngressControllerType is a type of an ingress controller
+                    for this pool.
+                  enum:
+                  - traefik17
+                  - istio
+                  type: string
+              required:
+              - type
               type: object
             namespace:
               minLength: 1

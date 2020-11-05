@@ -70,7 +70,8 @@ deploy: manifests
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./internal/api/v1beta1/" output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
 
 # Run go fmt against code
 .PHONY: fmt
@@ -86,6 +87,7 @@ vet:
 .PHONY: generate
 generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="internal/hack/boilerplate.go.txt" paths="./internal/api/v1beta1/"
+	go run internal/templates/generator/main.go
 
 # Build the docker image
 .PHONY: docker-build
