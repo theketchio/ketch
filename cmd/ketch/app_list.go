@@ -40,7 +40,8 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 	}
 	poolsByName := make(map[string]*ketchv1.Pool, len(pools.Items))
 	for _, pool := range pools.Items {
-		poolsByName[pool.Name] = &pool
+		local := pool
+		poolsByName[pool.Name] = &local
 	}
 	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
 	fmt.Fprintln(w, "NAME\tPOOL\tSTATUS\tUNITS\tADDRESSES\tDESCRIPTION")

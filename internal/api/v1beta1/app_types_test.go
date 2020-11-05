@@ -6,8 +6,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/shipa-corp/ketch/internal/templates"
 )
 
 func intRef(i int) *int {
@@ -644,8 +642,10 @@ func TestApp_URLs(t *testing.T) {
 
 func TestApp_TemplatesConfigMapName(t *testing.T) {
 	tests := []struct {
-		name string
-		app  App
+		name        string
+		app         App
+		ingressType IngressControllerType
+
 		want string
 	}{
 		{
@@ -660,14 +660,21 @@ func TestApp_TemplatesConfigMapName(t *testing.T) {
 			want: "user-provided-configmap",
 		},
 		{
-			name: "default configmap",
-			app:  App{},
-			want: templates.DefaultConfigMapName,
+			name:        "istio configmap",
+			app:         App{},
+			ingressType: IstioIngressControllerType,
+			want:        "ingress-istio-templates",
+		},
+		{
+			name:        "traefik configmap",
+			app:         App{},
+			ingressType: Traefik17IngressControllerType,
+			want:        "ingress-traefik17-templates",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.app.TemplatesConfigMapName()
+			got := tt.app.TemplatesConfigMapName(tt.ingressType)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("TemplatesConfigMapName() mismatch (-want +got):\n%s", diff)
 			}

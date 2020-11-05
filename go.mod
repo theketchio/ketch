@@ -14,6 +14,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.4.0 // indirect
 	github.com/stretchr/testify v1.6.1
+	github.com/thediveo/enumflag v0.10.1
 	helm.sh/helm/v3 v3.3.1
 	k8s.io/api v0.18.8
 	k8s.io/apimachinery v0.18.8

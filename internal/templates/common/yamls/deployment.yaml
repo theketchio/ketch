@@ -70,9 +70,6 @@ spec:
       {{- if $.Values.dockerRegistry.imagePullSecret }}
         - name: {{ $.Values.dockerRegistry.imagePullSecret }}
       {{- end }}
-      {{- if $.Values.dockerRegistry.createImagePullSecret }}
-        - name: {{ $.Values.app.name }}-image-pull-secret
-      {{- end }}
       {{- end }}
       {{- if $deployment.extra.volumes }}
       volumes:

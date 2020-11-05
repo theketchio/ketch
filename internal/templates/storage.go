@@ -68,16 +68,19 @@ func NewStorage(client client.Client, namespace string) *Storage {
 	}
 }
 
-const (
-	// DefaultConfigMapName is a name of a configmap used to store default templates provided by ketch.
-	DefaultConfigMapName = "templates-default"
-)
-
 var (
-	DefaultTemplates = Templates{
-		Yamls: DefaultYamls,
+	IstioDefaultTemplates = Templates{
+		Yamls: GeneratedYamls.IstioYamls,
+	}
+	TraefikDefaultTemplates = Templates{
+		Yamls: GeneratedYamls.TraefikYamls,
 	}
 )
+
+// IngressConfigMapName returns a name of a configmap to store the ingress' templates to render helm chart.
+func IngressConfigMapName(ingress string) string {
+	return fmt.Sprintf("ingress-%s-templates", ingress)
+}
 
 // AppConfigMapName returns a name of a configmap to store the app's templates to render helm chart.
 func AppConfigMapName(appName string) string {

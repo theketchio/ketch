@@ -55,9 +55,11 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 				Name: "working-pool",
 			},
 			Spec: ketchv1.PoolSpec{
-				NamespaceName:     "hello",
-				AppQuotaLimit:     100,
-				IngressController: ketchv1.IngressControllerSpec{},
+				NamespaceName: "hello",
+				AppQuotaLimit: 100,
+				IngressController: ketchv1.IngressControllerSpec{
+					IngressType: ketchv1.IstioIngressControllerType,
+				},
 			},
 		},
 		&ketchv1.Pool{
@@ -67,6 +69,9 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			Spec: ketchv1.PoolSpec{
 				NamespaceName: "second-namespace",
 				AppQuotaLimit: 1,
+				IngressController: ketchv1.IngressControllerSpec{
+					IngressType: ketchv1.IstioIngressControllerType,
+				},
 			},
 		},
 		&ketchv1.App{

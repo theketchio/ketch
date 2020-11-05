@@ -42,7 +42,11 @@ func appExport(ctx context.Context, cfg config, options appExportOptions, out io
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
-	tpls, err := cfg.Storage().Get(app.TemplatesConfigMapName())
+	pool := ketchv1.Pool{}
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
+		return fmt.Errorf("failed to get pool: %w", err)
+	}
+	tpls, err := cfg.Storage().Get(app.TemplatesConfigMapName(pool.Spec.IngressController.IngressType))
 	if err != nil {
 		return fmt.Errorf("failed to get the app's templates: %w", err)
 	}

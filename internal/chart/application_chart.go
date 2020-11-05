@@ -40,6 +40,11 @@ type app struct {
 	Deployments []deployment      `json:"deployments"`
 	Env         []ketchv1.Env     `json:"env"`
 	Cnames      ketchv1.CnameList `json:"cnames"`
+
+	// isAccessible if not set, ketch won't create kubernetes objects like Ingress/Gateway to handle incoming request.
+	// These objects could be broken without valid routes to the application.
+	// For example, "spec.rules" of an Ingress object must contain at least one rule.
+	IsAccessible bool `json:"isAccessible"`
 }
 
 type deployment struct {
@@ -56,11 +61,7 @@ type deploymentExtra struct {
 }
 
 type dockerRegistrySpec struct {
-	ImagePullSecret       string `json:"imagePullSecret"`
-	CreateImagePullSecret bool   `json:"createImagePullSecret"`
-	RegistryName          string `json:"registryName"`
-	Username              string `json:"username"`
-	Password              string `json:"password"`
+	ImagePullSecret string `json:"imagePullSecret"`
 }
 
 type Option func(opts *Options)
@@ -154,6 +155,7 @@ func New(name string, appSpec ketchv1.AppSpec, pool ketchv1.PoolSpec, opts ...Op
 		}
 		values.App.Deployments = append(values.App.Deployments, deployment)
 	}
+	values.App.IsAccessible = isAppAccessible(values.App)
 	return &ApplicationChart{
 		values:    *values,
 		templates: options.Templates.Yamls,
@@ -281,4 +283,18 @@ func (chrt ApplicationChart) bufferedFiles(chartConfig ChartConfig) ([]*loader.B
 // AppName returns a name of the application.
 func (chrt ApplicationChart) AppName() string {
 	return chrt.values.App.Name
+}
+
+func isAppAccessible(a *app) bool {
+	if len(a.Cnames) == 0 {
+		return false
+	}
+	for _, deployment := range a.Deployments {
+		for _, process := range deployment.Processes {
+			if process.Routable {
+				return true
+			}
+		}
+	}
+	return false
 }
