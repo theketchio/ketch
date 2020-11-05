@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/pflag"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/exec"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -17,6 +18,10 @@ var (
 )
 
 func main() {
+
+	// Remove any flags that were added by libraries automatically.
+	pflag.CommandLine = pflag.NewFlagSet("ketch", pflag.ExitOnError)
+
 	cmd := newRootCmd(&configuration.Configuration{}, os.Stdout)
 	if err := cmd.Execute(); err != nil {
 		fmt.Printf("%v\n", err)
