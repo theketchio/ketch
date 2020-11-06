@@ -87,7 +87,6 @@ type DeploymentVersion int
 type AppDeploymentSpec struct {
 	Image           string            `json:"image"`
 	Version         DeploymentVersion `json:"version"`
-	WorkingDir      string            `json:"workingDir,omitempty"`
 	Processes       []ProcessSpec     `json:"processes,omitempty"`
 	KetchYaml       *KetchYamlData    `json:"ketchYaml,omitempty"`
 	Labels          []Label           `json:"labels,omitempty"`
