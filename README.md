@@ -1,7 +1,7 @@
 ![Ketch](https://i.imgur.com/TVe46Dm.png)
 
 
-[![Slack](https://img.shields.io/badge/chat-on%20slack-6A5DAB)](https://join.slack.com/t/shipa-io/shared_invite/zt-9uyk3hiu-h~FO2RI9PGOk59h3_rix6g)
+[![Slack](https://img.shields.io/badge/chat-on%20slack-6A5DAB)](https://shipa-io.slack.com/archives/C01E4FMEY9K)
 
 Think applications not yamls :)
 
