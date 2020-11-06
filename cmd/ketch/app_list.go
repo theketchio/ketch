@@ -46,7 +46,7 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 	fmt.Fprintln(w, "NAME\tPOOL\tSTATUS\tUNITS\tADDRESSES\tDESCRIPTION")
 	for _, item := range apps.Items {
 		pool := poolsByName[item.Spec.Pool]
-		urls := strings.Join(item.URLs(&pool), " ")
+		urls := strings.Join(item.CNames(&pool), " ")
 		line := []string{item.Name, item.Spec.Pool, string(item.Status.Phase), fmt.Sprintf("%d", item.Units()), urls, item.Spec.Description}
 		fmt.Fprintln(w, strings.Join(line, "\t"))
 	}

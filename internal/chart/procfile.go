@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
 var (
@@ -48,14 +50,35 @@ func ParseProcfile(content string) (*Procfile, error) {
 	if len(names) == 0 {
 		return nil, ErrEmptyProcfile
 	}
-	sort.Strings(names)
-	routableProcessName := names[0]
-
-	if _, ok := processes[DefaultRoutableProcessName]; ok {
-		routableProcessName = DefaultRoutableProcessName
-	}
 	return &Procfile{
 		Processes:           processes,
-		RoutableProcessName: routableProcessName,
+		RoutableProcessName: routableProcess(names),
 	}, nil
+}
+
+// ProcfileFromProcesses construct a Procfile instance from a list of ProcessSpec and returns it.
+func ProcfileFromProcesses(processes []ketchv1.ProcessSpec) (*Procfile, error) {
+	if len(processes) == 0 {
+		return nil, ErrEmptyProcfile
+	}
+	procfile := Procfile{
+		Processes: make(map[string][]string, len(processes)),
+	}
+	var names []string
+	for _, spec := range processes {
+		procfile.Processes[spec.Name] = spec.Cmd
+		names = append(names, spec.Name)
+	}
+	procfile.RoutableProcessName = routableProcess(names)
+	return &procfile, nil
+}
+
+func routableProcess(names []string) string {
+	for _, name := range names {
+		if name == DefaultRoutableProcessName {
+			return DefaultRoutableProcessName
+		}
+	}
+	sort.Strings(names)
+	return names[0]
 }

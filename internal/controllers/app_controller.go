@@ -139,7 +139,11 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) ketchv1
 			Message: fmt.Sprintf(`you have reached the limit of apps`),
 		}
 	}
-	appChrt, err := chart.New(app.Name, app.Spec, pool.Spec, chart.WithExposedPorts(app.ExposedPorts()), chart.WithTemplates(*tpls))
+	options := []chart.Option{
+		chart.WithExposedPorts(app.ExposedPorts()),
+		chart.WithTemplates(*tpls),
+	}
+	appChrt, err := chart.New(app, &pool, options...)
 	if err != nil {
 		return ketchv1.AppStatus{
 			Phase:   ketchv1.AppFailed,

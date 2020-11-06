@@ -507,7 +507,7 @@ func TestApp_UnsetEnvs(t *testing.T) {
 	}
 }
 
-func TestApp_DefaultURL(t *testing.T) {
+func TestApp_DefaultCname(t *testing.T) {
 	tests := []struct {
 		name                 string
 		appName              string
@@ -516,7 +516,7 @@ func TestApp_DefaultURL(t *testing.T) {
 		want                 *string
 	}{
 		{
-			name:                 "url with a custom domain",
+			name:                 "cname with a custom domain",
 			appName:              "app-1",
 			generateDefaultCname: true,
 			pool: &Pool{
@@ -530,7 +530,7 @@ func TestApp_DefaultURL(t *testing.T) {
 			want: stringRef("app-1.10.20.30.40.theketch.io"),
 		},
 		{
-			name:                 "url with default domain",
+			name:                 "cname with default domain",
 			appName:              "app-2",
 			generateDefaultCname: true,
 			pool: &Pool{
@@ -543,13 +543,13 @@ func TestApp_DefaultURL(t *testing.T) {
 			want: stringRef("app-2.20.20.20.20.shipa.cloud"),
 		},
 		{
-			name:                 "no service endpoint - no default url",
+			name:                 "no service endpoint - no default cname",
 			appName:              "app-1",
 			generateDefaultCname: true,
 			pool:                 &Pool{},
 		},
 		{
-			name:                 "do not generate default cname - no default url",
+			name:                 "do not generate default cname - no default cname",
 			appName:              "app-1",
 			generateDefaultCname: false,
 			pool: &Pool{
@@ -573,15 +573,15 @@ func TestApp_DefaultURL(t *testing.T) {
 					},
 				},
 			}
-			got := app.DefaultURL(tt.pool)
+			got := app.DefaultCname(tt.pool)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("DefaultURL() mismatch (-want +got):\n%s", diff)
+				t.Errorf("DefaultCname() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestApp_URLs(t *testing.T) {
+func TestApp_CNames(t *testing.T) {
 	tests := []struct {
 		name                 string
 		generateDefaultCname bool
@@ -632,9 +632,9 @@ func TestApp_URLs(t *testing.T) {
 					},
 				},
 			}
-			got := app.URLs(pool)
+			got := app.CNames(pool)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("URLs() mismatch (-want +got):\n%s", diff)
+				t.Errorf("CNames() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
