@@ -141,7 +141,7 @@ func New(name string, appSpec ketchv1.AppSpec, pool ketchv1.PoolSpec, opts ...Op
 			isRoutable := procfile.IsRoutable(name)
 
 			process, err := newProcess(name, isRoutable,
-				withCmd(c.ProcessCmd(name, deploymentSpec.WorkingDir, nil)),
+				withCmd(c.ProcessCmd(name)),
 				withUnits(processSpec.Units),
 				withPortsAndProbes(c),
 				withLifecycle(c.Lifecycle()),

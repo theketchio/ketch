@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/stretchr/testify/require"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/mocks"
@@ -192,20 +193,18 @@ func Test_poolUpdate(t *testing.T) {
 			out := &bytes.Buffer{}
 			err := poolUpdate(context.Background(), tt.cfg, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
-			if (err != nil) != wantErr {
-				t.Errorf("poolUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			if wantErr {
+				require.NotNil(t, err, "poolUpdate() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if wantErr {
-				assert.Equal(t, tt.wantErr, err.Error())
+				require.Equal(t, tt.wantErr, err.Error())
 				return
 			}
-			if gotOut := out.String(); gotOut != tt.wantOut {
-				t.Errorf("poolUpdate() gotOut = %v, want %v", gotOut, tt.wantOut)
-			}
+			require.Equal(t, tt.wantOut, out.String(), "poolUpdate() gotOut = %v, want %v", out.String(), tt.wantOut)
 			gotPool := ketchv1.Pool{}
 			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.options.name}, &gotPool)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 			if diff := cmp.Diff(gotPool.Spec, tt.wantPoolSpec); diff != "" {
 				t.Errorf("PoolSpec mismatch (-want +got):\n%s", diff)
 			}

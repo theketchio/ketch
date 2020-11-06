@@ -205,23 +205,19 @@ func (c Configurator) ServicePortsForProcess(process string) []apiv1.ServicePort
 	return servicePorts
 }
 
-func (c Configurator) ProcessCmd(process string, workingDirectory string, extraCmds []string) []string {
+func (c Configurator) ProcessCmd(process string) []string {
 	cmd := c.procfile.Processes[process]
+	before := ""
 	if c.data.Hooks != nil {
-		extraCmds = append(extraCmds, c.data.Hooks.Restart.Before...)
-	}
-	before := strings.Join(extraCmds, " && ")
-	if before != "" {
-		before += " && "
-	}
-	changeWorkindDirectory := ""
-	if len(workingDirectory) > 0 {
-		changeWorkindDirectory = fmt.Sprintf("[ -d %s ] && cd %s; ", workingDirectory, workingDirectory)
+		before = strings.Join(c.data.Hooks.Restart.Before, " && ")
+		if before != "" {
+			before += " && "
+		}
 	}
 	commands := []string{
 		"/bin/sh",
 		"-lc",
-		changeWorkindDirectory + before,
+		before,
 	}
 	if len(cmd) > 1 {
 		commands[len(commands)-1] += "exec $0 \"$@\""

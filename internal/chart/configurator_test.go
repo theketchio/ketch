@@ -9,12 +9,11 @@ import (
 
 func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 	tests := []struct {
-		name             string
-		data             ketchv1.KetchYamlData
-		procfile         Procfile
-		process          string
-		workingDirectory string
-		want             []string
+		name     string
+		data     ketchv1.KetchYamlData
+		procfile Procfile
+		process  string
+		want     []string
 	}{
 		{
 			name: "single command without changing working directory",
@@ -33,9 +32,8 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 					"web": {"python web.py"},
 				},
 			},
-			process:          "web",
-			workingDirectory: "/home/application/current",
-			want:             []string{"/bin/sh", "-lc", "[ -d /home/application/current ] && cd /home/application/current; exec python web.py"},
+			process: "web",
+			want:    []string{"/bin/sh", "-lc", "exec python web.py"},
 		},
 		{
 			name: "single command with hooks",
@@ -53,9 +51,8 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 					"web": {"python web.py"},
 				},
 			},
-			process:          "web",
-			workingDirectory: "/app",
-			want:             []string{"/bin/sh", "-lc", "[ -d /app ] && cd /app; cmd1 && cmd2 && exec python web.py"},
+			process: "web",
+			want:    []string{"/bin/sh", "-lc", "cmd1 && cmd2 && exec python web.py"},
 		},
 		{
 			name: "single command with hooks, without changing working directory",
@@ -83,9 +80,8 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 					"web": {"python", "web.py"},
 				},
 			},
-			process:          "web",
-			workingDirectory: "/app",
-			want:             []string{"/bin/sh", "-lc", "[ -d /app ] && cd /app; exec $0 \"$@\"", "python", "web.py"},
+			process: "web",
+			want:    []string{"/bin/sh", "-lc", "exec $0 \"$@\"", "python", "web.py"},
 		},
 	}
 	for _, tt := range tests {
@@ -94,7 +90,7 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 				data:     tt.data,
 				procfile: tt.procfile,
 			}
-			if got := conf.ProcessCmd(tt.process, tt.workingDirectory, nil); !reflect.DeepEqual(got, tt.want) {
+			if got := conf.ProcessCmd(tt.process); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ProcessCmd() = %v, want %v", got, tt.want)
 			}
 		})

@@ -400,8 +400,6 @@ spec:
                     type: object
                   version:
                     type: integer
-                  workingDir:
-                    type: string
                 required:
                 - image
                 - version
