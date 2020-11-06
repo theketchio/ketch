@@ -17,7 +17,7 @@ import (
 var (
 	appInfoTemplate = `Application: {{ .App.Name }}
 Description: {{ .App.Spec.Description }}
-{{- range $address := .URLs }}
+{{- range $address := .Cnames }}
 Address: {{ $address }}
 {{- end }}
 Deploys: {{ .App.Spec.DeploymentsCount }}
@@ -32,8 +32,8 @@ Routing settings:
 )
 
 type appInfoContext struct {
-	App  ketchv1.App
-	URLs []string
+	App    ketchv1.App
+	Cnames []string
 }
 
 const appInfoHelp = `
@@ -43,7 +43,7 @@ Show information about a specific app.
 func newAppInfoCmd(cfg config, out io.Writer) *cobra.Command {
 	options := appInfoOptions{}
 	cmd := &cobra.Command{
-		Use:   "info",
+		Use:   "info APPNAME",
 		Short: "Show information about a specific app.",
 		Args:  cobra.ExactArgs(1),
 		Long:  appInfoHelp,
@@ -74,8 +74,8 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	buf := bytes.Buffer{}
 	t := template.Must(template.New("app-info").Parse(appInfoTemplate))
 	infoContext := appInfoContext{
-		App:  app,
-		URLs: app.URLs(pool),
+		App:    app,
+		Cnames: app.CNames(pool),
 	}
 	if err := t.Execute(&buf, infoContext); err != nil {
 		return err

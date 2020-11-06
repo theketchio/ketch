@@ -4,22 +4,19 @@ package chart
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"text/template"
 
+	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 
-	"helm.sh/helm/v3/pkg/chartutil"
-
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/templates"
-	"helm.sh/helm/v3/pkg/chart/loader"
 )
 
 // ApplicationChart is an internal representation of a helm chart converted from the App CRD
@@ -92,45 +89,32 @@ func WithTemplates(tpls templates.Templates) Option {
 }
 
 // New returns an ApplicationChart instance.
-func New(name string, appSpec ketchv1.AppSpec, pool ketchv1.PoolSpec, opts ...Option) (*ApplicationChart, error) {
+func New(application *ketchv1.App, pool *ketchv1.Pool, opts ...Option) (*ApplicationChart, error) {
+
 	options := &Options{}
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	cnames := appSpec.Ingress.Cnames
-	ingress := pool.IngressController
-	if appSpec.Ingress.GenerateDefaultCname && len(ingress.ServiceEndpoint) > 0 {
-		domain := ketchv1.ShipaCloudDomain
-		if len(ingress.Domain) > 0 {
-			domain = ingress.Domain
-		}
-		cnames = append(cnames, fmt.Sprintf("%s.%s.%s", name, ingress.ServiceEndpoint, domain))
-	}
 	values := &values{
 		App: &app{
-			Name:   name,
-			Cnames: cnames,
-			Env:    appSpec.Env,
+			Name:   application.Name,
+			Cnames: application.CNames(pool),
+			Env:    application.Spec.Env,
 		},
-		IngressController: &ingress,
+		IngressController: &pool.Spec.IngressController,
 		DockerRegistry: dockerRegistrySpec{
-			ImagePullSecret: appSpec.DockerRegistry.SecretName,
+			ImagePullSecret: application.Spec.DockerRegistry.SecretName,
 		},
 	}
 
-	for _, deploymentSpec := range appSpec.Deployments {
-		content := make([]string, 0, len(deploymentSpec.Processes))
-		for _, spec := range deploymentSpec.Processes {
-			content = append(content, fmt.Sprintf("%s:%s", spec.Name, spec.Cmd[0]))
-		}
+	for _, deploymentSpec := range application.Spec.Deployments {
 		deployment := deployment{
 			Image:   deploymentSpec.Image,
 			Version: deploymentSpec.Version,
 			Labels:  deploymentSpec.Labels,
 		}
-		procfileContent := strings.Join(content, "\n")
-		procfile, err := ParseProcfile(procfileContent)
+		procfile, err := ProcfileFromProcesses(deploymentSpec.Processes)
 		if err != nil {
 			return nil, err
 		}

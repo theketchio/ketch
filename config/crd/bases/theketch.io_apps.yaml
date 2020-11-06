@@ -450,7 +450,7 @@ spec:
                   type: array
                 generateDefaultCname:
                   description: GenerateDefaultCname if set the application will have
-                    a default url <app-name>.<ServiceEndpoint>.shipa.cloud.
+                    a default cname <app-name>.<ServiceEndpoint>.shipa.cloud.
                   type: boolean
               required:
               - generateDefaultCname

@@ -3,6 +3,10 @@ package chart
 import (
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+
+	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
 func TestParseProcfile(t *testing.T) {
@@ -108,6 +112,77 @@ func TestParseProcfile(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseProcfile() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcfileFromProcesses(t *testing.T) {
+	tests := []struct {
+		name      string
+		processes []ketchv1.ProcessSpec
+
+		want    *Procfile
+		wantErr bool
+	}{
+		{
+			name: "single process",
+			processes: []ketchv1.ProcessSpec{
+				{
+					Name: "worker",
+					Cmd:  []string{"python web.py"},
+				},
+			},
+			want: &Procfile{
+				Processes: map[string][]string{
+					"worker": {"python web.py"},
+				},
+				RoutableProcessName: "worker",
+			},
+		},
+		{
+			name: "two processes",
+			processes: []ketchv1.ProcessSpec{
+				{Name: "worker", Cmd: []string{"entrypoint.sh", "npm", "worker"}},
+				{Name: "abc", Cmd: []string{"entrypoint.sh", "npm", "abc"}},
+			},
+			want: &Procfile{
+				Processes: map[string][]string{
+					"worker": {"entrypoint.sh", "npm", "worker"},
+					"abc":    {"entrypoint.sh", "npm", "abc"},
+				},
+				RoutableProcessName: "abc",
+			},
+		},
+		{
+			name: "two process with web",
+			processes: []ketchv1.ProcessSpec{
+				{Name: "web", Cmd: []string{"entrypoint.sh", "npm", "start"}},
+				{Name: "abc", Cmd: []string{"entrypoint.sh", "npm", "abc"}},
+			},
+			want: &Procfile{
+				Processes: map[string][]string{
+					"web": {"entrypoint.sh", "npm", "start"},
+					"abc": {"entrypoint.sh", "npm", "abc"},
+				},
+				RoutableProcessName: "web",
+			},
+		},
+		{
+			name:      "no processes",
+			processes: []ketchv1.ProcessSpec{},
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ProcfileFromProcesses(tt.processes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProcfileFromProcesses() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("ProcfileFromProcesses mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

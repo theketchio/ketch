@@ -97,7 +97,7 @@ type AppDeploymentSpec struct {
 // IngressSpec configures entrypoints to access an application.
 type IngressSpec struct {
 
-	// GenerateDefaultCname if set the application will have a default url <app-name>.<ServiceEndpoint>.shipa.cloud.
+	// GenerateDefaultCname if set the application will have a default cname <app-name>.<ServiceEndpoint>.shipa.cloud.
 	GenerateDefaultCname bool `json:"generateDefaultCname"`
 
 	// Cnames is a list of additional cnames.
@@ -376,21 +376,21 @@ func (app *App) Start(selector Selector) error {
 	return nil
 }
 
-// URLs returns all CNAMEs to access the application including a default url.
-func (app *App) URLs(pool *Pool) []string {
-	defaultUrl := app.DefaultURL(pool)
-	if defaultUrl == nil {
+// CNames returns all CNAMEs to access the application including a default cname.
+func (app *App) CNames(pool *Pool) []string {
+	defaultCname := app.DefaultCname(pool)
+	if defaultCname == nil {
 		if len(app.Spec.Ingress.Cnames) == 0 {
 			return []string{}
 		}
 		return app.Spec.Ingress.Cnames
 	}
-	return append([]string{*defaultUrl}, app.Spec.Ingress.Cnames...)
+	return append([]string{*defaultCname}, app.Spec.Ingress.Cnames...)
 }
 
-// DefaultURL returns a default url to access the application.
-// A default url uses the following format: <app name>.<pool's ServiceEndpoint>.shipa.cloud.
-func (app *App) DefaultURL(pool *Pool) *string {
+// DefaultCname returns a default cname to access the application.
+// A default cname uses the following format: <app name>.<pool's ServiceEndpoint>.shipa.cloud.
+func (app *App) DefaultCname(pool *Pool) *string {
 	if pool == nil {
 		return nil
 	}
