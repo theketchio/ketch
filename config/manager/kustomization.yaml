@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: shipasoftware/ketch
-  newTag: latest
+  newTag: v0.0.1-beta-9
