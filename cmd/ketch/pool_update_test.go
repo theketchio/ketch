@@ -90,9 +90,9 @@ func Test_poolUpdate(t *testing.T) {
 				CtrlClientObjects: []runtime.Object{frontendPool},
 			},
 			options: poolUpdateOptions{
-				name:             "frontend-pool",
-				kubeNamespaceSet: true,
-				kubeNamespace:    "new-namespace",
+				name:         "frontend-pool",
+				namespaceSet: true,
+				namespace:    "new-namespace",
 			},
 			wantOut: "Successfully updated!\n",
 			wantPoolSpec: ketchv1.PoolSpec{

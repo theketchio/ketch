@@ -32,7 +32,7 @@ func Test_addPool(t *testing.T) {
 			options: poolAddOptions{
 				name:                   "hello",
 				appQuotaLimit:          5,
-				kubeNamespace:          "gke",
+				namespace:              "gke",
 				ingressClassName:       "istio",
 				ingressServiceEndpoint: "10.10.20.30",
 				ingressType:            istio,
@@ -50,21 +50,20 @@ func Test_addPool(t *testing.T) {
 			wantOut: "Successfully added!\n",
 		},
 		{
-			name: "successfully added with traefik17",
+			name: "traefik17 + default namespace with ketch- prefix",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{},
 			},
 			options: poolAddOptions{
-				name:                   "hello",
+				name:                   "aws",
 				appQuotaLimit:          5,
-				kubeNamespace:          "gke",
 				ingressClassName:       "traefik",
 				ingressServiceEndpoint: "10.10.10.10",
 				ingressType:            traefik17,
 			},
 
 			wantPoolSpec: ketchv1.PoolSpec{
-				NamespaceName: "gke",
+				NamespaceName: "ketch-aws",
 				AppQuotaLimit: 5,
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "traefik",
