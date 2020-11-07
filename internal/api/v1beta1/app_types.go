@@ -400,11 +400,7 @@ func (app *App) DefaultCname(pool *Pool) *string {
 	if len(pool.Spec.IngressController.ServiceEndpoint) == 0 {
 		return nil
 	}
-	domain := ShipaCloudDomain
-	if len(pool.Spec.IngressController.Domain) > 0 {
-		domain = pool.Spec.IngressController.Domain
-	}
-	url := fmt.Sprintf("%s.%s.%s", app.Name, pool.Spec.IngressController.ServiceEndpoint, domain)
+	url := fmt.Sprintf("%s.%s.%s", app.Name, pool.Spec.IngressController.ServiceEndpoint, ShipaCloudDomain)
 	return &url
 }
 

@@ -34,7 +34,6 @@ func Test_addPool(t *testing.T) {
 				appQuotaLimit:          5,
 				kubeNamespace:          "gke",
 				ingressClassName:       "istio",
-				ingressDomainName:      "theketch.cloud",
 				ingressServiceEndpoint: "10.10.20.30",
 				ingressType:            istio,
 			},
@@ -44,7 +43,6 @@ func Test_addPool(t *testing.T) {
 				AppQuotaLimit: 5,
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "istio",
-					Domain:          "theketch.cloud",
 					ServiceEndpoint: "10.10.20.30",
 					IngressType:     ketchv1.IstioIngressControllerType,
 				},
@@ -61,7 +59,6 @@ func Test_addPool(t *testing.T) {
 				appQuotaLimit:          5,
 				kubeNamespace:          "gke",
 				ingressClassName:       "traefik",
-				ingressDomainName:      "theketch.io",
 				ingressServiceEndpoint: "10.10.10.10",
 				ingressType:            traefik17,
 			},
@@ -71,7 +68,6 @@ func Test_addPool(t *testing.T) {
 				AppQuotaLimit: 5,
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "traefik",
-					Domain:          "theketch.io",
 					ServiceEndpoint: "10.10.10.10",
 					IngressType:     ketchv1.Traefik17IngressControllerType,
 				},

@@ -28,7 +28,6 @@ func newPoolUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 			options.appQuotaLimitSet = cmd.Flags().Changed("app-quota-limit")
 			options.kubeNamespaceSet = cmd.Flags().Changed("kube-namespace")
 			options.ingressClassNameSet = cmd.Flags().Changed("ingress-class-name")
-			options.ingressDomainNameSet = cmd.Flags().Changed("ingress-domain")
 			options.ingressServiceEndpointSet = cmd.Flags().Changed("ingress-service-endpoint")
 			options.ingressTypeSet = cmd.Flags().Changed("ingress-type")
 			return poolUpdate(cmd.Context(), cfg, options, out)
@@ -37,7 +36,6 @@ func newPoolUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.kubeNamespace, "kube-namespace", "", "Kubernetes namespace for this pool")
 	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", 0, "Quota limit for app when adding it to this pool")
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
-	cmd.Flags().StringVar(&options.ingressDomainName, "ingress-domain", "shipa.cloud", "domain name for the default URL")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
 	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik17 or istio")
 	return cmd
@@ -52,8 +50,6 @@ type poolUpdateOptions struct {
 	kubeNamespace             string
 	ingressClassNameSet       bool
 	ingressClassName          string
-	ingressDomainNameSet      bool
-	ingressDomainName         string
 	ingressServiceEndpointSet bool
 	ingressServiceEndpoint    string
 	ingressTypeSet            bool
@@ -73,9 +69,6 @@ func poolUpdate(ctx context.Context, cfg config, options poolUpdateOptions, out 
 	}
 	if options.ingressClassNameSet {
 		pool.Spec.IngressController.ClassName = options.ingressClassName
-	}
-	if options.ingressDomainNameSet {
-		pool.Spec.IngressController.Domain = options.ingressDomainName
 	}
 	if options.ingressServiceEndpointSet {
 		pool.Spec.IngressController.ServiceEndpoint = options.ingressServiceEndpoint

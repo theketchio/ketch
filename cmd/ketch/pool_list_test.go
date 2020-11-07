@@ -23,7 +23,6 @@ func Test_poolList(t *testing.T) {
 			AppQuotaLimit: 30,
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       "classname-a",
-				Domain:          "theketch.io",
 				ServiceEndpoint: "192.168.1.17",
 				IngressType:     ketchv1.IstioIngressControllerType,
 			},
@@ -39,7 +38,6 @@ func Test_poolList(t *testing.T) {
 			AppQuotaLimit: 30,
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       "classname-b",
-				Domain:          "theketch.io",
 				ServiceEndpoint: "192.168.1.17",
 				IngressType:     ketchv1.Traefik17IngressControllerType,
 			},
