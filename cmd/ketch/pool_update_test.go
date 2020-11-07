@@ -27,7 +27,6 @@ func Test_poolUpdate(t *testing.T) {
 			AppQuotaLimit: 30,
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       "default-classname",
-				Domain:          "theketch.io",
 				ServiceEndpoint: "192.168.1.17",
 				IngressType:     ketchv1.IstioIngressControllerType,
 			},
@@ -59,30 +58,7 @@ func Test_poolUpdate(t *testing.T) {
 				AppQuotaLimit: 30,
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
-					Domain:          "theketch.io",
 					ServiceEndpoint: "192.168.1.18",
-					IngressType:     ketchv1.IstioIngressControllerType,
-				},
-			},
-		},
-		{
-			name: "update ingress domain name",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{frontendPool},
-			},
-			options: poolUpdateOptions{
-				name:                 "frontend-pool",
-				ingressDomainNameSet: true,
-				ingressDomainName:    "theketch.cloud",
-			},
-			wantOut: "Successfully updated!\n",
-			wantPoolSpec: ketchv1.PoolSpec{
-				NamespaceName: "frontend",
-				AppQuotaLimit: 30,
-				IngressController: ketchv1.IngressControllerSpec{
-					ClassName:       "default-classname",
-					Domain:          "theketch.cloud",
-					ServiceEndpoint: "192.168.1.17",
 					IngressType:     ketchv1.IstioIngressControllerType,
 				},
 			},
@@ -103,7 +79,6 @@ func Test_poolUpdate(t *testing.T) {
 				AppQuotaLimit: 30,
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "traefik",
-					Domain:          "theketch.io",
 					ServiceEndpoint: "192.168.1.17",
 					IngressType:     ketchv1.IstioIngressControllerType,
 				},
@@ -125,7 +100,6 @@ func Test_poolUpdate(t *testing.T) {
 				AppQuotaLimit: 30,
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
-					Domain:          "theketch.io",
 					ServiceEndpoint: "192.168.1.17",
 					IngressType:     ketchv1.IstioIngressControllerType,
 				},
@@ -147,7 +121,6 @@ func Test_poolUpdate(t *testing.T) {
 				AppQuotaLimit: 50,
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
-					Domain:          "theketch.io",
 					ServiceEndpoint: "192.168.1.17",
 					IngressType:     ketchv1.IstioIngressControllerType,
 				},
@@ -169,7 +142,6 @@ func Test_poolUpdate(t *testing.T) {
 				AppQuotaLimit: 30,
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
-					Domain:          "theketch.io",
 					ServiceEndpoint: "192.168.1.17",
 					IngressType:     ketchv1.Traefik17IngressControllerType,
 				},

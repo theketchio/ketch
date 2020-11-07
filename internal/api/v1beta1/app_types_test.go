@@ -516,20 +516,6 @@ func TestApp_DefaultCname(t *testing.T) {
 		want                 *string
 	}{
 		{
-			name:                 "cname with a custom domain",
-			appName:              "app-1",
-			generateDefaultCname: true,
-			pool: &Pool{
-				Spec: PoolSpec{
-					IngressController: IngressControllerSpec{
-						Domain:          "theketch.io",
-						ServiceEndpoint: "10.20.30.40",
-					},
-				},
-			},
-			want: stringRef("app-1.10.20.30.40.theketch.io"),
-		},
-		{
 			name:                 "cname with default domain",
 			appName:              "app-2",
 			generateDefaultCname: true,
@@ -592,7 +578,7 @@ func TestApp_CNames(t *testing.T) {
 			name:                 "with default cname",
 			generateDefaultCname: true,
 			cnames:               []string{"theketch.io", "app.theketch.io"},
-			want:                 []string{"ketch.10.20.30.40.theketch.io", "theketch.io", "app.theketch.io"},
+			want:                 []string{"ketch.10.20.30.40.shipa.cloud", "theketch.io", "app.theketch.io"},
 		},
 		{
 			name:                 "without default cname",
@@ -608,7 +594,7 @@ func TestApp_CNames(t *testing.T) {
 		{
 			name:                 "empty cnames with default cname",
 			generateDefaultCname: true,
-			want:                 []string{"ketch.10.20.30.40.theketch.io"},
+			want:                 []string{"ketch.10.20.30.40.shipa.cloud"},
 		},
 	}
 	for _, tt := range tests {
@@ -627,7 +613,6 @@ func TestApp_CNames(t *testing.T) {
 			pool := &Pool{
 				Spec: PoolSpec{
 					IngressController: IngressControllerSpec{
-						Domain:          "theketch.io",
 						ServiceEndpoint: "10.20.30.40",
 					},
 				},

@@ -44,7 +44,6 @@ func newPoolAddCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.kubeNamespace, "kube-namespace", "", "Kubernetes namespace for this pool")
 	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", -1, "Quota limit for app when adding it to this pool")
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
-	cmd.Flags().StringVar(&options.ingressDomainName, "ingress-domain", "shipa.cloud", "domain name for the default URL")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
 	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik17 or istio")
 	cmd.MarkFlagRequired("kube-namespace")
@@ -58,7 +57,6 @@ type poolAddOptions struct {
 	kubeNamespace string
 
 	ingressClassName       string
-	ingressDomainName      string
 	ingressServiceEndpoint string
 	ingressType            ingressType
 }
@@ -77,7 +75,6 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 			AppQuotaLimit: options.appQuotaLimit,
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       options.ingressClassName,
-				Domain:          options.ingressDomainName,
 				ServiceEndpoint: options.ingressServiceEndpoint,
 				IngressType:     options.ingressType.ingressControllerType(),
 			},

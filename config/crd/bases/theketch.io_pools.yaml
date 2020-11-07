@@ -57,8 +57,6 @@ spec:
               properties:
                 className:
                   type: string
-                domain:
-                  type: string
                 serviceEndpoint:
                   type: string
                 traefik:
