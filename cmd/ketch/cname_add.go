@@ -46,12 +46,12 @@ func cnameAdd(ctx context.Context, cfg config, options cnameAddOptions, out io.W
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get the app: %w", err)
 	}
-	for _, cname := range app.Spec.Ingress.Cnames {
+	for _, cname := range app.Spec.CNames.Https {
 		if cname == options.cname {
 			return nil
 		}
 	}
-	app.Spec.Ingress.Cnames = append(app.Spec.Ingress.Cnames, options.cname)
+	app.Spec.CNames.Https = append(app.Spec.CNames.Https, options.cname)
 	if err := cfg.Client().Update(ctx, &app); err != nil {
 		return fmt.Errorf("failed to update the app: %w", err)
 	}

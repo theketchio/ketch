@@ -53,9 +53,6 @@ type Label struct {
 	Value string `json:"value"`
 }
 
-// CnameList is a list of an app's CNAMEs.
-type CnameList []string
-
 // RoutingSettings contains a weight of the current deployment used to route incoming traffic.
 // If an application has two deployments with corresponding weights of 30 and 70,
 // then 3 of 10 incoming requests will be sent to the first deployment (approximately).
@@ -94,14 +91,14 @@ type AppDeploymentSpec struct {
 	ExposedPorts    []ExposedPort     `json:"exposedPorts,omitempty"`
 }
 
-// IngressSpec configures entrypoints to access an application.
-type IngressSpec struct {
+// CNames configures entrypoints to access an application.
+type CNames struct {
 
 	// GenerateDefaultCname if set the application will have a default cname <app-name>.<ServiceEndpoint>.shipa.cloud.
 	GenerateDefaultCname bool `json:"generateDefaultCname"`
 
-	// Cnames is a list of additional cnames.
-	Cnames CnameList `json:"cnames,omitempty"`
+	// Https contains a list of additional cnames that are protected with SSL certificates.
+	Https []string `json:"https,omitempty"`
 }
 
 // DockerRegistrySpec contains docker registry configuration of an application.
@@ -163,8 +160,8 @@ type AppSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	Pool string `json:"pool"`
 
-	// Ingress contains configuration of entrypoints to access the application.
-	Ingress IngressSpec `json:"ingress"`
+	// CNames contains configuration of entrypoints to access the application.
+	CNames CNames `json:"cnames"`
 
 	// DockerRegistry contains docker registry configuration of the application.
 	DockerRegistry DockerRegistrySpec `json:"dockerRegisty,omitempty"`
@@ -380,12 +377,12 @@ func (app *App) Start(selector Selector) error {
 func (app *App) CNames(pool *Pool) []string {
 	defaultCname := app.DefaultCname(pool)
 	if defaultCname == nil {
-		if len(app.Spec.Ingress.Cnames) == 0 {
+		if len(app.Spec.CNames.Https) == 0 {
 			return []string{}
 		}
-		return app.Spec.Ingress.Cnames
+		return app.Spec.CNames.Https
 	}
-	return append([]string{*defaultCname}, app.Spec.Ingress.Cnames...)
+	return append([]string{*defaultCname}, app.Spec.CNames.Https...)
 }
 
 // DefaultCname returns a default cname to access the application.
@@ -394,7 +391,7 @@ func (app *App) DefaultCname(pool *Pool) *string {
 	if pool == nil {
 		return nil
 	}
-	if !app.Spec.Ingress.GenerateDefaultCname {
+	if !app.Spec.CNames.GenerateDefaultCname {
 		return nil
 	}
 	if len(pool.Spec.IngressController.ServiceEndpoint) == 0 {

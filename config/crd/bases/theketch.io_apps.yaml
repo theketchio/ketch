@@ -54,6 +54,23 @@ spec:
                     templates used to render a helm chart.
                   type: string
               type: object
+            cnames:
+              description: CNames contains configuration of entrypoints to access
+                the application.
+              properties:
+                generateDefaultCname:
+                  description: GenerateDefaultCname if set the application will have
+                    a default cname <app-name>.<ServiceEndpoint>.shipa.cloud.
+                  type: boolean
+                https:
+                  description: Https contains a list of additional cnames that are
+                    protected with SSL certificates.
+                  items:
+                    type: string
+                  type: array
+              required:
+              - generateDefaultCname
+              type: object
             deployments:
               description: Deployments is a list of running deployments.
               items:
@@ -439,22 +456,6 @@ spec:
                 - value
                 type: object
               type: array
-            ingress:
-              description: Ingress contains configuration of entrypoints to access
-                the application.
-              properties:
-                cnames:
-                  description: Cnames is a list of additional cnames.
-                  items:
-                    type: string
-                  type: array
-                generateDefaultCname:
-                  description: GenerateDefaultCname if set the application will have
-                    a default cname <app-name>.<ServiceEndpoint>.shipa.cloud.
-                  type: boolean
-              required:
-              - generateDefaultCname
-              type: object
             pool:
               description: Pool is a name of a pool used to run the application.
               minLength: 1
@@ -462,8 +463,8 @@ spec:
             version:
               type: string
           required:
+          - cnames
           - deployments
-          - ingress
           - pool
           type: object
         status:

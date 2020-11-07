@@ -554,7 +554,7 @@ func TestApp_DefaultCname(t *testing.T) {
 					Name: tt.appName,
 				},
 				Spec: AppSpec{
-					Ingress: IngressSpec{
+					CNames: CNames{
 						GenerateDefaultCname: tt.generateDefaultCname,
 					},
 				},
@@ -604,9 +604,9 @@ func TestApp_CNames(t *testing.T) {
 					Name: "ketch",
 				},
 				Spec: AppSpec{
-					Ingress: IngressSpec{
+					CNames: CNames{
 						GenerateDefaultCname: tt.generateDefaultCname,
-						Cnames:               tt.cnames,
+						Https:                tt.cnames,
 					},
 				},
 			}

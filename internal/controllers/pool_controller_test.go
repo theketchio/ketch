@@ -119,7 +119,7 @@ func TestPoolReconciler_Reconcile(t *testing.T) {
 
 				gotNamespace := v1.Namespace{}
 				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.pool.Spec.NamespaceName}, &gotNamespace)
-				assert.Equal(t, tt.wantNamespaceAnnotations, gotNamespace.Annotations)
+				assert.Equal(t, tt.wantNamespaceAnnotations, gotNamespace.Labels)
 			} else {
 				assert.Nil(t, resultPool.Status.Namespace)
 			}

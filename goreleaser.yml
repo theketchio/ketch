@@ -1,4 +1,7 @@
 project_name: ketch
+before:
+  hooks:
+    - make generate
 builds:
   - id: ketch
     binary: ketch

@@ -18,7 +18,7 @@ Remove a CNAME from an application.
 func newCnameRemoveCmd(cfg config, out io.Writer) *cobra.Command {
 	options := cnameRemoveOptions{}
 	cmd := &cobra.Command{
-		Use:   "remove",
+		Use:   "remove CNAME",
 		Args:  cobra.ExactValidArgs(1),
 		Short: "Remove a CNAME from an application.",
 		Long:  cnameRemoveHelp,
@@ -42,14 +42,14 @@ func cnameRemove(ctx context.Context, cfg config, options cnameRemoveOptions, ou
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get the app: %w", err)
 	}
-	cnames := make([]string, 0, len(app.Spec.Ingress.Cnames))
-	for _, cname := range app.Spec.Ingress.Cnames {
+	cnames := make([]string, 0, len(app.Spec.CNames.Https))
+	for _, cname := range app.Spec.CNames.Https {
 		if cname == options.cname {
 			continue
 		}
 		cnames = append(cnames, cname)
 	}
-	app.Spec.Ingress.Cnames = cnames
+	app.Spec.CNames.Https = cnames
 	if err := cfg.Client().Update(ctx, &app); err != nil {
 		return fmt.Errorf("failed to update the app: %w", err)
 	}

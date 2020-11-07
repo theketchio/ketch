@@ -67,7 +67,7 @@ func appCreate(ctx context.Context, cfg config, options appCreateOptions, out io
 			Deployments: []ketchv1.AppDeploymentSpec{},
 			Env:         envs,
 			Pool:        options.pool,
-			Ingress: ketchv1.IngressSpec{
+			CNames: ketchv1.CNames{
 				GenerateDefaultCname: true,
 			},
 			DockerRegistry: ketchv1.DockerRegistrySpec{

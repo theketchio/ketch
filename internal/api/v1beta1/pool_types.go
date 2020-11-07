@@ -68,10 +68,6 @@ const (
 	PoolFailed  PoolPhase = "Failed"
 )
 
-type Traefik struct {
-	EntryPoints []string `json:"entryPoints"`
-}
-
 // +kubebuilder:validation:Enum=traefik17;istio
 
 // IngressControllerType is a type of an ingress controller for this pool.
@@ -89,7 +85,7 @@ type IngressControllerSpec struct {
 	ClassName       string                `json:"className,omitempty"`
 	ServiceEndpoint string                `json:"serviceEndpoint,omitempty"`
 	IngressType     IngressControllerType `json:"type"`
-	Traefik         *Traefik              `json:"traefik,omitempty"`
+	ClusterIssuer   string                `json:"clusterIssuer,omitempty"`
 }
 
 // PoolStatus defines the observed state of Pool
