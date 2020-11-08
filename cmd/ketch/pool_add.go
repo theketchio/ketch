@@ -44,6 +44,7 @@ func newPoolAddCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this pool")
 	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", -1, "Quota limit for app when adding it to this pool")
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
+	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
 	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik17 or istio")
 	return cmd
@@ -56,6 +57,7 @@ type poolAddOptions struct {
 	namespace     string
 
 	ingressClassName       string
+	ingressClusterIssuer   string
 	ingressServiceEndpoint string
 	ingressType            ingressType
 }
@@ -79,6 +81,7 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       options.ingressClassName,
 				ServiceEndpoint: options.ingressServiceEndpoint,
+				ClusterIssuer:   options.ingressClusterIssuer,
 				IngressType:     options.ingressType.ingressControllerType(),
 			},
 		},

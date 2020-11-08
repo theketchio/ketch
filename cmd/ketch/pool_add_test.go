@@ -36,6 +36,7 @@ func Test_addPool(t *testing.T) {
 				ingressClassName:       "istio",
 				ingressServiceEndpoint: "10.10.20.30",
 				ingressType:            istio,
+				ingressClusterIssuer:   "le-production",
 			},
 
 			wantPoolSpec: ketchv1.PoolSpec{
@@ -45,6 +46,7 @@ func Test_addPool(t *testing.T) {
 					ClassName:       "istio",
 					ServiceEndpoint: "10.10.20.30",
 					IngressType:     ketchv1.IstioIngressControllerType,
+					ClusterIssuer:   "le-production",
 				},
 			},
 			wantOut: "Successfully added!\n",
