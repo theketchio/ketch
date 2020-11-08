@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"helm.sh/helm/v3/pkg/release"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,7 +50,7 @@ type helmFactoryFn func(namespace string) (Helm, error)
 
 // Helm has methods to update/delete helm charts.
 type Helm interface {
-	UpdateChart(appChrt chart.ApplicationChart, config chart.ChartConfig) error
+	UpdateChart(appChrt chart.ApplicationChart, config chart.ChartConfig, opts ...chart.InstallOption) (*release.Release, error)
 	DeleteChart(appName string) error
 }
 
@@ -66,6 +67,9 @@ type Helm interface {
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="networking.istio.io",resources=gateways,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="networking.istio.io",resources=virtualservices,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="cert-manager.io",resources=certificates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="extensions",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="extensions",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -180,7 +184,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) ketchv1
 			Message: err.Error(),
 		}
 	}
-	err = helmClient.UpdateChart(*appChrt, chartConfig)
+	_, err = helmClient.UpdateChart(*appChrt, chartConfig)
 	if err != nil {
 		return ketchv1.AppStatus{
 			Phase:   ketchv1.AppPending,

@@ -18,7 +18,7 @@ Remove a CNAME from an application.
 func newCnameRemoveCmd(cfg config, out io.Writer) *cobra.Command {
 	options := cnameRemoveOptions{}
 	cmd := &cobra.Command{
-		Use:   "remove",
+		Use:   "remove CNAME",
 		Args:  cobra.ExactValidArgs(1),
 		Short: "Remove a CNAME from an application.",
 		Long:  cnameRemoveHelp,

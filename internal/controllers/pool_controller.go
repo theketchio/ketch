@@ -114,10 +114,11 @@ func (r *PoolReconciler) reconcile(ctx context.Context, pool *ketchv1.Pool) ketc
 	if pool.Spec.IngressController.IngressType == ketchv1.IstioIngressControllerType {
 		istioInjectionValue = "enabled"
 	}
-	if namespace.Annotations == nil {
-		namespace.Annotations = map[string]string{}
+	if namespace.Labels == nil {
+		namespace.Labels = map[string]string{}
 	}
-	namespace.Annotations["istio-injection"] = istioInjectionValue
+	namespace.Labels["istio-injection"] = istioInjectionValue
+
 	err = r.Update(ctx, &namespace)
 	if err != nil {
 		return ketchv1.PoolStatus{

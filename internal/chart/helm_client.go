@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"helm.sh/helm/v3/pkg/action"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/release"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -43,20 +43,23 @@ func getActionConfig(namespace string) (*action.Configuration, error) {
 	return actionConfig, nil
 }
 
+// Option to perform additional configuration of action.Install before running a chart installation.
+type InstallOption func(install *action.Install)
+
 // UpdateChart checks if the app chart is already installed and performs "helm install" or "helm update" operation.
-func (c HelmClient) UpdateChart(appChrt ApplicationChart, config ChartConfig) error {
+func (c HelmClient) UpdateChart(appChrt ApplicationChart, config ChartConfig, opts ...InstallOption) (*release.Release, error) {
 	appName := appChrt.AppName()
 	files, err := appChrt.bufferedFiles(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	chrt, err := loader.LoadFiles(files)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	vals, err := appChrt.getValues()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	getValuesClient := action.NewGetValues(c.cfg)
 	getValuesClient.AllValues = true
@@ -65,16 +68,17 @@ func (c HelmClient) UpdateChart(appChrt ApplicationChart, config ChartConfig) er
 		clientInstall := action.NewInstall(c.cfg)
 		clientInstall.ReleaseName = appName
 		clientInstall.Namespace = c.namespace
-		_, err := clientInstall.Run(chrt, vals)
-		return err
+		for _, opt := range opts {
+			opt(clientInstall)
+		}
+		return clientInstall.Run(chrt, vals)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	updateClient := action.NewUpgrade(c.cfg)
 	updateClient.Namespace = c.namespace
-	_, err = updateClient.Run(appName, chrt, vals)
-	return err
+	return updateClient.Run(appName, chrt, vals)
 }
 
 // DeleteChart uninstalls the app's helm release. It doesn't return an error if the release is not found.
