@@ -33,7 +33,7 @@ func newAppCreateCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&options.description, "description", "d", "", "App description")
 	cmd.Flags().StringSliceVarP(&options.envs, "env", "e", []string{}, "App env variables")
 	cmd.Flags().StringVarP(&options.pool, "pool", "o", "", "Pool to deploy your app")
-	cmd.Flags().StringVarP(&options.dockerRegistrySecret, "registry-secret", "", "", "A name of a Secret with docker credentials")
+	cmd.Flags().StringVarP(&options.dockerRegistrySecret, "registry-secret", "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
 	cmd.Flags().StringVar(&options.templatesDirectory, "templates", "", "the directory with chart templates")
 	cmd.MarkFlagRequired("pool")
 
