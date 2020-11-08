@@ -30,6 +30,7 @@ func newPoolUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 			options.ingressClassNameSet = cmd.Flags().Changed("ingress-class-name")
 			options.ingressServiceEndpointSet = cmd.Flags().Changed("ingress-service-endpoint")
 			options.ingressTypeSet = cmd.Flags().Changed("ingress-type")
+			options.ingressClusterIssuerSet = cmd.Flags().Changed("cluster-issuer")
 			return poolUpdate(cmd.Context(), cfg, options, out)
 		},
 	}
@@ -37,6 +38,7 @@ func newPoolUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", 0, "Quota limit for app when adding it to this pool")
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
+	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
 	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik17 or istio")
 	return cmd
 }
@@ -50,6 +52,8 @@ type poolUpdateOptions struct {
 	namespace                 string
 	ingressClassNameSet       bool
 	ingressClassName          string
+	ingressClusterIssuerSet   bool
+	ingressClusterIssuer      string
 	ingressServiceEndpointSet bool
 	ingressServiceEndpoint    string
 	ingressTypeSet            bool
@@ -75,6 +79,9 @@ func poolUpdate(ctx context.Context, cfg config, options poolUpdateOptions, out 
 	}
 	if options.ingressTypeSet {
 		pool.Spec.IngressController.IngressType = options.ingressType.ingressControllerType()
+	}
+	if options.ingressClusterIssuerSet {
+		pool.Spec.IngressController.ClusterIssuer = options.ingressClusterIssuer
 	}
 	if err := cfg.Client().Update(ctx, &pool); err != nil {
 		return fmt.Errorf("failed to update the pool: %w", err)
