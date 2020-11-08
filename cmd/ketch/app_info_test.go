@@ -23,7 +23,7 @@ func Test_appInfo(t *testing.T) {
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
-			Pool:        "gke",
+			Pool: "gke",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/release"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,8 +39,8 @@ type helm struct {
 	deleteChartCalled  []string
 }
 
-func (h *helm) UpdateChart(appChrt chart.ApplicationChart, config chart.ChartConfig) error {
-	return h.updateChartResults[appChrt.AppName()]
+func (h *helm) UpdateChart(appChrt chart.ApplicationChart, config chart.ChartConfig, opts ...chart.InstallOption) (*release.Release, error) {
+	return nil, h.updateChartResults[appChrt.AppName()]
 }
 
 func (h *helm) DeleteChart(appName string) error {

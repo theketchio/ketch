@@ -1,0 +1,15 @@
+{{ range $_, $https := .Values.app.ingress.https }}
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: {{ $https.secretName }}
+  namespace: istio-system
+spec:
+  secretName: {{ $https.secretName }}
+  dnsNames:
+    - {{ $https.cname }}
+  issuerRef:
+    name: {{ $.Values.ingressController.clusterIssuer }}
+    kind: ClusterIssuer
+---
+{{ end }}

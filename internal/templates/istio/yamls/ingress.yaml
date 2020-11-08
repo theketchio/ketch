@@ -1,5 +1,6 @@
 {{- if .Values.app.isAccessible }}
 {{- if .Values.app.ingress.https }}
+
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
@@ -7,12 +8,6 @@ metadata:
     {{- if .Values.ingressController.className }}
     kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
     {{- end }}
-    {{- if .Values.ingressController.clusterIssuer }}
-    cert-manager.io/cluster-issuer: {{ .Values.ingressController.clusterIssuer }}
-    {{- end }}
-    traefik.ingress.kubernetes.io/frontend-entry-points: https
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
   labels:
     theketch.io/app-name: {{ $.Values.app.name }}
   name: {{ $.Values.app.name }}-https
@@ -20,7 +15,7 @@ spec:
   tls:
     {{- range $_, $https := .Values.app.ingress.https }}
     - hosts:
-        - {{ $https.cname }}
+      - {{ $https.cname }}
       secretName: {{ $https.secretName }}
     {{- end }}
   rules:
@@ -49,8 +44,6 @@ metadata:
     {{- if .Values.ingressController.className }}
     kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
     {{- end }}
-    traefik.ingress.kubernetes.io/frontend-entry-points: http
-    traefik.ingress.kubernetes.io/router.entrypoints: web
   labels:
     theketch.io/app-name: {{ $.Values.app.name }}
   name: {{ $.Values.app.name }}-http
@@ -70,6 +63,6 @@ spec:
             {{- end }}
             {{- end }}
     {{- end }}
-{{- end }}
+  {{- end }}
 
 {{- end }}

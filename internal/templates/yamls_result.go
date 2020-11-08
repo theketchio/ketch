@@ -128,6 +128,7 @@ spec:
 {{ end }}
 `,
 		"ingress.yaml": `{{- if .Values.app.isAccessible }}
+{{- if .Values.app.ingress.https }}
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
@@ -135,24 +136,25 @@ metadata:
     {{- if .Values.ingressController.className }}
     kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
     {{- end }}
-    {{- if .Values.ingressController.traefik }}
-    traefik.ingress.kubernetes.io/frontend-entry-points: {{ join "," .Values.ingressController.traefik.entryPoints }}
-    traefik.ingress.kubernetes.io/service-weights: |
-    {{- range $_, $deployment := .Values.app.deployments }}
-      {{- range $_, $process := $deployment.processes }}
-      {{- if $process.routable }}
-      {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}: {{ $deployment.routingSettings.weight }}
-      {{- end }}
-      {{- end }}
-      {{- end }}
+    {{- if .Values.ingressController.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingressController.clusterIssuer }}
     {{- end }}
+    traefik.ingress.kubernetes.io/frontend-entry-points: https
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
   labels:
     theketch.io/app-name: {{ $.Values.app.name }}
-  name: {{ $.Values.app.name }}-http
+  name: {{ $.Values.app.name }}-https
 spec:
+  tls:
+    {{- range $_, $https := .Values.app.ingress.https }}
+    - hosts:
+        - {{ $https.cname }}
+      secretName: {{ $https.secretName }}
+    {{- end }}
   rules:
-    {{- range $_, $cname := .Values.app.cnames }}
-    - host: {{ $cname }}
+    {{- range $_, $https := .Values.app.ingress.https }}
+    - host: {{ $https.cname }}
       http:
         paths:
           {{- range $_, $deployment := $.Values.app.deployments }}
@@ -165,6 +167,40 @@ spec:
           {{- end }}
           {{- end }}
     {{- end }}
+---
+{{- end }}
+
+{{- if .Values.app.ingress.http }}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    {{- if .Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
+    {{- end }}
+    traefik.ingress.kubernetes.io/frontend-entry-points: http
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  labels:
+    theketch.io/app-name: {{ $.Values.app.name }}
+  name: {{ $.Values.app.name }}-http
+spec:
+  rules:
+    {{- range $_, $cname := .Values.app.ingress.http }}
+    - host: {{ $cname }}
+      http:
+        paths:
+          {{- range $_, $deployment := $.Values.app.deployments }}
+            {{- range $_, $process := $deployment.processes }}
+            {{- if $process.routable }}
+            - backend:
+                serviceName: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+                servicePort: {{ $process.publicServicePort }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+    {{- end }}
+{{- end }}
+
 {{- end }}
 `,
 	},
@@ -287,54 +323,88 @@ spec:
   {{ end }}
 {{ end }}
 `,
-		"gateway.yaml": `{{- if .Values.app.isAccessible }}
-apiVersion: networking.istio.io/v1alpha3
-kind: Gateway
+		"certificate.yaml": `{{ range $_, $https := .Values.app.ingress.https }}
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
 metadata:
-  generation: 1
-  name: ketch-{{ $.Values.app.name }}-gateway
+  name: {{ $https.secretName }}
+  namespace: istio-system
 spec:
-  selector:
-    # might need to be configurable based on istio installation: (kubectl get svc/istio-ingressgateway -n istio-system -o jsonpath='{.metadata.labels.istio}')
-    istio: ingressgateway
-  servers:
-  - hosts:
-{{- range $_, $cname := .Values.app.cnames }}
-    - {{ $cname }}
-{{- end }}
-    port:
-      name: http
-      number: 80
-      protocol: HTTP
-{{- end }}`,
-		"virtual-service.yaml": `{{- if .Values.app.isAccessible }}
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
+  secretName: {{ $https.secretName }}
+  dnsNames:
+    - {{ $https.cname }}
+  issuerRef:
+    name: {{ $.Values.ingressController.clusterIssuer }}
+    kind: ClusterIssuer
+---
+{{ end }}`,
+		"ingress.yaml": `{{- if .Values.app.isAccessible }}
+{{- if .Values.app.ingress.https }}
+
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
 metadata:
+  annotations:
+    {{- if .Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
+    {{- end }}
+  labels:
+    theketch.io/app-name: {{ $.Values.app.name }}
+  name: {{ $.Values.app.name }}-https
+spec:
+  tls:
+    {{- range $_, $https := .Values.app.ingress.https }}
+    - hosts:
+      - {{ $https.cname }}
+      secretName: {{ $https.secretName }}
+    {{- end }}
+  rules:
+    {{- range $_, $https := .Values.app.ingress.https }}
+    - host: {{ $https.cname }}
+      http:
+        paths:
+          {{- range $_, $deployment := $.Values.app.deployments }}
+          {{- range $_, $process := $deployment.processes }}
+          {{- if $process.routable }}
+          - backend:
+              serviceName: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+              servicePort: {{ $process.publicServicePort }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+    {{- end }}
+---
+{{- end }}
+
+{{- if .Values.app.ingress.http }}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    {{- if .Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
+    {{- end }}
+  labels:
+    theketch.io/app-name: {{ $.Values.app.name }}
   name: {{ $.Values.app.name }}-http
 spec:
-  gateways:
-  - ketch-{{ $.Values.app.name }}-gateway
-  hosts:
-{{- range $_, $cname := .Values.app.cnames }}
-    - {{ $cname }}
-{{- end }}
-  http:
-  - match:
-    - uri:
-        prefix: /
-    route:
-{{- range $_, $deployment := $.Values.app.deployments }}
-{{- range $_, $process := $deployment.processes }}
-{{- if $process.routable }}
-    - destination:
-        host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
-        port:
-          number: {{ $process.publicServicePort }}
-      weight: {{ $deployment.routingSettings.weight }}
-{{- end }}
-{{- end }}
-{{- end }}
+  rules:
+    {{- range $_, $cname := .Values.app.ingress.http }}
+    - host: {{ $cname }}
+      http:
+        paths:
+          {{- range $_, $deployment := $.Values.app.deployments }}
+            {{- range $_, $process := $deployment.processes }}
+            {{- if $process.routable }}
+            - backend:
+                serviceName: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+                servicePort: {{ $process.publicServicePort }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+    {{- end }}
+  {{- end }}
+
 {{- end }}
 `,
 	},
