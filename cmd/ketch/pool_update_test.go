@@ -139,7 +139,7 @@ func Test_poolUpdate(t *testing.T) {
 			options: poolUpdateOptions{
 				name:           "frontend-pool",
 				ingressTypeSet: true,
-				ingressType:    traefik17,
+				ingressType:    traefik,
 			},
 			wantOut: "Successfully updated!\n",
 			wantPoolSpec: ketchv1.PoolSpec{
@@ -148,7 +148,7 @@ func Test_poolUpdate(t *testing.T) {
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.17",
-					IngressType:     ketchv1.Traefik17IngressControllerType,
+					IngressType:     ketchv1.TraefikIngressControllerType,
 					ClusterIssuer:   "le-staging",
 				},
 			},

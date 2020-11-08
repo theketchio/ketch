@@ -52,7 +52,7 @@ func Test_addPool(t *testing.T) {
 			wantOut: "Successfully added!\n",
 		},
 		{
-			name: "traefik17 + default namespace with ketch- prefix",
+			name: "traefik + default namespace with ketch- prefix",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{},
 			},
@@ -61,7 +61,7 @@ func Test_addPool(t *testing.T) {
 				appQuotaLimit:          5,
 				ingressClassName:       "traefik",
 				ingressServiceEndpoint: "10.10.10.10",
-				ingressType:            traefik17,
+				ingressType:            traefik,
 			},
 
 			wantPoolSpec: ketchv1.PoolSpec{
@@ -70,7 +70,7 @@ func Test_addPool(t *testing.T) {
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "traefik",
 					ServiceEndpoint: "10.10.10.10",
-					IngressType:     ketchv1.Traefik17IngressControllerType,
+					IngressType:     ketchv1.TraefikIngressControllerType,
 				},
 			},
 			wantOut: "Successfully added!\n",

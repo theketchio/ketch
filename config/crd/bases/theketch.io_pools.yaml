@@ -65,7 +65,7 @@ spec:
                   description: IngressControllerType is a type of an ingress controller
                     for this pool.
                   enum:
-                  - traefik17
+                  - traefik
                   - istio
                   type: string
               required:
