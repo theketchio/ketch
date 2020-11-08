@@ -4,6 +4,8 @@ package chart
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -32,11 +34,30 @@ type values struct {
 	IngressController *ketchv1.IngressControllerSpec `json:"ingressController"`
 }
 
+// httpsEndpoint holds cname and its corresponding secret name with SSL certificates.
+type httpsEndpoint struct {
+	Cname string `json:"cname"`
+
+	// SecretName is a name of a Kubernetes Secret to store SSL certificate for the cname.
+	SecretName string `json:"secretName"`
+}
+
+// Ingress contains information about entrypoints of an application.
+// Both istio and traefik templates use "ingress" to render Kubernetes Ingress objects.
+type ingress struct {
+
+	// Https is a list of http entrypoint.
+	Http []string `json:"http"`
+
+	// Https is a list of https entrypoint.
+	Https []httpsEndpoint `json:"https"`
+}
+
 type app struct {
-	Name        string            `json:"name"`
-	Deployments []deployment      `json:"deployments"`
-	Env         []ketchv1.Env     `json:"env"`
-	Cnames      ketchv1.CnameList `json:"cnames"`
+	Name        string        `json:"name"`
+	Deployments []deployment  `json:"deployments"`
+	Env         []ketchv1.Env `json:"env"`
+	Ingress     ingress       `json:"ingress"`
 
 	// IsAccessible if not set, ketch won't create kubernetes objects like Ingress/Gateway to handle incoming request.
 	// These objects could be broken without valid routes to the application.
@@ -98,9 +119,9 @@ func New(application *ketchv1.App, pool *ketchv1.Pool, opts ...Option) (*Applica
 
 	values := &values{
 		App: &app{
-			Name:   application.Name,
-			Cnames: application.CNames(pool),
-			Env:    application.Spec.Env,
+			Name:    application.Name,
+			Ingress: newIngress(application, pool),
+			Env:     application.Spec.Env,
 		},
 		IngressController: &pool.Spec.IngressController,
 		DockerRegistry: dockerRegistrySpec{
@@ -270,7 +291,7 @@ func (chrt ApplicationChart) AppName() string {
 }
 
 func isAppAccessible(a *app) bool {
-	if len(a.Cnames) == 0 {
+	if len(a.Ingress.Http)+len(a.Ingress.Https) == 0 {
 		return false
 	}
 	for _, deployment := range a.Deployments {
@@ -281,4 +302,31 @@ func isAppAccessible(a *app) bool {
 		}
 	}
 	return false
+}
+
+func newIngress(app *ketchv1.App, pool *ketchv1.Pool) ingress {
+	var http []string
+	var https []string
+	if len(pool.Spec.IngressController.ClusterIssuer) > 0 {
+		// cluster issuer is mandatory to obtain SSL certificates.
+		https = app.Spec.Ingress.Cnames
+	} else {
+		http = app.Spec.Ingress.Cnames
+	}
+	var httpsEndpoints []httpsEndpoint
+	for _, cname := range https {
+		hash := sha256.New()
+		hash.Write([]byte(fmt.Sprintf("cname-%s", cname)))
+		bs := hash.Sum(nil)
+		secretName := fmt.Sprintf("%s-cname-%x", app.Name, bs[:10])
+		httpsEndpoints = append(httpsEndpoints, httpsEndpoint{Cname: cname, SecretName: secretName})
+	}
+	defaultCname := app.DefaultCname(pool)
+	if defaultCname != nil {
+		http = append(http, *defaultCname)
+	}
+	return ingress{
+		Http:  http,
+		Https: httpsEndpoints,
+	}
 }
