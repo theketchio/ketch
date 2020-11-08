@@ -84,6 +84,10 @@ type ProcessSpec struct {
 
 type DeploymentVersion int
 
+func (v DeploymentVersion) String() string {
+	return fmt.Sprintf("%d", v)
+}
+
 type AppDeploymentSpec struct {
 	Image           string            `json:"image"`
 	Version         DeploymentVersion `json:"version"`

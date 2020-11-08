@@ -5,35 +5,50 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
+	"text/tabwriter"
 	"text/template"
 
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/chart"
 )
 
 var (
 	appInfoTemplate = `Application: {{ .App.Name }}
+Pool: {{ .App.Spec.Pool }} 
+{{- if .App.Spec.Description }}
 Description: {{ .App.Spec.Description }}
+{{- end }}
+{{- if .Cnames }}
 {{- range $address := .Cnames }}
 Address: {{ $address }}
 {{- end }}
-Deploys: {{ .App.Spec.DeploymentsCount }}
-Pool: {{ .App.Spec.Pool }} 
-{{- if .App.Spec.Deployments }}
-
-Routing settings: 
-{{- range $deployment := .App.Spec.Deployments }}
-   {{ $deployment.Version }} version => {{ $deployment.RoutingSettings.Weight }} weight
+{{- else }}
+The default cname hasn't assigned yet because "{{ .App.Spec.Pool }}" pool doesn't have ingress service endpoint.
 {{- end }}
+{{ if .App.Spec.Env }}
+Environment variables:
+{{- range .App.Spec.Env }}
+{{ .Name }}={{ .Value }}
+{{- end }}
+{{- else }}
+No environment variables.
+{{- end }}
+{{ if .NoProcesses }}
+No processes.
+{{- else }}
+{{ .Table }}
 {{- end }}`
 )
 
 type appInfoContext struct {
-	App    ketchv1.App
-	Cnames []string
+	App         ketchv1.App
+	Cnames      []string
+	NoProcesses bool
+	Table       string
 }
 
 const appInfoHelp = `
@@ -66,20 +81,40 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	}
 	pool := &ketchv1.Pool{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, pool); err != nil {
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("failed to get pool: %w", err)
-		}
-		pool = nil
+		return fmt.Errorf("failed to get pool: %w", err)
 	}
 	buf := bytes.Buffer{}
 	t := template.Must(template.New("app-info").Parse(appInfoTemplate))
+	table := &bytes.Buffer{}
+	w := tabwriter.NewWriter(table, 0, 4, 4, ' ', 0)
+	fmt.Fprintln(w, "DEPLOYMENT VERSION\tPROCESS NAME\t#UNITS\tCMD")
+	noProcesses := true
+	for _, deployment := range app.Spec.Deployments {
+		for _, process := range deployment.Processes {
+			noProcesses = false
+			units := fmt.Sprintf("%d", chart.DefaultNumberOfUnits)
+			if process.Units != nil {
+				units = fmt.Sprintf("%d", *process.Units)
+			}
+			line := []string{
+				deployment.Version.String(),
+				process.Name,
+				units,
+				strings.Join(process.Cmd, " "),
+			}
+			fmt.Fprintln(w, strings.Join(line, "\t"))
+		}
+	}
+	w.Flush()
 	infoContext := appInfoContext{
-		App:    app,
-		Cnames: app.CNames(pool),
+		App:         app,
+		Cnames:      app.CNames(pool),
+		Table:       table.String(),
+		NoProcesses: noProcesses,
 	}
 	if err := t.Execute(&buf, infoContext); err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "%v\n", buf.String())
+	fmt.Fprintf(out, "%v", buf.String())
 	return nil
 }
