@@ -68,7 +68,7 @@ const (
 	PoolFailed  PoolPhase = "Failed"
 )
 
-// +kubebuilder:validation:Enum=traefik17;istio
+// +kubebuilder:validation:Enum=traefik;istio
 
 // IngressControllerType is a type of an ingress controller for this pool.
 type IngressControllerType string
@@ -76,8 +76,8 @@ type IngressControllerType string
 func (t IngressControllerType) String() string { return string(t) }
 
 const (
-	Traefik17IngressControllerType IngressControllerType = "traefik17"
-	IstioIngressControllerType     IngressControllerType = "istio"
+	TraefikIngressControllerType IngressControllerType = "traefik"
+	IstioIngressControllerType   IngressControllerType = "istio"
 )
 
 // IngressControllerSpec contains configuration for an ingress controller.

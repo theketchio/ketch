@@ -41,7 +41,7 @@ func Test_poolList(t *testing.T) {
 				ClassName:       "classname-b",
 				ServiceEndpoint: "192.168.1.17",
 				ClusterIssuer:   "letsencrypt",
-				IngressType:     ketchv1.Traefik17IngressControllerType,
+				IngressType:     ketchv1.TraefikIngressControllerType,
 			},
 		},
 	}
@@ -59,7 +59,7 @@ func Test_poolList(t *testing.T) {
 			},
 			wantOut: `NAME      STATUS    NAMESPACE    INGRESS TYPE    INGRESS CLASS NAME    CLUSTER ISSUER    APPS
 pool-a              a            istio           istio                 letsencrypt       0/30
-pool-b              b            traefik17       classname-b           letsencrypt       0/30
+pool-b              b            traefik         classname-b           letsencrypt       0/30
 `,
 		},
 	}
