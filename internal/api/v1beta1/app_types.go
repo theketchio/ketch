@@ -43,7 +43,7 @@ type Env struct {
 	Value string `json:"value"`
 }
 
-// Env represents an environment variable present in an application.
+// Label represents an environment variable present in an application.
 type Label struct {
 	// +kubebuilder:validation:MinLength=1
 	// Name of the label.
