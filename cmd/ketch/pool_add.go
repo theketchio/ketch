@@ -41,13 +41,11 @@ func newPoolAddCmd(cfg config, out io.Writer) *cobra.Command {
 			return addPool(cmd.Context(), cfg, options, out)
 		},
 	}
-	cmd.Flags().StringVar(&options.kubeNamespace, "kube-namespace", "", "Kubernetes namespace for this pool")
+	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this pool")
 	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", -1, "Quota limit for app when adding it to this pool")
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
-	cmd.Flags().StringVar(&options.ingressDomainName, "ingress-domain", "shipa.cloud", "domain name for the default URL")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
 	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik17 or istio")
-	cmd.MarkFlagRequired("kube-namespace")
 	return cmd
 }
 
@@ -55,10 +53,9 @@ type poolAddOptions struct {
 	name string
 
 	appQuotaLimit int
-	kubeNamespace string
+	namespace     string
 
 	ingressClassName       string
-	ingressDomainName      string
 	ingressServiceEndpoint string
 	ingressType            ingressType
 }
@@ -67,17 +64,20 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 	if !validation.ValidateName(options.name) {
 		return ErrInvalidPoolName
 	}
+	namespace := fmt.Sprintf("ketch-%s", options.name)
+	if len(options.namespace) > 0 {
+		namespace = options.namespace
+	}
 	pool := ketchv1.Pool{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: options.name,
 		},
 		Spec: ketchv1.PoolSpec{
-			NamespaceName: options.kubeNamespace,
+			NamespaceName: namespace,
 			AppQuotaLimit: options.appQuotaLimit,
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       options.ingressClassName,
-				Domain:          options.ingressDomainName,
 				ServiceEndpoint: options.ingressServiceEndpoint,
 				IngressType:     options.ingressType.ingressControllerType(),
 			},

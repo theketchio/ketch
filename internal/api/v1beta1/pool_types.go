@@ -87,7 +87,6 @@ const (
 // IngressControllerSpec contains configuration for an ingress controller.
 type IngressControllerSpec struct {
 	ClassName       string                `json:"className,omitempty"`
-	Domain          string                `json:"domain,omitempty"`
 	ServiceEndpoint string                `json:"serviceEndpoint,omitempty"`
 	IngressType     IngressControllerType `json:"type"`
 	Traefik         *Traefik              `json:"traefik,omitempty"`

@@ -19,6 +19,8 @@ bin
 # Kubernetes Generated files - skip generated files, except for vendored files
 
 !vendor/**/zz_generated.*
+internal/api/v1beta1/zz_generated.*
+
 
 # editor and IDE paraphernalia
 .idea
