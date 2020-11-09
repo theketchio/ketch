@@ -1,6 +1,7 @@
 ![Ketch](https://i.imgur.com/TVe46Dm.png)
 
 
+[![Build Status](https://travis-ci.com/shipa-corp/ketch.svg?token=qcHta8a4Eyd9eGNDTuSN&branch=main)](https://travis-ci.com/shipa-corp/ketch) 
 [![Slack](https://img.shields.io/badge/chat-on%20slack-6A5DAB)](https://shipa-io.slack.com/archives/C01E4FMEY9K)
 
 Think applications not yamls :)
@@ -10,11 +11,14 @@ Think applications not yamls :)
 Ketch is a tool that makes it easy to deploy and manage applications on Kubernetes using a simple command line interface.
 No YAML required! 
 
-## TODO: Architecture Diagram 
+## Architecture Diagram 
+![Architecture](./img/ketch-architecture.png)
 
 ## Getting Started
 
 ### Download and Install Ketch 
+The latest Ketch release can be found [here](https://github.com/shipa-corp/ketch/releases). Use the following commands
+to install Ketch, changing the version in the commands to match the version of Ketch you want to install. 
  
 For Linux use the following commands to download and install the Ketch cli. 
 ```bash
@@ -48,6 +52,7 @@ Thats it!
 ### Quick Start
 Deploying apps is easy once you've installed Ketch.  First, create a pool. Then create app(s) adding them to the pool and finally 
 deploy the app(s).  The following example illustrates these steps. 
+
 ```bash
 # Add a pool with ingress Traefik (default)
 ketch pool add gke  --ingress-service-endpoint 35.247.8.23 --kube-namespace ketch-system --ingress-type traefik
@@ -98,6 +103,45 @@ Use "ketch [command] --help" for more information about a command.
 [Go version 1.14 or better](https://golang.org/dl/)
 
 [Kubectl and Kubernetes version 1.17.1 or better](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-### Setup
-Clone the project. From the project directory run `make install-kubebuilder` and `make install-kustomize`.  After doing 
-that you should be able to run the unit tests `make test` successfully. 
+
+[Minikube](https://minikube.sigs.k8s.io/docs/start/) (optional)
+
+[Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) Install with `make install-kubebuilder`.
+
+[Kustomize](https://github.com/kubernetes-sigs/kustomize) Install with `make install-kustomize`.
+
+
+### Developer Setup
+In this example we build and install Ketch. Clone the project. From the project directory run `make install-kubebuilder` and `make install-kustomize`.  After doing that you should be able to run the unit tests `make test` successfully. 
+
+### Developer Install with Minikube 
+Create Ketch controller image. The example assumes you have an minikube instance running (`minikube start`).
+
+```bash 
+export IMG=my-repo/imagename:v0.1
+make docker-build 
+make docker-push
+```
+Install Ketch controller.
+
+```bash
+make deploy
+```
+Build the Ketch CLI. 
+
+```bash
+make ketch
+export PATH=$(pwd)/bin:$PATH
+```
+
+Set up a route so the Minikube network is accessible. 
+
+```bash
+sudo route add -host $(kubectl get svc traefik -o jsonpath='{.spec.clusterIP}') gw $(minikube ip) 
+```
+
+Use the cluster IP address when you create pools.
+
+```bash
+ketch pool add mypool --ingress-service-endpoint $(kubectl get svc traefik -o jsonpath='{.spec.clusterIP}') --namespace mynamespace
+```
