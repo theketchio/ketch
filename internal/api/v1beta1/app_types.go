@@ -382,14 +382,19 @@ func (app *App) Start(selector Selector) error {
 
 // CNames returns all CNAMEs to access the application including a default cname.
 func (app *App) CNames(pool *Pool) []string {
-	defaultCname := app.DefaultCname(pool)
-	if defaultCname == nil {
-		if len(app.Spec.Ingress.Cnames) == 0 {
-			return []string{}
-		}
-		return app.Spec.Ingress.Cnames
+	scheme := "http"
+	if len(pool.Spec.IngressController.ClusterIssuer) > 0 {
+		scheme = "https"
 	}
-	return append([]string{*defaultCname}, app.Spec.Ingress.Cnames...)
+	cnames := []string{}
+	defaultCname := app.DefaultCname(pool)
+	if defaultCname != nil {
+		cnames = append(cnames, fmt.Sprintf("http://%s", *defaultCname))
+	}
+	for _, cname := range app.Spec.Ingress.Cnames {
+		cnames = append(cnames, fmt.Sprintf("%s://%s", scheme, cname))
+	}
+	return cnames
 }
 
 // DefaultCname returns a default cname to access the application.

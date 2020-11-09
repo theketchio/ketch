@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,6 +38,7 @@ func Test_appInfo(t *testing.T) {
 			Deployments: []ketchv1.AppDeploymentSpec{
 				{
 					Version: 1,
+					Image:   "shipasoftware/go-app:v1",
 					Processes: []ketchv1.ProcessSpec{
 						{
 							Name: "web",
@@ -57,6 +59,33 @@ func Test_appInfo(t *testing.T) {
 			Pool: "aws",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
+			},
+		},
+	}
+	goAppWithSecretName := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "go-app",
+		},
+		Spec: ketchv1.AppSpec{
+			Deployments: []ketchv1.AppDeploymentSpec{
+				{
+					Version: 1,
+					Image:   "shipasoftware/go-app:v4",
+					Processes: []ketchv1.ProcessSpec{
+						{
+							Name: "web",
+							Cmd:  []string{"docker-entrypoint.sh", "npm", "start"},
+						},
+					},
+				},
+			},
+			Pool: "aws",
+			Ingress: ketchv1.IngressSpec{
+				GenerateDefaultCname: true,
+				Cnames:               []string{"theketch.io", "www.theketch.io"},
+			},
+			DockerRegistry: ketchv1.DockerRegistrySpec{
+				SecretName: "go-app-pull-credentials",
 			},
 		},
 	}
@@ -111,6 +140,16 @@ func Test_appInfo(t *testing.T) {
 			wantOutputFilename: "./testdata/app-info/go-app.output",
 		},
 		{
+			name: "cnames, env variables, processes + secret name",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{aws, goAppWithSecretName},
+			},
+			options: appInfoOptions{
+				name: "go-app",
+			},
+			wantOutputFilename: "./testdata/app-info/go-app-secret-name.output",
+		},
+		{
 			name: "no pool",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{dashboard},
@@ -141,7 +180,7 @@ func Test_appInfo(t *testing.T) {
 			}
 			wantOut, err := ioutil.ReadFile(tt.wantOutputFilename)
 			require.Nil(t, err)
-			require.Equal(t, out.String(), string(wantOut))
+			require.Equal(t, strings.TrimSpace(out.String()), strings.TrimSpace(string(wantOut)))
 		})
 	}
 }

@@ -1,11 +1,11 @@
 Application: go-app
 Pool: aws
-Address: go-app.10.10.10.10.shipa.cloud
+Address: http://go-app.10.10.10.10.shipa.cloud
 
 Environment variables:
 API_KEY=public_key
 VAR1=VALUE
 
-DEPLOYMENT VERSION    PROCESS NAME    #UNITS    CMD
-1                     web             1         docker-entrypoint.sh npm start
-1                     worker          5         docker-entrypoint.sh npm worker
+DEPLOYMENT VERSION    IMAGE                      PROCESS NAME    #UNITS    CMD
+1                     shipasoftware/go-app:v1    web             1         docker-entrypoint.sh npm start
+1                     shipasoftware/go-app:v1    worker          5         docker-entrypoint.sh npm worker

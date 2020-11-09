@@ -568,33 +568,60 @@ func TestApp_DefaultCname(t *testing.T) {
 }
 
 func TestApp_CNames(t *testing.T) {
+	pool := Pool{
+		Spec: PoolSpec{
+			IngressController: IngressControllerSpec{
+				ServiceEndpoint: "10.20.30.40",
+			},
+		},
+	}
+	poolWithClusterIssuer := Pool{
+		Spec: PoolSpec{
+			IngressController: IngressControllerSpec{
+				ServiceEndpoint: "10.20.30.40",
+				ClusterIssuer:   "letsencrypt",
+			},
+		},
+	}
 	tests := []struct {
 		name                 string
 		generateDefaultCname bool
+		pool                 Pool
 		cnames               []string
 		want                 []string
 	}{
 		{
 			name:                 "with default cname",
 			generateDefaultCname: true,
+			pool:                 pool,
 			cnames:               []string{"theketch.io", "app.theketch.io"},
-			want:                 []string{"ketch.10.20.30.40.shipa.cloud", "theketch.io", "app.theketch.io"},
+			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud", "http://theketch.io", "http://app.theketch.io"},
+		},
+		{
+			name:                 "with default cname and pool with cluster issuer",
+			generateDefaultCname: true,
+			pool:                 poolWithClusterIssuer,
+			cnames:               []string{"theketch.io", "app.theketch.io"},
+			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud", "https://theketch.io", "https://app.theketch.io"},
 		},
 		{
 			name:                 "without default cname",
 			generateDefaultCname: false,
+			pool:                 pool,
 			cnames:               []string{"theketch.io", "app.theketch.io"},
-			want:                 []string{"theketch.io", "app.theketch.io"},
+			want:                 []string{"http://theketch.io", "http://app.theketch.io"},
 		},
 		{
 			name:                 "empty cnames",
+			pool:                 pool,
 			generateDefaultCname: false,
 			want:                 []string{},
 		},
 		{
 			name:                 "empty cnames with default cname",
+			pool:                 pool,
 			generateDefaultCname: true,
-			want:                 []string{"ketch.10.20.30.40.shipa.cloud"},
+			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud"},
 		},
 	}
 	for _, tt := range tests {
@@ -610,14 +637,7 @@ func TestApp_CNames(t *testing.T) {
 					},
 				},
 			}
-			pool := &Pool{
-				Spec: PoolSpec{
-					IngressController: IngressControllerSpec{
-						ServiceEndpoint: "10.20.30.40",
-					},
-				},
-			}
-			got := app.CNames(pool)
+			got := app.CNames(&tt.pool)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("CNames() mismatch (-want +got):\n%s", diff)
 			}
