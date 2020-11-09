@@ -29,6 +29,9 @@ Address: {{ $address }}
 {{- else }}
 The default cname hasn't assigned yet because "{{ .App.Spec.Pool }}" pool doesn't have ingress service endpoint.
 {{- end }}
+{{- if .App.Spec.DockerRegistry.SecretName }}
+Secret name to pull application's images: {{ .App.Spec.DockerRegistry.SecretName }}
+{{- end }}
 {{ if .App.Spec.Env }}
 Environment variables:
 {{- range .App.Spec.Env }}
@@ -87,7 +90,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	t := template.Must(template.New("app-info").Parse(appInfoTemplate))
 	table := &bytes.Buffer{}
 	w := tabwriter.NewWriter(table, 0, 4, 4, ' ', 0)
-	fmt.Fprintln(w, "DEPLOYMENT VERSION\tPROCESS NAME\t#UNITS\tCMD")
+	fmt.Fprintln(w, "DEPLOYMENT VERSION\tIMAGE\tPROCESS NAME\t#UNITS\tCMD")
 	noProcesses := true
 	for _, deployment := range app.Spec.Deployments {
 		for _, process := range deployment.Processes {
@@ -98,6 +101,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 			}
 			line := []string{
 				deployment.Version.String(),
+				deployment.Image,
 				process.Name,
 				units,
 				strings.Join(process.Cmd, " "),
