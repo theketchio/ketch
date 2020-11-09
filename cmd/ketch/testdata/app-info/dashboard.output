@@ -1,0 +1,7 @@
+Application: dashboard
+Pool: gke
+The default cname hasn't assigned yet because "gke" pool doesn't have ingress service endpoint.
+
+No environment variables.
+
+No processes.

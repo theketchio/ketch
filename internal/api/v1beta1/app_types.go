@@ -43,7 +43,7 @@ type Env struct {
 	Value string `json:"value"`
 }
 
-// Env represents an environment variable present in an application.
+// Label represents an environment variable present in an application.
 type Label struct {
 	// +kubebuilder:validation:MinLength=1
 	// Name of the label.
@@ -83,6 +83,10 @@ type ProcessSpec struct {
 }
 
 type DeploymentVersion int
+
+func (v DeploymentVersion) String() string {
+	return fmt.Sprintf("%d", v)
+}
 
 type AppDeploymentSpec struct {
 	Image           string            `json:"image"`

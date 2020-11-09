@@ -653,8 +653,8 @@ func TestApp_TemplatesConfigMapName(t *testing.T) {
 		{
 			name:        "traefik configmap",
 			app:         App{},
-			ingressType: Traefik17IngressControllerType,
-			want:        "ingress-traefik17-templates",
+			ingressType: TraefikIngressControllerType,
+			want:        "ingress-traefik-templates",
 		},
 	}
 	for _, tt := range tests {

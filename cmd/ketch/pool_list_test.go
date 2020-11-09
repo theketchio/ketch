@@ -22,8 +22,9 @@ func Test_poolList(t *testing.T) {
 			NamespaceName: "a",
 			AppQuotaLimit: 30,
 			IngressController: ketchv1.IngressControllerSpec{
-				ClassName:       "classname-a",
+				ClassName:       "istio",
 				ServiceEndpoint: "192.168.1.17",
+				ClusterIssuer:   "letsencrypt",
 				IngressType:     ketchv1.IstioIngressControllerType,
 			},
 		},
@@ -39,7 +40,8 @@ func Test_poolList(t *testing.T) {
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       "classname-b",
 				ServiceEndpoint: "192.168.1.17",
-				IngressType:     ketchv1.Traefik17IngressControllerType,
+				ClusterIssuer:   "letsencrypt",
+				IngressType:     ketchv1.TraefikIngressControllerType,
 			},
 		},
 	}
@@ -55,9 +57,9 @@ func Test_poolList(t *testing.T) {
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{poolA, poolB},
 			},
-			wantOut: `NAME      STATUS    TARGET NAMESPACE    INGRESS TYPE    APPS
-pool-a              a                   istio           0/30
-pool-b              b                   traefik17       0/30
+			wantOut: `NAME      STATUS    NAMESPACE    INGRESS TYPE    INGRESS CLASS NAME    CLUSTER ISSUER    APPS
+pool-a              a            istio           istio                 letsencrypt       0/30
+pool-b              b            traefik         classname-b           letsencrypt       0/30
 `,
 		},
 	}

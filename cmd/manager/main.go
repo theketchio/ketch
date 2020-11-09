@@ -78,7 +78,7 @@ func main() {
 	// because mgr.GetClient() returns a client that requires some time to initialize its internal cache,
 	// and storage.Update() operation fails.
 	storage := templates.NewStorage(storageClient, controllers.KetchNamespace)
-	if err = storage.Update(templates.IngressConfigMapName(ketchv1.Traefik17IngressControllerType.String()), templates.TraefikDefaultTemplates); err != nil {
+	if err = storage.Update(templates.IngressConfigMapName(ketchv1.TraefikIngressControllerType.String()), templates.TraefikDefaultTemplates); err != nil {
 		setupLog.Error(err, "unable to set default templates")
 		os.Exit(1)
 	}

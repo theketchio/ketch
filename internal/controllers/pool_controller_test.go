@@ -84,7 +84,7 @@ func TestPoolReconciler_Reconcile(t *testing.T) {
 				Spec: ketchv1.PoolSpec{
 					NamespaceName: "another-namespace-4",
 					IngressController: ketchv1.IngressControllerSpec{
-						IngressType: ketchv1.Traefik17IngressControllerType,
+						IngressType: ketchv1.TraefikIngressControllerType,
 					},
 				},
 			},

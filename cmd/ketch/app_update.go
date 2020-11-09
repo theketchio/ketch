@@ -32,8 +32,7 @@ func newAppUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&options.description, "description", "d", "", "App description")
-	cmd.Flags().StringSliceVarP(&options.envs, "env", "e", []string{}, "App env variables")
-	cmd.Flags().StringVarP(&options.dockerRegistrySecret, "registry-secret", "", "", "A name of a Secret with docker credentials")
+	cmd.Flags().StringVarP(&options.dockerRegistrySecret, "registry-secret", "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
 	cmd.Flags().StringVar(&options.templatesDirectory, "templates", "", "the directory with chart templates")
 	cmd.Flags().BoolVar(&options.resetTemplates, "reset-templates", false, "use default templates")
 	cmd.MarkFlagRequired("pool")

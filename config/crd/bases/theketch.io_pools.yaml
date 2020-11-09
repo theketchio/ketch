@@ -57,22 +57,15 @@ spec:
               properties:
                 className:
                   type: string
+                clusterIssuer:
+                  type: string
                 serviceEndpoint:
                   type: string
-                traefik:
-                  properties:
-                    entryPoints:
-                      items:
-                        type: string
-                      type: array
-                  required:
-                  - entryPoints
-                  type: object
                 type:
                   description: IngressControllerType is a type of an ingress controller
                     for this pool.
                   enum:
-                  - traefik17
+                  - traefik
                   - istio
                   type: string
               required:

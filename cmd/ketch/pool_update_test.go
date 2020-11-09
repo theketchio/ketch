@@ -29,6 +29,7 @@ func Test_poolUpdate(t *testing.T) {
 				ClassName:       "default-classname",
 				ServiceEndpoint: "192.168.1.17",
 				IngressType:     ketchv1.IstioIngressControllerType,
+				ClusterIssuer:   "le-staging",
 			},
 		},
 	}
@@ -60,6 +61,7 @@ func Test_poolUpdate(t *testing.T) {
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.18",
 					IngressType:     ketchv1.IstioIngressControllerType,
+					ClusterIssuer:   "le-staging",
 				},
 			},
 		},
@@ -81,6 +83,7 @@ func Test_poolUpdate(t *testing.T) {
 					ClassName:       "traefik",
 					ServiceEndpoint: "192.168.1.17",
 					IngressType:     ketchv1.IstioIngressControllerType,
+					ClusterIssuer:   "le-staging",
 				},
 			},
 		},
@@ -102,6 +105,7 @@ func Test_poolUpdate(t *testing.T) {
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.17",
 					IngressType:     ketchv1.IstioIngressControllerType,
+					ClusterIssuer:   "le-staging",
 				},
 			},
 		},
@@ -123,6 +127,7 @@ func Test_poolUpdate(t *testing.T) {
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.17",
 					IngressType:     ketchv1.IstioIngressControllerType,
+					ClusterIssuer:   "le-staging",
 				},
 			},
 		},
@@ -134,7 +139,7 @@ func Test_poolUpdate(t *testing.T) {
 			options: poolUpdateOptions{
 				name:           "frontend-pool",
 				ingressTypeSet: true,
-				ingressType:    traefik17,
+				ingressType:    traefik,
 			},
 			wantOut: "Successfully updated!\n",
 			wantPoolSpec: ketchv1.PoolSpec{
@@ -143,7 +148,30 @@ func Test_poolUpdate(t *testing.T) {
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.17",
-					IngressType:     ketchv1.Traefik17IngressControllerType,
+					IngressType:     ketchv1.TraefikIngressControllerType,
+					ClusterIssuer:   "le-staging",
+				},
+			},
+		},
+		{
+			name: "update cluster issuer",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{frontendPool},
+			},
+			options: poolUpdateOptions{
+				name:                    "frontend-pool",
+				ingressClusterIssuerSet: true,
+				ingressClusterIssuer:    "letsencrypt-production",
+			},
+			wantOut: "Successfully updated!\n",
+			wantPoolSpec: ketchv1.PoolSpec{
+				NamespaceName: "frontend",
+				AppQuotaLimit: 30,
+				IngressController: ketchv1.IngressControllerSpec{
+					ClassName:       "default-classname",
+					ServiceEndpoint: "192.168.1.17",
+					IngressType:     ketchv1.IstioIngressControllerType,
+					ClusterIssuer:   "letsencrypt-production",
 				},
 			},
 		},

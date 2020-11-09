@@ -20,13 +20,13 @@ Add a new pool.
 type ingressType enumflag.Flag
 
 const (
-	traefik17 ingressType = iota
+	traefik ingressType = iota
 	istio
 )
 
 var ingressTypeIds = map[ingressType][]string{
-	traefik17: {ketchv1.Traefik17IngressControllerType.String()},
-	istio:     {ketchv1.IstioIngressControllerType.String()},
+	traefik: {ketchv1.TraefikIngressControllerType.String()},
+	istio:   {ketchv1.IstioIngressControllerType.String()},
 }
 
 func newPoolAddCmd(cfg config, out io.Writer) *cobra.Command {
@@ -44,8 +44,9 @@ func newPoolAddCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this pool")
 	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", -1, "Quota limit for app when adding it to this pool")
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
+	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
-	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik17 or istio")
+	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik or istio")
 	return cmd
 }
 
@@ -56,6 +57,7 @@ type poolAddOptions struct {
 	namespace     string
 
 	ingressClassName       string
+	ingressClusterIssuer   string
 	ingressServiceEndpoint string
 	ingressType            ingressType
 }
@@ -79,6 +81,7 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       options.ingressClassName,
 				ServiceEndpoint: options.ingressServiceEndpoint,
+				ClusterIssuer:   options.ingressClusterIssuer,
 				IngressType:     options.ingressType.ingressControllerType(),
 			},
 		},
@@ -96,6 +99,6 @@ func (t ingressType) ingressControllerType() ketchv1.IngressControllerType {
 	case istio:
 		return ketchv1.IstioIngressControllerType
 	default:
-		return ketchv1.Traefik17IngressControllerType
+		return ketchv1.TraefikIngressControllerType
 	}
 }
