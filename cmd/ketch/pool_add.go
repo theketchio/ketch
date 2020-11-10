@@ -24,12 +24,16 @@ const (
 	istio
 )
 
+const defaultIstioIngressClassName = "istio"
+
 var ingressTypeIds = map[ingressType][]string{
 	traefik: {ketchv1.TraefikIngressControllerType.String()},
 	istio:   {ketchv1.IstioIngressControllerType.String()},
 }
 
-func newPoolAddCmd(cfg config, out io.Writer) *cobra.Command {
+type addPoolFn func(ctx context.Context, cfg config, options poolAddOptions, out io.Writer) error
+
+func newPoolAddCmd(cfg config, out io.Writer, addPool addPoolFn) *cobra.Command {
 	options := poolAddOptions{}
 	cmd := &cobra.Command{
 		Use:   "add POOL",
@@ -38,12 +42,13 @@ func newPoolAddCmd(cfg config, out io.Writer) *cobra.Command {
 		Long:  poolAddHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.name = args[0]
+			options.ingressClassNameSet = cmd.Flags().Changed("ingress-class-name")
 			return addPool(cmd.Context(), cfg, options, out)
 		},
 	}
 	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this pool")
 	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", -1, "Quota limit for app when adding it to this pool")
-	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
+	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", `if set, it is used as kubernetes.io/ingress.class annotations. Ketch uses "istio" class name for istio ingress controller, if class name is not specified`)
 	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
 	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik or istio")
@@ -56,6 +61,7 @@ type poolAddOptions struct {
 	appQuotaLimit int
 	namespace     string
 
+	ingressClassNameSet    bool
 	ingressClassName       string
 	ingressClusterIssuer   string
 	ingressServiceEndpoint string
@@ -79,7 +85,7 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 			NamespaceName: namespace,
 			AppQuotaLimit: options.appQuotaLimit,
 			IngressController: ketchv1.IngressControllerSpec{
-				ClassName:       options.ingressClassName,
+				ClassName:       options.IngressClassName(),
 				ServiceEndpoint: options.ingressServiceEndpoint,
 				ClusterIssuer:   options.ingressClusterIssuer,
 				IngressType:     options.ingressType.ingressControllerType(),
@@ -92,6 +98,13 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 	}
 	fmt.Fprintln(out, "Successfully added!")
 	return nil
+}
+
+func (o poolAddOptions) IngressClassName() string {
+	if !o.ingressClassNameSet && o.ingressType.ingressControllerType() == ketchv1.IstioIngressControllerType {
+		return defaultIstioIngressClassName
+	}
+	return o.ingressClassName
 }
 
 func (t ingressType) ingressControllerType() ketchv1.IngressControllerType {
