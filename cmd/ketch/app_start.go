@@ -9,27 +9,34 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/validation"
 )
 
 const appStartHelp = `
 Start an application, or one of the processes of the application.
 `
 
-func newAppStartCmd(cfg config, out io.Writer) *cobra.Command {
+type appStartFn func(context.Context, config, appStartOptions, io.Writer) error
+
+func newAppStartCmd(cfg config, out io.Writer, appStart appStartFn) *cobra.Command {
 	options := appStartOptions{}
 	cmd := &cobra.Command{
-		Use:   "start",
+		Use:   "start APPNAME",
 		Short: "Start an application, or one of the processes of the application.",
-		Args:  cobra.NoArgs,
+		Args:  cobra.ExactValidArgs(1),
 		Long:  appStartHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			options.appName = args[0]
+			if !validation.ValidateName(options.appName) {
+				return ErrInvalidAppName
+			}
 			return appStart(cmd.Context(), cfg, options, out)
 		},
 	}
-	cmd.Flags().StringVarP(&options.appName, "app", "a", "", "The name of the app.")
+
 	cmd.Flags().StringVarP(&options.processName, "process", "p", "", "Process name.")
 	cmd.Flags().IntVarP(&options.deploymentVersion, "version", "v", 0, "Deployment version.")
-	cmd.MarkFlagRequired("app")
+
 	return cmd
 }
 

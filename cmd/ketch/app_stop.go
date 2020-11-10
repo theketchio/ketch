@@ -9,27 +9,33 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/validation"
 )
 
 const appStopHelp = `
 Stop an application, or one of the processes of the application.
 `
 
-func newAppStopCmd(cfg config, out io.Writer) *cobra.Command {
+type appStopFn func(context.Context, config, appStopOptions, io.Writer) error
+
+func newAppStopCmd(cfg config, out io.Writer, appStop appStopFn) *cobra.Command {
 	options := appStopOptions{}
 	cmd := &cobra.Command{
-		Use:   "stop",
+		Use:   "stop APPNAME",
 		Short: "Stop an application, or one of the processes of the application.",
-		Args:  cobra.ExactArgs(0),
+		Args:  cobra.ExactArgs(1),
 		Long:  appStopHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			options.appName = args[0]
+			if !validation.ValidateName(options.processName) {
+				return ErrInvalidAppName
+			}
 			return appStop(cmd.Context(), cfg, options, out)
 		},
 	}
-	cmd.Flags().StringVarP(&options.appName, "app", "a", "", "The name of the app.")
+
 	cmd.Flags().StringVarP(&options.processName, "process", "p", "", "Process name.")
 	cmd.Flags().IntVarP(&options.deploymentVersion, "version", "v", 0, "Deployment version.")
-	cmd.MarkFlagRequired("app")
 	return cmd
 }
 
