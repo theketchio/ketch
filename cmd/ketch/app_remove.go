@@ -9,35 +9,35 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/validation"
 )
 
 const appRemoveHelp = `
 Remove an application.
 `
 
-func newAppRemoveCmd(cfg config, out io.Writer) *cobra.Command {
-	options := appRemoveOptions{}
+type appRemoveFn func(context.Context, config, string, io.Writer) error
+
+func newAppRemoveCmd(cfg config, out io.Writer, appRemove appRemoveFn) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "remove",
+		Use:   "remove APPNAME",
 		Short: "Remove an application.",
-		Args:  cobra.NoArgs,
+		Args:  cobra.ExactValidArgs(1),
 		Long:  appRemoveHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return appRemove(cmd.Context(), cfg, options, out)
+			appName := args[0]
+			if !validation.ValidateName(appName) {
+				return ErrInvalidAppName
+			}
+			return appRemove(cmd.Context(), cfg, appName, out)
 		},
 	}
-	cmd.Flags().StringVarP(&options.appName, "app", "a", "", "The name of the app.")
-	cmd.MarkFlagRequired("app")
 	return cmd
 }
 
-type appRemoveOptions struct {
-	appName string
-}
-
-func appRemove(ctx context.Context, cfg config, options appRemoveOptions, out io.Writer) error {
+func appRemove(ctx context.Context, cfg config, appName string, out io.Writer) error {
 	app := ketchv1.App{}
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
 	if err := cfg.Client().Delete(ctx, &app); err != nil {
