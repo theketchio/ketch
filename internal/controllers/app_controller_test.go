@@ -161,23 +161,6 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			wantStatusPhase:   ketchv1.AppPending,
 			wantStatusMessage: "failed to update helm chart: render error",
 		},
-		{
-			name: "app with templates-get-error",
-			app: ketchv1.App{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "app-no-templates",
-				},
-				Spec: ketchv1.AppSpec{
-					Deployments: []ketchv1.AppDeploymentSpec{},
-					Pool:        "working-pool",
-					Chart: ketchv1.ChartSpec{
-						TemplatesConfigMapName: stringRef("templates-failed"),
-					},
-				},
-			},
-			wantStatusPhase:   ketchv1.AppFailed,
-			wantStatusMessage: "failed to read configmap with the app's chart templates: no templates",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -46,14 +46,6 @@ spec:
         spec:
           description: AppSpec defines the desired state of App.
           properties:
-            chart:
-              description: Chart contains additional configuration of app's helm chart.
-              properties:
-                templatesConfigMapName:
-                  description: TemplatesConfigMapName is a name of a ConfigMap with
-                    templates used to render a helm chart.
-                  type: string
-              type: object
             deployments:
               description: Deployments is a list of running deployments.
               items:

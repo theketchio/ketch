@@ -8,25 +8,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/shipa-corp/ketch/internal/templates"
 )
-
-type mockConfig struct{}
-
-func (m mockConfig) Client() client.Client {
-	panic("implement me")
-}
-
-func (m mockConfig) Storage() templates.Client {
-	panic("implement me")
-}
-
-func (m mockConfig) KubernetesClient() kubernetes.Interface {
-	panic("implement me")
-}
 
 func TestAppRemoveCmd(t *testing.T) {
 	pflag.CommandLine = pflag.NewFlagSet("ketch", pflag.ExitOnError)

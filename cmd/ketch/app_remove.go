@@ -41,7 +41,6 @@ func appRemove(ctx context.Context, cfg config, appName string, out io.Writer) e
 		return fmt.Errorf("failed to get app: %w", err)
 	}
 	if err := cfg.Client().Delete(ctx, &app); err != nil {
-		// FIXME: remove templates?
 		return fmt.Errorf("failed to delete app: %w", err)
 	}
 	fmt.Fprintln(out, "Successfully removed!")

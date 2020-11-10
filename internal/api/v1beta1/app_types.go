@@ -115,12 +115,6 @@ type DockerRegistrySpec struct {
 	SecretName string `json:"secretName,omitempty"`
 }
 
-// ChartSpec contains additional configuration of app's helm chart.
-type ChartSpec struct {
-	// TemplatesConfigMapName is a name of a ConfigMap with templates used to render a helm chart.
-	TemplatesConfigMapName *string `json:"templatesConfigMapName,omitempty"`
-}
-
 // AppPhase is a label for the condition of an application at the current time.
 type AppPhase string
 
@@ -172,9 +166,6 @@ type AppSpec struct {
 
 	// DockerRegistry contains docker registry configuration of the application.
 	DockerRegistry DockerRegistrySpec `json:"dockerRegisty,omitempty"`
-
-	// Chart contains additional configuration of app's helm chart.
-	Chart ChartSpec `json:"chart,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -414,12 +405,7 @@ func (app *App) DefaultCname(pool *Pool) *string {
 }
 
 // TemplatesConfigMapName returns a name of a configmap that contains templates used to render a helm chart.
-// If an application hasn't changed its templates,
-// TemplatesConfigMapName returns a name of a configmap with the default templates.
 func (app *App) TemplatesConfigMapName(ingressControllerType IngressControllerType) string {
-	if app.Spec.Chart.TemplatesConfigMapName != nil {
-		return *app.Spec.Chart.TemplatesConfigMapName
-	}
 	return templates.IngressConfigMapName(ingressControllerType.String())
 }
 

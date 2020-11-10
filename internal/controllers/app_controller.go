@@ -165,17 +165,6 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) ketchv1
 			}
 		}
 	}
-	version := fmt.Sprintf("v%v", app.ObjectMeta.Generation)
-	chartVersion := fmt.Sprintf("v0.0.%v", app.ObjectMeta.Generation)
-	if app.Spec.Version != nil {
-		version = *app.Spec.Version
-	}
-	chartConfig := chart.ChartConfig{
-		ChartVersion: chartVersion,
-		AppName:      app.Name,
-		AppVersion:   version,
-	}
-
 	targetNamespace := pool.Status.Namespace.Name
 	helmClient, err := r.HelmFactoryFn(targetNamespace)
 	if err != nil {
@@ -184,7 +173,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) ketchv1
 			Message: err.Error(),
 		}
 	}
-	_, err = helmClient.UpdateChart(*appChrt, chartConfig)
+	_, err = helmClient.UpdateChart(*appChrt, chart.NewChartConfig(*app))
 	if err != nil {
 		return ketchv1.AppStatus{
 			Phase:   ketchv1.AppPending,

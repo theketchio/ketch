@@ -16,12 +16,9 @@ package templates
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,7 +42,6 @@ type Storage struct {
 
 // Updater knows how to update and delete templates.
 type Updater interface {
-	Delete(name string) error
 	Update(name string, templates Templates) error
 }
 
@@ -82,15 +78,6 @@ func IngressConfigMapName(ingress string) string {
 	return fmt.Sprintf("ingress-%s-templates", ingress)
 }
 
-// AppConfigMapName returns a name of a configmap to store the app's templates to render helm chart.
-func AppConfigMapName(appName string) string {
-	name := fmt.Sprintf("app-%s-templates-%s", appName, time.Now())
-	hash := sha256.New()
-	hash.Write([]byte(name))
-	bs := hash.Sum(nil)
-	return fmt.Sprintf("app-%s-templates-%x", appName, bs[:8])
-}
-
 // Get returns templates stored in a configmap with the provided name.
 func (s *Storage) Get(name string) (*Templates, error) {
 	ctx := context.TODO()
@@ -100,20 +87,6 @@ func (s *Storage) Get(name string) (*Templates, error) {
 		return nil, err
 	}
 	return &Templates{Yamls: cm.Data}, nil
-}
-
-// Delete deletes a configmap. It doesn't check content of the configmap so it's a caller responsibility to pass the right name.
-func (s *Storage) Delete(name string) error {
-	namespacedName := types.NamespacedName{Name: name, Namespace: s.namespace}
-	ctx := context.TODO()
-	cm := v1.ConfigMap{}
-	if err := s.client.Get(ctx, namespacedName, &cm); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-	return s.client.Delete(ctx, &cm)
 }
 
 // Update creates or updates a configmap with the new templates.
@@ -142,27 +115,6 @@ func (tpl Templates) toConfigMap(name string, namespace string) *v1.ConfigMap {
 		cm.Data[name] = value
 	}
 	return &cm
-}
-
-// ExportToDirectory saves the templates to the provided directory.
-// Be careful because the previous content of the directory is removed.
-func (tpl Templates) ExportToDirectory(directory string) error {
-	err := os.RemoveAll(directory)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(directory, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	for filename, content := range tpl.Yamls {
-		path := filepath.Join(directory, filename)
-		err = ioutil.WriteFile(path, []byte(content), 0644)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // ReadDirectory reads files in the directory and returns a Templates instance populated with the files.
