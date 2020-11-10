@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/templates"
 	"github.com/shipa-corp/ketch/internal/validation"
 )
 
@@ -34,7 +33,6 @@ func newAppCreateCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringSliceVarP(&options.envs, "env", "e", []string{}, "App env variables")
 	cmd.Flags().StringVarP(&options.pool, "pool", "o", "", "Pool to deploy your app")
 	cmd.Flags().StringVarP(&options.dockerRegistrySecret, "registry-secret", "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
-	cmd.Flags().StringVar(&options.templatesDirectory, "templates", "", "the directory with chart templates")
 	cmd.MarkFlagRequired("pool")
 
 	return cmd
@@ -45,7 +43,6 @@ type appCreateOptions struct {
 	pool                 string
 	description          string
 	envs                 []string
-	templatesDirectory   string
 	dockerRegistrySecret string
 }
 
@@ -77,17 +74,6 @@ func appCreate(ctx context.Context, cfg config, options appCreateOptions, out io
 		Status: ketchv1.AppStatus{
 			Phase: ketchv1.AppPending,
 		},
-	}
-	if len(options.templatesDirectory) > 0 {
-		tpls, err := templates.ReadDirectory(options.templatesDirectory)
-		if err != nil {
-			return err
-		}
-		configMapName := templates.AppConfigMapName(app.Name)
-		if err := cfg.Storage().Update(configMapName, *tpls); err != nil {
-			return err
-		}
-		app.Spec.Chart.TemplatesConfigMapName = &configMapName
 	}
 	if err = cfg.Client().Create(ctx, &app); err != nil {
 		return fmt.Errorf("failed to create an app: %w", err)

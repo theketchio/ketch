@@ -23,6 +23,6 @@ func newAppCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.AddCommand(newAppInfoCmd(cfg, out))
 	cmd.AddCommand(newAppStartCmd(cfg, out, appStart))
 	cmd.AddCommand(newAppStopCmd(cfg, out, appStop))
-	cmd.AddCommand(newAppExportCmd(cfg, out))
+	cmd.AddCommand(newAppExportCmd(cfg, out, appExport))
 	return cmd
 }

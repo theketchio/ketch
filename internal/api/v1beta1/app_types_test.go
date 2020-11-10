@@ -654,17 +654,6 @@ func TestApp_TemplatesConfigMapName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "user provided configmap",
-			app: App{
-				Spec: AppSpec{
-					Chart: ChartSpec{
-						TemplatesConfigMapName: stringRef("user-provided-configmap"),
-					},
-				},
-			},
-			want: "user-provided-configmap",
-		},
-		{
 			name:        "istio configmap",
 			app:         App{},
 			ingressType: IstioIngressControllerType,

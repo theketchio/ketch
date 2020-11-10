@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"text/template"
 
@@ -134,6 +133,9 @@ func New(application *ketchv1.App, pool *ketchv1.Pool, opts ...Option) (*Applica
 			Image:   deploymentSpec.Image,
 			Version: deploymentSpec.Version,
 			Labels:  deploymentSpec.Labels,
+			RoutingSettings: ketchv1.RoutingSettings{
+				Weight: deploymentSpec.RoutingSettings.Weight,
+			},
 		}
 		procfile, err := ProcfileFromProcesses(deploymentSpec.Processes)
 		if err != nil {
@@ -191,32 +193,52 @@ appVersion: {{ .AppVersion }}
 `
 )
 
-type chartYamlContext struct {
-	AppName     string
+// ChartConfig contains data used to render the helm chart's "Chart.yaml" file.
+type ChartConfig struct {
 	Version     string
 	Description string
+	AppName     string
 	AppVersion  string
 }
 
-// ChartConfig contains data used to render the helm chart's "Chart.yaml" file.
-type ChartConfig struct {
-	ChartVersion string
-	AppName      string
-	AppVersion   string
+// NewChartConfig returns a ChartConfig instance based on the given application.
+func NewChartConfig(app ketchv1.App) ChartConfig {
+	version := fmt.Sprintf("v%v", app.ObjectMeta.Generation)
+	chartVersion := fmt.Sprintf("v0.0.%v", app.ObjectMeta.Generation)
+	if app.Spec.Version != nil {
+		version = *app.Spec.Version
+	}
+	return ChartConfig{
+		Version:     chartVersion,
+		Description: app.Spec.Description,
+		AppName:     app.Name,
+		AppVersion:  version,
+	}
 }
 
+func (config ChartConfig) render() ([]byte, error) {
+	buf := bytes.Buffer{}
+	t := template.Must(template.New("chart.yaml").Parse(chartYaml))
+	err := t.Execute(&buf, config)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// ExportToDirectory saves the chart to the provided directory.
+// Be careful because the previous content of the directory is removed.
 func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig ChartConfig) error {
-	dir := path.Join(directory, chartConfig.AppName)
-	err := os.RemoveAll(dir)
+	err := os.RemoveAll(directory)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(filepath.Join(dir, "templates"), os.ModePerm)
+	err = os.MkdirAll(filepath.Join(directory, "templates"), os.ModePerm)
 	if err != nil {
 		return err
 	}
 	for filename, content := range chrt.templates {
-		path := filepath.Join(dir, "templates", filename)
+		path := filepath.Join(directory, "templates", filename)
 		err = ioutil.WriteFile(path, []byte(content), 0644)
 		if err != nil {
 			return err
@@ -226,24 +248,15 @@ func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig Cha
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath.Join(dir, "values.yaml"), valuesBytes, 0644)
+	err = ioutil.WriteFile(filepath.Join(directory, "values.yaml"), valuesBytes, 0644)
 	if err != nil {
 		return err
 	}
-
-	chartYamlBuf := bytes.Buffer{}
-	t := template.Must(template.New("chart.yaml").Parse(chartYaml))
-	context := chartYamlContext{
-		AppName:     chartConfig.AppName,
-		Description: "application chart",
-		Version:     chartConfig.ChartVersion,
-		AppVersion:  chartConfig.AppVersion,
-	}
-	err = t.Execute(&chartYamlBuf, context)
+	chartYamlContent, err := chartConfig.render()
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath.Join(dir, "Chart.yaml"), chartYamlBuf.Bytes(), 0644)
+	err = ioutil.WriteFile(filepath.Join(directory, "Chart.yaml"), chartYamlContent, 0644)
 	if err != nil {
 		return err
 	}
@@ -267,20 +280,13 @@ func (chrt ApplicationChart) bufferedFiles(chartConfig ChartConfig) ([]*loader.B
 		Data: valuesBytes,
 	})
 
-	chartYamlBuf := bytes.Buffer{}
-	t := template.Must(template.New("chart.yaml").Parse(chartYaml))
-	context := chartYamlContext{AppName: chartConfig.AppName,
-		Description: "application chart",
-		Version:     chartConfig.ChartVersion,
-		AppVersion:  chartConfig.AppVersion,
-	}
-	err = t.Execute(&chartYamlBuf, context)
+	chartYamlContent, err := chartConfig.render()
 	if err != nil {
 		return nil, err
 	}
 	files = append(files, &loader.BufferedFile{
 		Name: "Chart.yaml",
-		Data: chartYamlBuf.Bytes(),
+		Data: chartYamlContent,
 	})
 	return files, nil
 }

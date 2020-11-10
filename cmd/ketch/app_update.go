@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/templates"
 )
 
 const appUpdateHelp = `
@@ -33,8 +32,6 @@ func newAppUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&options.description, "description", "d", "", "App description")
 	cmd.Flags().StringVarP(&options.dockerRegistrySecret, "registry-secret", "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
-	cmd.Flags().StringVar(&options.templatesDirectory, "templates", "", "the directory with chart templates")
-	cmd.Flags().BoolVar(&options.resetTemplates, "reset-templates", false, "use default templates")
 	cmd.MarkFlagRequired("pool")
 
 	return cmd
@@ -48,8 +45,6 @@ type appUpdateOptions struct {
 	envs                    []string
 	dockerRegistrySecretSet bool
 	dockerRegistrySecret    string
-	templatesDirectory      string
-	resetTemplates          bool
 }
 
 func appUpdate(ctx context.Context, cfg config, options appUpdateOptions, out io.Writer) error {
@@ -68,30 +63,6 @@ func appUpdate(ctx context.Context, cfg config, options appUpdateOptions, out io
 		app.Spec.DockerRegistry = ketchv1.DockerRegistrySpec{
 			SecretName: options.dockerRegistrySecret,
 		}
-	}
-	if len(options.templatesDirectory) > 0 {
-		tpls, err := templates.ReadDirectory(options.templatesDirectory)
-		if err != nil {
-			return err
-		}
-		configMapName := templates.AppConfigMapName(app.Name)
-		if err := cfg.Storage().Update(configMapName, *tpls); err != nil {
-			return err
-		}
-		previousConfigMap := app.Spec.Chart.TemplatesConfigMapName
-		app.Spec.Chart.TemplatesConfigMapName = &configMapName
-
-		if previousConfigMap != nil {
-			if err = cfg.Storage().Delete(*previousConfigMap); err != nil {
-				return err
-			}
-		}
-	}
-	if options.resetTemplates && app.Spec.Chart.TemplatesConfigMapName != nil {
-		if err = cfg.Storage().Delete(*app.Spec.Chart.TemplatesConfigMapName); err != nil {
-			return err
-		}
-		app.Spec.Chart.TemplatesConfigMapName = nil
 	}
 	if options.envsSet {
 		app.Spec.Env = envs

@@ -24,6 +24,7 @@ func init() {
 type Configuration struct {
 	CtrlClientObjects []runtime.Object
 	KubeClientObjects []runtime.Object
+	StorageInstance   templates.Client
 
 	ctrlClient client.Client
 }
@@ -36,7 +37,7 @@ func (cfg *Configuration) Client() client.Client {
 }
 
 func (cfg *Configuration) Storage() templates.Client {
-	panic("not implemented")
+	return cfg.StorageInstance
 }
 
 func (cfg *Configuration) KubernetesClient() kubernetes.Interface {

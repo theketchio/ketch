@@ -141,8 +141,8 @@ func TestNew(t *testing.T) {
 			actualFilename := filepath.Join(chartDirectory, fmt.Sprintf("%s-output.yaml", tt.wantYamlsFilename))
 
 			chartConfig := ChartConfig{
-				ChartVersion: "0.0.1",
-				AppName:      tt.application.Name,
+				Version: "0.0.1",
+				AppName: tt.application.Name,
 			}
 			client := HelmClient{cfg: &action.Configuration{KubeClient: &fake.PrintingKubeClient{}, Releases: storage.Init(driver.NewMemory())}, namespace: tt.pool.Spec.NamespaceName}
 
