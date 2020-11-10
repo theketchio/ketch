@@ -20,7 +20,7 @@ func newPoolCmd(cfg config, out io.Writer) *cobra.Command {
 		},
 	}
 	cmd.AddCommand(newPoolListCmd(cfg, out))
-	cmd.AddCommand(newPoolAddCmd(cfg, out))
+	cmd.AddCommand(newPoolAddCmd(cfg, out, addPool))
 	cmd.AddCommand(newPoolRemoveCmd(cfg, out))
 	cmd.AddCommand(newPoolUpdateCmd(cfg, out))
 	return cmd
