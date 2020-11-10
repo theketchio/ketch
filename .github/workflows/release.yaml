@@ -16,7 +16,6 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: '1.15.1'
-        run: go version
       - name: Push to Docker Hub
         uses: docker/build-push-action@v1
         with:
@@ -26,6 +25,7 @@ jobs:
           tag_with_ref: true
       - name: Build
         run: |
+          go version
           echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
           echo $RELEASE_VERSION
           echo ${{ env.RELEASE_VERSION }}
