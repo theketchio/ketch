@@ -17,13 +17,6 @@ jobs:
         - make test
 
     - stage: build
-      if: tag =~ ^v
-      language: go
-      go: "1.15"
-      script:
-        - test -n "$TRAVIS_TAG" && curl -sL https://git.io/goreleaser | bash
-
-    - stage: build
       if: type == pull_request
       branches:
         except:
@@ -32,25 +25,5 @@ jobs:
       sudo: required
       script:
         - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
-        - docker build -t shipasoftware/ketch:$TRAVIS_COMMIT .
-        - docker push shipasoftware/ketch:$TRAVIS_COMMIT
-
-    - stage: build
-      if: tag =~ ^v
-      language: bash
-      sudo: required
-      script:
-        - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
-        - docker build -t shipasoftware/ketch:$TRAVIS_TAG .
-        - docker push shipasoftware/ketch:$TRAVIS_TAG
-      before_deploy:
-        - mkdir /tmp/kustomize
-        - make install-kustomize KUSTOMIZE_INSTALL_DIR=/tmp/kustomize
-        - make create-controller-yaml KUSTOMIZE=/tmp/kustomize/kustomize IMG=shipasoftware/ketch:$TRAVIS_TAG
-      deploy:
-        provider: releases
-        api_key: $GITHUB_TOKEN
-        file: "ketch-controller.yaml"
-        skip_cleanup: true
-        on:
-          tags: true
+        - docker build -t shipasoftware/ketch:$TRAVIS_PULL_REQUEST_BRANCH .
+        - docker push shipasoftware/ketch:$TRAVIS_PULL_REQUEST_BRANCH

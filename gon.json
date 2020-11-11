@@ -1,0 +1,13 @@
+{
+  "source" : ["./bin/ketch-darwin-amd64"],
+  "bundle_id" : "io.theketch.ketch",
+  "apple_id": {
+    "password":  "@env:AC_PASSWORD"
+  },
+  "sign" :{
+    "application_identity" : "C204C0BBC75BA3A7EE06055DD943031509BA047D"
+  },
+  "zip" :{
+    "output_path" : "./bin/ketch-darwin-amd64.zip"
+  }
+}
