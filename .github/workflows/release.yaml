@@ -35,9 +35,9 @@ jobs:
           make install-kustomize KUSTOMIZE_INSTALL_DIR=/tmp/kustomize
           make create-controller-yaml KUSTOMIZE=/tmp/kustomize/kustomize IMG=shipasoftware/ketch:$RELEASE_VERSION
           cp ketch-controller.yaml bin/
-          GOOS=linux GOARCH=amd64 go build -o bin/ketch-linux-amd64 ./cmd/ketch/
+          GOOS=linux GOARCH=amd64 go build  -ldflags="-X 'main.version=${RELEASE_VERSION:1}'" -o bin/ketch-linux-amd64 ./cmd/ketch/
           sha256sum bin/ketch-linux-amd64 > bin/ketch-linux-amd64.sha256sum
-          GOOS=darwin GOARCH=amd64 go build -o bin/ketch-darwin-amd64 ./cmd/ketch/
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-X 'main.version=${RELEASE_VERSION:1}'" -o bin/ketch-darwin-amd64 ./cmd/ketch/
       - name: upload binary artifacts
         uses: actions/upload-artifact@v2
         with:
