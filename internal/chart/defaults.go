@@ -8,5 +8,4 @@ const (
 	defaultHealthcheckAllowedFailures = 3
 	DefaultApplicationPort            = 8888
 	DefaultRoutableProcessName        = "web"
-	DefaultNumberOfUnits              = 1
 )

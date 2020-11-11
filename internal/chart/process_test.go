@@ -3,10 +3,9 @@ package chart
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/google/go-cmp/cmp"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
@@ -163,7 +162,7 @@ func TestNewProcess(t *testing.T) {
 			},
 			want: &process{
 				Name:              "web",
-				Units:             DefaultNumberOfUnits,
+				Units:             ketchv1.DefaultNumberOfUnits,
 				PublicServicePort: 3333,
 				ContainerPorts: []v1.ContainerPort{
 					{ContainerPort: 3333},

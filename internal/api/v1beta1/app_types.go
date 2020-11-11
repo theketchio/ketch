@@ -30,7 +30,8 @@ func init() {
 }
 
 const (
-	ShipaCloudDomain = "shipa.cloud"
+	ShipaCloudDomain     = "shipa.cloud"
+	DefaultNumberOfUnits = 1
 )
 
 // Env represents an environment variable present in an application.
@@ -212,7 +213,7 @@ func (s *AppDeploymentSpec) setUnitsForAllProcess(units int) {
 func (s *AppDeploymentSpec) addUnits(process string, units int) error {
 	for i, processSpec := range s.Processes {
 		if processSpec.Name == process {
-			currentUnits := 0
+			currentUnits := DefaultNumberOfUnits
 			if processSpec.Units != nil {
 				currentUnits = *processSpec.Units
 			}
