@@ -3,9 +3,11 @@ package v1beta1
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -1046,6 +1048,123 @@ func TestApp_Start(t *testing.T) {
 			}
 			require.Nil(t, err)
 			require.Equal(t, tt.wantSpec, app.Spec)
+		})
+	}
+}
+
+func TestApp_Phase(t *testing.T) {
+	tests := []struct {
+		name string
+		app  App
+		want AppPhase
+	}{
+		{
+			name: "1 unit - status is running",
+			app: App{
+				Spec: AppSpec{
+					Deployments: []AppDeploymentSpec{
+						{Processes: []ProcessSpec{{Units: intRef(1)}}},
+					},
+				},
+				Status: AppStatus{
+					Conditions: []AppCondition{
+						{Type: AppScheduled, Status: v1.ConditionTrue},
+					},
+				},
+			},
+			want: AppRunning,
+		},
+		{
+			name: "schedule issue - status is error",
+			app: App{
+				Spec: AppSpec{
+					Deployments: []AppDeploymentSpec{
+						{Processes: []ProcessSpec{{Units: intRef(1)}}},
+					},
+				},
+				Status: AppStatus{
+					Conditions: []AppCondition{
+						{Type: AppScheduled, Status: v1.ConditionFalse},
+					},
+				},
+			},
+			want: AppError,
+		},
+		{
+			name: "no units - status is created",
+			app: App{
+				Spec: AppSpec{},
+				Status: AppStatus{
+					Conditions: []AppCondition{
+						{Type: AppScheduled, Status: v1.ConditionTrue},
+					},
+				},
+			},
+			want: AppCreated,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			phase := tt.app.Phase()
+			require.Equal(t, tt.want, phase)
+		})
+	}
+}
+
+func TestApp_SetCondition(t *testing.T) {
+
+	t1 := metav1.NewTime(time.Now())
+	t2 := metav1.NewTime(time.Now())
+
+	tests := []struct {
+		name              string
+		currentConditions []AppCondition
+		wantConditions    []AppCondition
+	}{
+		{
+			name:              "add condition",
+			currentConditions: nil,
+			wantConditions: []AppCondition{
+				{Type: AppScheduled, Status: v1.ConditionTrue, LastTransitionTime: &t2, Message: "message"},
+			},
+		},
+		{
+			name:              "message updated",
+			currentConditions: []AppCondition{{Type: AppScheduled, Status: v1.ConditionTrue, LastTransitionTime: &t1, Message: "old-message"}},
+			wantConditions: []AppCondition{
+				{Type: AppScheduled, Status: v1.ConditionTrue, LastTransitionTime: &t2, Message: "message"},
+			},
+		},
+		{
+			name:              "status updated",
+			currentConditions: []AppCondition{{Type: AppScheduled, Status: v1.ConditionFalse, LastTransitionTime: &t1, Message: "message"}},
+			wantConditions: []AppCondition{
+				{Type: AppScheduled, Status: v1.ConditionTrue, LastTransitionTime: &t2, Message: "message"},
+			},
+		},
+		{
+			name:              "no need to update",
+			currentConditions: []AppCondition{{Type: AppScheduled, Status: v1.ConditionTrue, LastTransitionTime: &t1, Message: "message"}},
+			wantConditions: []AppCondition{
+				{Type: AppScheduled, Status: v1.ConditionTrue, LastTransitionTime: &t1, Message: "message"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := App{
+				Status: AppStatus{
+					Conditions: tt.currentConditions,
+				},
+			}
+			condition := AppCondition{
+				Type:               AppScheduled,
+				Status:             v1.ConditionTrue,
+				LastTransitionTime: &t2,
+				Message:            "message",
+			}
+			app.SetCondition(condition.Type, condition.Status, condition.Message, *condition.LastTransitionTime)
+			require.Equal(t, tt.wantConditions, app.Status.Conditions)
 		})
 	}
 }

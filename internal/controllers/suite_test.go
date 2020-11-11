@@ -111,7 +111,7 @@ func setup(reader templates.Reader, helm Helm, objects []runtime.Object) (*testi
 				return nil, fmt.Errorf("failed to create %v pool", x.Name)
 			}
 		case *ketchv1.App:
-			if x.Status.Phase != ketchv1.AppRunning {
+			if len(x.Status.Conditions) == 0 {
 				return nil, fmt.Errorf("failed to run %v app", x.Name)
 			}
 		}

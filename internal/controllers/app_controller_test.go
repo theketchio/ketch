@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/release"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -96,15 +98,16 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 		},
 	}
 	ctx, err := setup(readerMock, helmMock, defaultObjects)
-	assert.Nil(t, err)
+	require.Nil(t, err)
+	require.NotNil(t, ctx)
 	defer teardown(ctx)
 
 	tests := []struct {
-		name              string
-		want              ctrl.Result
-		app               ketchv1.App
-		wantStatusPhase   ketchv1.AppPhase
-		wantStatusMessage string
+		name                 string
+		want                 ctrl.Result
+		app                  ketchv1.App
+		wantConditionStatus  v1.ConditionStatus
+		wantConditionMessage string
 	}{
 		{
 			name: "app linked to nonexisting pool",
@@ -117,8 +120,8 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 					Pool:        "non-existing-pool",
 				},
 			},
-			wantStatusPhase:   ketchv1.AppFailed,
-			wantStatusMessage: `pool "non-existing-pool" is not found`,
+			wantConditionStatus:  v1.ConditionFalse,
+			wantConditionMessage: `pool "non-existing-pool" is not found`,
 		},
 		{
 			name: "running application",
@@ -131,7 +134,7 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 					Pool:        "working-pool",
 				},
 			},
-			wantStatusPhase: ketchv1.AppRunning,
+			wantConditionStatus: v1.ConditionTrue,
 		},
 		{
 			name: "create an app linked to a pool without available slots to run the app",
@@ -144,8 +147,8 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 					Pool:        "second-pool",
 				},
 			},
-			wantStatusPhase:   ketchv1.AppFailed,
-			wantStatusMessage: "you have reached the limit of apps",
+			wantConditionStatus:  v1.ConditionFalse,
+			wantConditionMessage: "you have reached the limit of apps",
 		},
 		{
 			name: "app with update-chart-error",
@@ -158,8 +161,8 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 					Pool:        "working-pool",
 				},
 			},
-			wantStatusPhase:   ketchv1.AppPending,
-			wantStatusMessage: "failed to update helm chart: render error",
+			wantConditionStatus:  v1.ConditionFalse,
+			wantConditionMessage: "failed to update helm chart: render error",
 		},
 	}
 	for _, tt := range tests {
@@ -172,14 +175,16 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 				time.Sleep(250 * time.Millisecond)
 				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.app.Name}, &resultApp)
 				assert.Nil(t, err)
-				if len(resultApp.Status.Phase) > 0 {
+				if len(resultApp.Status.Conditions) > 0 {
 					break
 				}
 			}
-			assert.Equal(t, tt.wantStatusPhase, resultApp.Status.Phase)
-			assert.Equal(t, tt.wantStatusMessage, resultApp.Status.Message)
+			condition := resultApp.Status.Condition(ketchv1.AppScheduled)
+			require.NotNil(t, condition)
+			require.Equal(t, tt.wantConditionStatus, condition.Status)
+			assert.Equal(t, tt.wantConditionMessage, condition.Message)
 
-			if resultApp.Status.Phase == ketchv1.AppRunning {
+			if condition.Status == v1.ConditionTrue {
 				err = ctx.k8sClient.Delete(context.TODO(), &resultApp)
 			}
 		})

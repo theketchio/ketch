@@ -12,9 +12,6 @@ spec:
   - JSONPath: .spec.pool
     name: Pool
     type: string
-  - JSONPath: .status.phase
-    name: Status
-    type: string
   - JSONPath: .spec.description
     name: Description
     type: string
@@ -461,13 +458,32 @@ spec:
         status:
           description: AppStatus represents information about the status of an application.
           properties:
-            message:
-              description: A human readable message indicating details about why the
-                application is in this condition.
-              type: string
-            phase:
-              description: Phase represents the current condition of the application.
-              type: string
+            conditions:
+              description: Conditions of App resource.
+              items:
+                description: AppCondition contains details for the current condition
+                  of this app.
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime is the timestamp corresponding
+                      to the last status.
+                    format: date-time
+                    type: string
+                  message:
+                    description: A human readable message indicating details about
+                      why the application is in this condition.
+                    type: string
+                  status:
+                    description: Status of the condition.
+                    type: string
+                  type:
+                    description: Type of the condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
             pool:
               description: 'ObjectReference contains enough information to let you
                 inspect or modify the referred object. --- New uses of this type are
