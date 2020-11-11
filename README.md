@@ -44,7 +44,7 @@ kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/relea
 ```
 Install Ketch controller.
 ```bash
-curl -o ketch-controller.yaml https://github.com/shipa-corp/ketch/releases/download/v0.0.1-beta-9/ketch-controller.yaml && k apply -f ketch-controller.yaml --validate=false
+kubectl -f https://github.com/shipa-corp/ketch/releases/download/v0.1.0-beta-6/ketch-controller.yaml
 ```
 Thats it!
 
@@ -55,19 +55,19 @@ deploy the app(s).  The following example illustrates these steps.
 
 ```bash
 # Add a pool with ingress Traefik (default)
-ketch pool add gke  --ingress-service-endpoint 35.247.8.23 --kube-namespace ketch-system --ingress-type traefik
+ketch pool add mypool  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
 
 # Create app
-ketch app create bulletinboard --pool gke       
+ketch app create bulletinboard --pool mypool       
 
 # Deploy app
-ketch app deploy bulletinboard -i docker.io/quokka/bulletinboard:1.0 
+ketch app deploy bb1 -i docker.io/shipasoftware/bulletinboard:1.0 
 
 # Check app status
 ketch app list 
 
 NAME             POOL    STATUS     UNITS    ADDRESSES                                DESCRIPTION
-bulletinboard    gke     Running    1        bulletinboard.35.247.8.23.shipa.cloud    
+bulletinboard    mypool     Running    1        bulletinboard.35.247.8.23.shipa.cloud    
 ```
 After you deploy your application, you can access it at the address associated with it using the `ketch app list`, in 
 this example `bulletinboard.35.247.8.23.shipa.cloud`. 

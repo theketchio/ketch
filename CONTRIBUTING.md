@@ -52,5 +52,5 @@ sudo route add -host $(kubectl get svc traefik -o jsonpath='{.spec.clusterIP}') 
 Use the cluster IP address when you create pools.
 
 ```bash
-ketch pool add mypool --ingress-service-endpoint $(kubectl get svc traefik -o jsonpath='{.spec.clusterIP}') --namespace mynamespace
+ketch pool add mypool --ingress-service-endpoint $(kubectl get svc traefik -o jsonpath='{.spec.clusterIP}') 
 ```
