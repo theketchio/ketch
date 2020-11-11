@@ -97,7 +97,7 @@ func withLifecycle(lc *v1.Lifecycle) processOption {
 func newProcess(name string, isRoutable bool, opts ...processOption) (*process, error) {
 	process := &process{
 		Name:     name,
-		Units:    DefaultNumberOfUnits,
+		Units:    ketchv1.DefaultNumberOfUnits,
 		Routable: isRoutable,
 		PodExtra: podExtra{},
 	}

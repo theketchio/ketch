@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/chart"
 )
 
 var (
@@ -95,7 +94,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	for _, deployment := range app.Spec.Deployments {
 		for _, process := range deployment.Processes {
 			noProcesses = false
-			units := fmt.Sprintf("%d", chart.DefaultNumberOfUnits)
+			units := fmt.Sprintf("%d", ketchv1.DefaultNumberOfUnits)
 			if process.Units != nil {
 				units = fmt.Sprintf("%d", *process.Units)
 			}

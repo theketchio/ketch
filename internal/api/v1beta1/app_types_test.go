@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -308,6 +309,31 @@ func TestApp_AddUnits(t *testing.T) {
 						Processes: []ProcessSpec{
 							{Name: "web", Units: intRef(0)},
 							{Name: "worker", Units: intRef(0)},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "adding quantity when units are not specified",
+			spec: AppSpec{
+				Deployments: []AppDeploymentSpec{
+					{
+						Version: 1,
+						Processes: []ProcessSpec{
+							{Name: "worker"},
+						},
+					},
+				},
+			},
+			selector: Selector{},
+			quantity: 2,
+			wantSpec: AppSpec{
+				Deployments: []AppDeploymentSpec{
+					{
+						Version: 1,
+						Processes: []ProcessSpec{
+							{Name: "worker", Units: intRef(3)},
 						},
 					},
 				},
@@ -1013,15 +1039,13 @@ func TestApp_Start(t *testing.T) {
 					},
 				},
 			}
-			if err := app.Start(tt.selector); (err != nil) != tt.wantErr {
-				t.Errorf("Stop() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			err := app.Start(tt.selector)
 			if tt.wantErr {
+				require.NotNil(t, err)
 				return
 			}
-			if diff := cmp.Diff(app.Spec, tt.wantSpec); diff != "" {
-				t.Errorf("AppSpec mismatch (-want +got):\n%s", diff)
-			}
+			require.Nil(t, err)
+			require.Equal(t, tt.wantSpec, app.Spec)
 		})
 	}
 }
