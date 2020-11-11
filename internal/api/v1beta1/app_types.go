@@ -121,23 +121,45 @@ type AppPhase string
 
 const (
 	// AppPending means the app has been accepted by the system, but has not been started.
-	AppPending AppPhase = "Pending"
+	AppCreated AppPhase = "Created"
 
-	// AppFailed means the app CRD is broken in some way and ketch controller can't render and install a new helm chart.
-	AppFailed AppPhase = "Failed"
+	// AppError means the app CRD is broken in some way and ketch controller can't render and install a new helm chart.
+	AppError AppPhase = "Error"
 
 	// AppRunning means that ketch controller has rendered a helm chart of the application and installed it to a cluster.
 	AppRunning AppPhase = "Running"
 )
 
-// AppStatus represents information about the status of an application.
-type AppStatus struct {
+type AppConditionType string
 
-	// Phase represents the current condition of the application.
-	Phase AppPhase `json:"phase,omitempty"`
+// These are valid conditions of app.
+const (
+
+	// AppScheduled indicates whether the has been processed by ketch-controller.
+	AppScheduled AppConditionType = "Scheduled"
+)
+
+// AppCondition contains details for the current condition of this app.
+type AppCondition struct {
+
+	// Type of the condition.
+	Type AppConditionType `json:"type"`
+
+	// Status of the condition.
+	Status v1.ConditionStatus `json:"status"`
+
+	// LastTransitionTime is the timestamp corresponding to the last status.
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
 
 	// A human readable message indicating details about why the application is in this condition.
 	Message string `json:"message,omitempty"`
+}
+
+// AppStatus represents information about the status of an application.
+type AppStatus struct {
+
+	// Conditions of App resource.
+	Conditions []AppCondition `json:"conditions,omitempty"`
 
 	Pool *v1.ObjectReference `json:"pool,omitempty"`
 }
@@ -173,7 +195,6 @@ type AppSpec struct {
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Pool",type=string,JSONPath=`.spec.pool`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 
 // App is the Schema for the apps API.
@@ -432,4 +453,47 @@ func (app *App) ExposedPorts() map[DeploymentVersion][]ExposedPort {
 		ports[deployment.Version] = deployment.ExposedPorts
 	}
 	return ports
+}
+
+// SetCondition sets Status and Message fields of the given type of condition to the provided values.
+func (app *App) SetCondition(t AppConditionType, status v1.ConditionStatus, message string, time metav1.Time) {
+	c := AppCondition{
+		Type:               t,
+		Status:             status,
+		LastTransitionTime: &time,
+		Message:            message,
+	}
+	for i, cond := range app.Status.Conditions {
+		if cond.Type == t {
+			if cond.Status == c.Status && cond.Message == c.Message {
+				return
+			}
+			app.Status.Conditions[i] = c
+			return
+		}
+	}
+	app.Status.Conditions = append(app.Status.Conditions, c)
+}
+
+// Phase return a simple, high-level summary of where the application is in its lifecycle.
+func (app *App) Phase() AppPhase {
+	for _, cond := range app.Status.Conditions {
+		if cond.Status == v1.ConditionFalse {
+			return AppError
+		}
+	}
+	if app.Units() == 0 {
+		return AppCreated
+	}
+	return AppRunning
+}
+
+// Condition looks for a condition with the provided type in the condition list and returns it.
+func (s AppStatus) Condition(t AppConditionType) *AppCondition {
+	for _, c := range s.Conditions {
+		if c.Type == t {
+			return &c
+		}
+	}
+	return nil
 }

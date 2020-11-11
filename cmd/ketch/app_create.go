@@ -71,9 +71,6 @@ func appCreate(ctx context.Context, cfg config, options appCreateOptions, out io
 				SecretName: options.dockerRegistrySecret,
 			},
 		},
-		Status: ketchv1.AppStatus{
-			Phase: ketchv1.AppPending,
-		},
 	}
 	if err = cfg.Client().Create(ctx, &app); err != nil {
 		return fmt.Errorf("failed to create an app: %w", err)

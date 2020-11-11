@@ -19,13 +19,14 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
 	"helm.sh/helm/v3/pkg/release"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/reference"
@@ -84,63 +85,62 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	app.Status = r.reconcile(ctx, &app)
-
 	var (
 		err    error
 		result ctrl.Result
 	)
-
-	switch app.Status.Phase {
-	case ketchv1.AppPending:
-		result = ctrl.Result{
-			Requeue:      true,
-			RequeueAfter: time.Minute,
-		}
-		err = errors.New(app.Status.Message)
-	case ketchv1.AppFailed:
-		err = errors.New(app.Status.Message)
-	case ketchv1.AppRunning:
+	scheduleResult := r.reconcile(ctx, &app)
+	if scheduleResult.status == v1.ConditionFalse {
+		// we have to return an error to run reconcile again.
+		err = fmt.Errorf(scheduleResult.message)
+	} else {
+		app.Status.Pool = scheduleResult.pool
 	}
-
-	if err := r.Status().Update(ctx, &app); err != nil {
+	app.SetCondition(ketchv1.AppScheduled, scheduleResult.status, scheduleResult.message, metav1.NewTime(time.Now()))
+	if err := r.Status().Update(context.Background(), &app); err != nil {
 		return result, err
 	}
 	return result, err
 }
 
-func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) ketchv1.AppStatus {
+type reconcileResult struct {
+	status  v1.ConditionStatus
+	message string
+	pool    *v1.ObjectReference
+}
+
+func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconcileResult {
 	pool := ketchv1.Pool{}
 	if err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
-		return ketchv1.AppStatus{
-			Phase:   ketchv1.AppFailed,
-			Message: fmt.Sprintf(`pool "%s" is not found`, app.Spec.Pool),
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: fmt.Sprintf(`pool "%s" is not found`, app.Spec.Pool),
 		}
 	}
 	ref, err := reference.GetReference(r.Scheme, &pool)
 	if err != nil {
-		return ketchv1.AppStatus{
-			Phase:   ketchv1.AppFailed,
-			Message: err.Error(),
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: err.Error(),
 		}
 	}
 	if pool.Status.Namespace == nil {
-		return ketchv1.AppStatus{
-			Phase:   ketchv1.AppFailed,
-			Message: fmt.Sprintf(`pool "%s" is not linked to a kubernetes namespace`, pool.Name),
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: fmt.Sprintf(`pool "%s" is not linked to a kubernetes namespace`, pool.Name),
 		}
 	}
 	tpls, err := r.TemplateReader.Get(app.TemplatesConfigMapName(pool.Spec.IngressController.IngressType))
 	if err != nil {
-		return ketchv1.AppStatus{
-			Phase:   ketchv1.AppFailed,
-			Message: fmt.Sprintf(`failed to read configmap with the app's chart templates: %v`, err),
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: fmt.Sprintf(`failed to read configmap with the app's chart templates: %v`, err),
 		}
 	}
 	if !pool.HasApp(app.Name) && len(pool.Status.Apps) >= pool.Spec.AppQuotaLimit && pool.Spec.AppQuotaLimit != -1 {
-		return ketchv1.AppStatus{
-			Phase:   ketchv1.AppFailed,
-			Message: fmt.Sprintf(`you have reached the limit of apps`),
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: fmt.Sprintf(`you have reached the limit of apps`),
 		}
 	}
 	options := []chart.Option{
@@ -149,9 +149,9 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) ketchv1
 	}
 	appChrt, err := chart.New(app, &pool, options...)
 	if err != nil {
-		return ketchv1.AppStatus{
-			Phase:   ketchv1.AppFailed,
-			Message: err.Error(),
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: err.Error(),
 		}
 	}
 	patchedPool := pool
@@ -159,30 +159,30 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) ketchv1
 		patchedPool.Status.Apps = append(patchedPool.Status.Apps, app.Name)
 		mergePatch := client.MergeFrom(&pool)
 		if err := r.Status().Patch(ctx, &patchedPool, mergePatch); err != nil {
-			return ketchv1.AppStatus{
-				Phase:   ketchv1.AppPending,
-				Message: fmt.Sprintf("failed to update pool status: %v", err),
+			return reconcileResult{
+				status:  v1.ConditionFalse,
+				message: fmt.Sprintf("failed to update pool status: %v", err),
 			}
 		}
 	}
 	targetNamespace := pool.Status.Namespace.Name
 	helmClient, err := r.HelmFactoryFn(targetNamespace)
 	if err != nil {
-		return ketchv1.AppStatus{
-			Phase:   ketchv1.AppPending,
-			Message: err.Error(),
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: err.Error(),
 		}
 	}
 	_, err = helmClient.UpdateChart(*appChrt, chart.NewChartConfig(*app))
 	if err != nil {
-		return ketchv1.AppStatus{
-			Phase:   ketchv1.AppPending,
-			Message: fmt.Sprintf("failed to update helm chart: %v", err),
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: fmt.Sprintf("failed to update helm chart: %v", err),
 		}
 	}
-	return ketchv1.AppStatus{
-		Pool:  ref,
-		Phase: ketchv1.AppRunning,
+	return reconcileResult{
+		pool:   ref,
+		status: v1.ConditionTrue,
 	}
 }
 
