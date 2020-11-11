@@ -27,9 +27,6 @@ func newAppStopCmd(cfg config, out io.Writer, appStop appStopFn) *cobra.Command 
 		Long:  appStopHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
-			if !validation.ValidateName(options.processName) {
-				return ErrInvalidAppName
-			}
 			return appStop(cmd.Context(), cfg, options, out)
 		},
 	}
