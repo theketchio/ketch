@@ -53,7 +53,7 @@ install-kubebuilder:
 
 .PHONY: install-kustomize
 install-kustomize:
-	curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+	curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -s 3.8.6
 	mv kustomize ${KUSTOMIZE_INSTALL_DIR}/
 
 # Uninstall CRDs from a cluster
