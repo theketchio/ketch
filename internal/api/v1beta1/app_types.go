@@ -137,6 +137,10 @@ const (
 
 	// AppScheduled indicates whether the has been processed by ketch-controller.
 	AppScheduled AppConditionType = "Scheduled"
+
+	// AppContainersReady indicates whether at least one container is running.
+	// If an app doesn't have containers at all this condition will be set to True.
+	AppContainersReady AppConditionType = "ContainersReady"
 )
 
 // AppCondition contains details for the current condition of this app.

@@ -86,6 +86,12 @@ func main() {
 		setupLog.Error(err, "unable to set default templates")
 		os.Exit(1)
 	}
+	podStatusReporter, err := controllers.NewPodStatusReporter(mgr.GetConfig(), storageClient, ctrl.Log.WithName("pod-status-reporter"))
+	if err != nil {
+		setupLog.Error(err, "unable to run pod status reporter")
+		os.Exit(1)
+	}
+	go podStatusReporter.Watch()
 
 	if err = (&controllers.AppReconciler{
 		TemplateReader: storage,
