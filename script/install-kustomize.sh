@@ -1,7 +1,17 @@
 #!/bin/bash
 
 
-set -euxo pipefail
+set -euo pipefail
+
+kustomize_version="${KUSTOMIZE_VERSION:-v3.3.1}"
+
+if command -v kustomize > /dev/null 
+then
+    echo "kustomize already installed, installation skipped"
+    exit
+fi
+
+echo "Installing kustomize ${kustomize_version} from source"
 
 curr_dir=$(pwd)
 
@@ -10,7 +20,7 @@ cd "${tmp_dir}"
 
 git clone ssh://git@github.com/kubernetes-sigs/kustomize
 cd kustomize
-git checkout v3.3.1
+git checkout "${kustomize_version}"
 cd kustomize
 go install .
 
