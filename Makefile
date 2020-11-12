@@ -7,9 +7,6 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 KUBEBUILDER_VERSION="1.0.8"
 KUBEBUILDER_INSTALL_DIR ?= "/usr/local"
 
-KUSTOMIZE ?= $(shell which kustomize)
-KUSTOMIZE_INSTALL_DIR ?= "/usr/local/bin"
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -99,9 +96,9 @@ docker-push:
 	docker push ${IMG}
 
 .PHONY: create-controller-yaml
-create-controller-yaml:
-	cd config/manager && ${KUSTOMIZE} edit set image controller=${IMG} && cd ../../
-	${KUSTOMIZE} build config/default > ketch-controller.yaml
+create-controller-yaml: install-kustomize
+	cd config/manager && kustomize edit set image controller=${IMG} && cd ../../
+	kustomize build config/default > ketch-controller.yaml
 
 # find or download controller-gen
 # download controller-gen if necessary
