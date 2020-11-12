@@ -45,7 +45,7 @@ helm install traefik traefik/traefik
 ```bash
 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.0.3/cert-manager.yaml
 ```
-Install Ketch controller.
+### Install Ketch controller.
 ```bash
 kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.1.0/ketch-controller.yaml
 ```
