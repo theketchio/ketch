@@ -56,7 +56,7 @@ install() {
     exit 1
   else
     echo "Downloading Ketch binary from ${DOWNLOAD_URL} to $DEST"
-    if curl -u vivek:eb00704e28998308fe14c327c3fb301619ed84c0 -sL "${DOWNLOAD_URL}" -o "$DEST"; then
+    if curl -sL "${DOWNLOAD_URL}" -o "$DEST"; then
       chmod +x "$DEST"
       echo "Ketch client installation was successful"
     else
