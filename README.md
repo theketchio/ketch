@@ -18,19 +18,21 @@ No YAML required!
 
 ### Download and Install Ketch 
 The latest Ketch release can be found [here](https://github.com/shipa-corp/ketch/releases). Use the following commands
-to install Ketch, changing the version in the commands to match the version of Ketch you want to install. 
- 
-For Linux use the following commands to download and install the Ketch cli. 
+to install Ketch, 
+
+Install latest at /usr/local/bin default location
+
 ```bash
-curl -o ketch https://github.com/shipa-corp/ketch/releases/download/v0.0.1-beta-9/ketch_0.0.1-beta-9_linux_amd64
-chmod +x ./ketch && mv ./ketch /usr/local/bin 
+curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | bash
 ```
 
-For Macs use the following commands to download and install the Ketch cli. 
+Alternatively, you can install specific tag at a target location, for example command below installs ketch version v0.1.0 in current directory:
+
 ```bash
-curl -o ketch https://github.com/shipa-corp/ketch/releases/download/v0.0.1-beta-9/ketch_0.0.1-beta-9_darwin_amd64
-chmod +x ./ketch && mv ./ketch /usr/local/bin 
+curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | INSTALL_DIR=. TAG=v0.1.0  bash
 ```
+
+### Install Traefik
 Use [Helm](https://helm.sh/docs/intro/install/) to install Traefik. 
 
 ```bash 
@@ -38,14 +40,16 @@ helm repo add traefik https://helm.traefik.io/traefik
 helm repo update
 helm install traefik traefik/traefik
 ```
-Install Cert Manager.
+
+### Install Cert Manager.
 ```bash
 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.0.3/cert-manager.yaml
 ```
-Install Ketch controller.
+### Install Ketch controller.
 ```bash
-kubectl -f https://github.com/shipa-corp/ketch/releases/download/v0.1.0-beta-6/ketch-controller.yaml
+kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.1.0/ketch-controller.yaml
 ```
+
 Thats it!
 
 ## Using Ketch 
@@ -54,14 +58,14 @@ Deploying apps is easy once you've installed Ketch.  First, create a pool. Then 
 deploy the app(s).  The following example illustrates these steps. 
 
 ```bash
-# Add a pool with ingress Traefik (default)
+# Add a pool with ingress Traefik (default), replace ingress IP address by your ingress IP address
 ketch pool add mypool  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
 
 # Create app
 ketch app create bulletinboard --pool mypool       
 
 # Deploy app
-ketch app deploy bb1 -i docker.io/shipasoftware/bulletinboard:1.0 
+ketch app deploy bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0 
 
 # Check app status
 ketch app list 
@@ -71,6 +75,8 @@ bulletinboard    mypool     Running    1        bulletinboard.35.247.8.23.shipa.
 ```
 After you deploy your application, you can access it at the address associated with it using the `ketch app list`, in 
 this example `bulletinboard.35.247.8.23.shipa.cloud`. 
+
+Learn more at [Ketch documentation](https://learn.theketch.io/docs)
 
 ### Usage 
 
