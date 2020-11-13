@@ -7,9 +7,7 @@
 Think applications not yamls :)
 
 # What is Ketch
-
-Ketch is a tool that makes it easy to deploy and manage applications on Kubernetes using a simple command line interface.
-No YAML required! 
+Ketch is an application delivery framework that facilitates the deployment and management of applications on Kubernetes using a simple command line interface. No YAML required!
 
 ## Architecture Diagram 
 ![Architecture](./img/ketch-architecture.png)
