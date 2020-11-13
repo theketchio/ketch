@@ -32,13 +32,26 @@ Alternatively, you can install specific tag at a target location, for example co
 curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | INSTALL_DIR=. TAG=v0.1.0  bash
 ```
 
-### Install Traefik
+### Install Ingress Controller
+
+At present, Ketch supports Istio and Traefik ingress controllers.
+
+Here is how you can install Traefik:
+
 Use [Helm](https://helm.sh/docs/intro/install/) to install Traefik. 
 
 ```bash 
 helm repo add traefik https://helm.traefik.io/traefik
 helm repo update
 helm install traefik traefik/traefik
+```
+
+Or you can install Istio:
+
+```bash
+curl -L https://istio.io/downloadIstio | sh -
+export PATH=$PWD/istio-1.7.4/bin:$PATH
+istioctl install --set profile=demo 
 ```
 
 ### Install Cert Manager.
@@ -53,6 +66,9 @@ kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.1.0/ke
 Thats it!
 
 ## Using Ketch 
+
+Learn more about Ketch at [Ketch documentation](https://learn.theketch.io/docs)
+
 ### Quick Start
 Deploying apps is easy once you've installed Ketch.  First, create a pool. Then create app(s) adding them to the pool and finally 
 deploy the app(s).  The following example illustrates these steps. 
@@ -70,13 +86,11 @@ ketch app deploy bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0
 # Check app status
 ketch app list 
 
-NAME             POOL    STATUS     UNITS    ADDRESSES                                DESCRIPTION
-bulletinboard    mypool     Running    1        bulletinboard.35.247.8.23.shipa.cloud    
+NAME             POOL      UNITS    ADDRESSES                                DESCRIPTION
+bulletinboard    mypool      1     bulletinboard.35.247.8.23.shipa.cloud    
 ```
 After you deploy your application, you can access it at the address associated with it using the `ketch app list`, in 
 this example `bulletinboard.35.247.8.23.shipa.cloud`. 
-
-Learn more at [Ketch documentation](https://learn.theketch.io/docs)
 
 ### Usage 
 
