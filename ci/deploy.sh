@@ -13,6 +13,7 @@ POOL=""
 INGRESS_TYPE=""
 INGRESS_ENDPOINT=""
 APP_NAME=""
+APP_ENV=""
 DOCKER_IMAGE=""
 KETCH_YAML=""
 PROCFILE=""
@@ -31,8 +32,9 @@ function usage() {
   echo "  -t, --ketch-tag   Ketch version. Default is latest."
   echo "  -o, --pool           Pool Name."
   echo "  -a, --app            App Name."
+  echo "  -e, --env            Application environment variables."
   echo "  -ig, --ingress     Ingress type. Default is Traefik."
-  echo "  -e, --endpoint   Ingress IP address."
+  echo "  --endpoint         Ingress IP address."
   echo "  -i, --image         Docker image for the application."
   echo "  --ketch-yaml     The path to the ketch.yaml file."
   echo "  --procfile	         The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
@@ -44,8 +46,9 @@ while [[ "$#" > 0 ]]; do case $1 in
     -t|--ketch-tag) KETCH_TAG="$2"; shift;shift;;
     -o|--pool) POOL="$2"; shift;shift;;
     -ig|--ingress) INGRESS_TYPE="$2"; shift;shift;;
-    -e|--endpoint) INGRESS_ENDPOINT="$2"; shift;shift;;
+    --endpoint) INGRESS_ENDPOINT="$2"; shift;shift;;
     -a|--app) APP_NAME="$2"; shift;shift;;
+    -e|--env) APP_ENV="$2"; shift;shift;;
     -i|--image) DOCKER_IMAGE="$2"; shift;shift;;
     --ketch-yaml) KETCH_YAML="$2"; shift;shift;;
     --procfile) PROCFILE="$2"; shift;shift;;
