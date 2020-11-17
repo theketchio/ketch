@@ -72,10 +72,10 @@ if [ -z "$KETCH_TAG" ]; then
 fi
 
 # Install ketch binary at /usr/local/bin default location
-#  curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
+ curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
 # Install Ketch controller
-# kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
+kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 
 if [ $RESOURCE_CREATION ] ; then
     # validate addtional required params
