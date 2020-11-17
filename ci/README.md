@@ -53,3 +53,39 @@ deployment:
     commands:
       - ./deploy.sh --ketch-tag v0.1.0 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
+
+#### Gitlab CI
+
+`.gitlab-ci.yml`
+```
+......
+............
+docker:
+    stage: build
+    image: docker:stable
+    services:
+      - docker:dind
+    when: on_success
+    only:
+      refs:
+        - master
+
+    script:
+      - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+      - docker build -f Dockerfile -t=$CI_REGISTRY_IMAGE/myapp:latest .
+      - echo "Pushing images to registry ..."
+      - docker push $CI_REGISTRY_IMAGE/myapp:latest
+      - docker system prune -f
+
+production:
+    stage: deploy   
+    image: ubuntu:latest
+    when: on_success
+    only:
+      - tags
+    except:
+    - branches
+
+    script:
+      - ./deploy.sh --ketch-tag v0.1.0 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+```
