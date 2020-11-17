@@ -19,6 +19,9 @@ REG_SECRET=""
 KETCH_YAML=""
 PROCFILE=""
 
+# if true, ketch will try to create app and pool for the deployment
+RESOURCE_CREATION=true
+
 # set colors for printing texts
 CLEAR='\033[0m'
 RED='\033[0;31m'
@@ -29,17 +32,18 @@ function usage() {
     echo -e "${RED}👉 $1${CLEAR}\n";
   fi
 
-  echo -e "Usage: $0 [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile]\n"
-  echo "  -t, --ketch-tag        Ketch version. Default is latest."
-  echo "  -o, --pool             Pool where your application should be deployed."
-  echo "  -a, --app              App Name."
-  echo "  -e, --env              Application environment variables."
-  echo "  -ig, --ingress         Ingress type. Default is Traefik."
-  echo "  --endpoint             Ingress IP address."
-  echo "  -i, --image            The image that should be used with the application."
-  echo "  --registry-secret      A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool."
-  echo "  --ketch-yaml           The path to the ketch.yaml file."
-  echo "  --procfile	         The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
+  echo -e "Usage: $0 [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]\n"
+  echo "  -t, --ketch-tag                 Ketch version. Default is latest."
+  echo "  -o, --pool                      Pool where your application should be deployed."
+  echo "  -a, --app                       App Name."
+  echo "  -e, --env                       Application environment variables."
+  echo "  -ig, --ingress                  Ingress type. Default is Traefik."
+  echo "  --endpoint                      Ingress IP address."
+  echo "  -i, --image                     The image that should be used with the application."
+  echo "  --registry-secret               A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool."
+  echo "  --ketch-yaml                    The path to the ketch.yaml file."
+  echo "  --procfile	                  The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
+  echo "  --skip-resource-creation        If set, ketch will NOT create app and pool for the deployment. Useful when resources already exist."
   exit 1
 }
 
@@ -55,6 +59,7 @@ while [[ "$#" > 0 ]]; do case $1 in
     --registry-secret) REG_SECRET="$2"; shift;shift;;
     --ketch-yaml) KETCH_YAML="$2"; shift;shift;;
     --procfile) PROCFILE="$2"; shift;shift;;
+    --skip-resource-creation) RESOURCE_CREATION=false; shift;shift;;
     *) usage "Unknown parameter passed: $1"; shift; shift;;
 esac; done
 
@@ -71,16 +76,18 @@ if [ -z "$KETCH_TAG" ]; then
 fi
 
 # Install ketch binary at /usr/local/bin default location
-curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
+# curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
 # Install Ketch controller
 kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 
-# Add a pool with ingress Traefik (default), replace ingress endpoint address by your ingress IP address
-ketch pool add "${POOL}"  --ingress-service-endpoint "${INGRESS_ENDPOINT}" --ingress-type "${INGRESS_TYPE}"
+if [ "$RESOURCE_CREATION" == true] ; then
+    # Add a pool with ingress Traefik (default), replace ingress endpoint address by your ingress IP address
+    ketch pool add "${POOL}"  --ingress-service-endpoint "${INGRESS_ENDPOINT}" --ingress-type "${INGRESS_TYPE}"
 
-# Create app
-ketch app create "${APP_NAME}" --pool "${POOL}"  --env "${APP_ENV}" --registry-secret "${REG_SECRET}"
+    # Create app
+    ketch app create "${APP_NAME}" --pool "${POOL}"  --env "${APP_ENV}" --registry-secret "${REG_SECRET}"
+fi
 
 # Deploy app
 ketch app deploy "${APP_NAME}" -i "${DOCKER_REGISTRY}" --ketch-yaml "${KETCH_YAML}" --procfile "${PROCFILE}"
