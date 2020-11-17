@@ -14,6 +14,8 @@ INGRESS_TYPE=""
 INGRESS_ENDPOINT=""
 APP_NAME=""
 DOCKER_IMAGE=""
+KETCH_YAML=""
+PROCFILE=""
 
 # set colors for printing texts
 CLEAR='\033[0m'
@@ -27,22 +29,26 @@ function usage() {
 
   echo "Usage: $0 [-t --ketch-tag] [-p --pool] [-ig --ingress] [-e --endpoint] [-a --app] [-i --image]"
   echo "  -t, --ketch-tag   Ketch version. Default is latest."
-  echo "  -p, --pool           Pool Name."
+  echo "  -o, --pool           Pool Name."
   echo "  -a, --app            App Name."
   echo "  -ig, --ingress     Ingress type. Default is Traefik."
   echo "  -e, --endpoint    Ingress IP address."
   echo "  -i, --image          Docker image for the application."
+  echo "  --ketch-yaml      The path to the ketch.yaml file."
+  echo "  --procfile	          The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
   exit 1
 }
 
 # parse params and set variables with custom user inputs
 while [[ "$#" > 0 ]]; do case $1 in
     -t|--ketch-tag) KETCH_TAG="$2"; shift;shift;;
-    -p|--pool) POOL="$2"; shift;shift;;
+    -o|--pool) POOL="$2"; shift;shift;;
     -ig|--ingress) INGRESS_TYPE="$2"; shift;shift;;
     -e|--endpoint) INGRESS_ENDPOINT="$2"; shift;shift;;
     -a|--app) APP_NAME="$2"; shift;shift;;
     -i|--image) DOCKER_IMAGE="$2"; shift;shift;;
+    --ketch-yaml) KETCH_YAML="$2"; shift;shift;;
+    --procfile) PROCFILE="$2"; shift;shift;;
     *) usage "Unknown parameter passed: $1"; shift; shift;;
 esac; done
 
@@ -71,4 +77,4 @@ ketch pool add "${POOL}"  --ingress-service-endpoint "${INGRESS_ENDPOINT}" --ing
 ketch app create "${APP_NAME}" --pool "${POOL}"   
 
 # Deploy app
-ketch app deploy "${APP_NAME}" -i "${DOCKER_REGISTRY}"
+ketch app deploy "${APP_NAME}" -i "${DOCKER_REGISTRY}" --ketch-yaml="${KETCH_YAML}" --procfile="${PROCFILE}"
