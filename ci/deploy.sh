@@ -79,7 +79,7 @@ fi
 # Install Ketch controller
 kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 
-if [ "$RESOURCE_CREATION" == true] ; then
+if [ $RESOURCE_CREATION ] ; then
     # validate addtional required params
     if [ -z "$POOL" ]; then usage "Pool name required"; fi;
     if [ -z "$INGRESS_ENDPOINT" ]; then usage "Ingress endpoint required"; fi;
