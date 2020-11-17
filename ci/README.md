@@ -36,5 +36,5 @@ jobs:
     - stage: build
       script: ./build.sh     # build and push docker images
     - stage: deploy
-      script: ./deploy.sh --ketch-tag v0.1.0 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik --skip-resource-creation
+      script: ./deploy.sh --ketch-tag v0.1.0 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
