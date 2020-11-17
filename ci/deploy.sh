@@ -15,50 +15,38 @@ INGRESS_ENDPOINT=""
 APP_NAME=""
 DOCKER_IMAGE=""
 
-while [[ $# -gt 0 ]]
-do
-key="$1"
+# set colors for printing texts
+CLEAR='\033[0m'
+RED='\033[0;31m'
 
-# set variables with custom user inputs
-case $key in
-    -t|--ketch_tag)
-    KETCH_TAG="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -p|--pool)
-    POOL="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -ig|--ingress)
-    INGRESS_TYPE="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -e|--endpoint)
-    INGRESS_ENDPOINT="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -a|--app)
-    APP_NAME="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -i|--image)
-    DOCKER_IMAGE="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    *)    # unknown option
-    echo "unknown option $1"
-    exit 1
-    ;;
-esac
-done
+# prints usage
+function usage() {
+  if [ -n "$1" ]; then
+    echo -e "${RED}👉 $1${CLEAR}\n";
+  fi
 
-# Install latest ketch binary at /usr/local/bin default location
+  echo "Usage: $0 [-t --ketch-tag] [-p --pool] [-ig --ingress] [-e --endpoint] [-a --app] [-i --image]"
+  echo "  -t, --ketch-tag   Ketch version. Default is latest."
+  echo "  -p, --pool           Pool Name."
+  echo "  -a, --app            App Name."
+  echo "  -ig, --ingress     Ingress type. Default is Traefik."
+  echo "  -e, --endpoint    Ingress IP address."
+  echo "  -i, --image          Docker image for the application."
+  exit 1
+}
+
+# parse params and set variables with custom user inputs
+while [[ "$#" > 0 ]]; do case $1 in
+    -t|--ketch-tag) KETCH_TAG="$2"; shift;shift;;
+    -p|--pool) POOL="$2"; shift;shift;;
+    -ig|--ingress) INGRESS_TYPE="$2"; shift;shift;;
+    -e|--endpoint) INGRESS_ENDPOINT="$2"; shift;shift;;
+    -a|--app) APP_NAME="$2"; shift;shift;;
+    -i|--image) DOCKER_IMAGE="$2"; shift;shift;;
+    *) usage "Unknown parameter passed: $1"; shift; shift;;
+esac; done
+
+# Install ketch binary at /usr/local/bin default location
 curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
 # Install Ketch controller
