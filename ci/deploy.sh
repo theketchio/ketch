@@ -15,6 +15,7 @@ INGRESS_ENDPOINT=""
 APP_NAME=""
 APP_ENV=""
 DOCKER_IMAGE=""
+REG_SECRET=""
 KETCH_YAML=""
 PROCFILE=""
 
@@ -29,15 +30,16 @@ function usage() {
   fi
 
   echo "Usage: $0 [-t --ketch-tag] [-p --pool] [-ig --ingress] [-e --endpoint] [-a --app] [-i --image]"
-  echo "  -t, --ketch-tag   Ketch version. Default is latest."
-  echo "  -o, --pool           Pool Name."
-  echo "  -a, --app            App Name."
-  echo "  -e, --env            Application environment variables."
-  echo "  -ig, --ingress     Ingress type. Default is Traefik."
-  echo "  --endpoint         Ingress IP address."
-  echo "  -i, --image         Docker image for the application."
-  echo "  --ketch-yaml     The path to the ketch.yaml file."
-  echo "  --procfile	         The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
+  echo "  -t, --ketch-tag     Ketch version. Default is latest."
+  echo "  -o, --pool                Pool Name."
+  echo "  -a, --app                 App Name."
+  echo "  -e, --env                 Application environment variables."
+  echo "  -ig, --ingress          Ingress type. Default is Traefik."
+  echo "  --endpoint               Ingress IP address."
+  echo "  -i, --image               Docker image for the application."
+  echo "  --registry-secret     A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool."
+  echo "  --ketch-yaml           The path to the ketch.yaml file."
+  echo "  --procfile	               The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
   exit 1
 }
 
@@ -50,6 +52,7 @@ while [[ "$#" > 0 ]]; do case $1 in
     -a|--app) APP_NAME="$2"; shift;shift;;
     -e|--env) APP_ENV="$2"; shift;shift;;
     -i|--image) DOCKER_IMAGE="$2"; shift;shift;;
+    --registry-secret) REG_SECRET="$2"; shift;shift;;
     --ketch-yaml) KETCH_YAML="$2"; shift;shift;;
     --procfile) PROCFILE="$2"; shift;shift;;
     *) usage "Unknown parameter passed: $1"; shift; shift;;
@@ -77,7 +80,7 @@ kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_
 ketch pool add "${POOL}"  --ingress-service-endpoint "${INGRESS_ENDPOINT}" --ingress-type "${INGRESS_TYPE}"
 
 # Create app
-ketch app create "${APP_NAME}" --pool "${POOL}"  --env "${APP_ENV}"
+ketch app create "${APP_NAME}" --pool "${POOL}"  --env "${APP_ENV}" --registry-secret "${REG_SECRET}"
 
 # Deploy app
-ketch app deploy "${APP_NAME}" -i "${DOCKER_REGISTRY}" --ketch-yaml="${KETCH_YAML}" --procfile="${PROCFILE}"
+ketch app deploy "${APP_NAME}" -i "${DOCKER_REGISTRY}" --ketch-yaml "${KETCH_YAML}" --procfile "${PROCFILE}"
