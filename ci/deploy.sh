@@ -46,18 +46,23 @@ while [[ "$#" > 0 ]]; do case $1 in
     *) usage "Unknown parameter passed: $1"; shift; shift;;
 esac; done
 
+
 # validate params
 if [ -z "$POOL" ]; then usage "Pool name required"; fi;
 if [ -z "$INGRESS_ENDPOINT" ]; then usage "Ingress endpoint required"; fi;
 if [ -z "$APP_NAME" ]; then usage "App Name required"; fi;
 if [ -z "$DOCKER_IMAGE" ]; then usage "Image for the app is required"; fi;
 
+# set defaults if not set by user
+if [ -z "$KETCH_TAG" ]; then 
+    KETCH_TAG=$(curl -s https://api.github.com/repos/shipa-corp/ketch/releases/latest | grep -Eo '"tag_name":.*[^\\]",' | head -n 1 | sed 's/[," ]//g' | cut -d ':' -f 2)
+fi
 
 # Install ketch binary at /usr/local/bin default location
 curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
 # Install Ketch controller
-kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.1.0/ketch-controller.yaml
+kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 
 # Add a pool with ingress Traefik (default), replace ingress endpoint address by your ingress IP address
 ketch pool add "${POOL}"  --ingress-service-endpoint "${INGRESS_ENDPOINT}" --ingress-type "${INGRESS_TYPE}"
