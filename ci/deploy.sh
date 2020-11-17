@@ -57,7 +57,7 @@ while [[ "$#" > 0 ]]; do case $1 in
     --registry-secret) REG_SECRET="$2"; shift;shift;;
     --ketch-yaml) KETCH_YAML="$2"; shift;shift;;
     --procfile) PROCFILE="$2"; shift;shift;;
-    --skip-resource-creation) RESOURCE_CREATION=false; shift;shift;;
+    --skip-resource-creation) RESOURCE_CREATION=false; shift;;
     *) usage "Unknown parameter passed: $1"; shift; shift;;
 esac; done
 
