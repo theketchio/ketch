@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Exit script if an uninitialized variable is used.
+set -o nounset
 # Exit script if a statement returns a non-true return value.
 set -o errexit
 # Use the error status of the first failure, rather than that of the last item in a pipeline.
@@ -77,7 +79,7 @@ fi
 # Install Ketch controller
 kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 
-if [ $RESOURCE_CREATION ] ; then
+if [ "$RESOURCE_CREATION" = true ] ; then
     # validate addtional required params
     if [ -z "$POOL" ]; then usage "Pool name required"; fi;
     if [ -z "$INGRESS_ENDPOINT" ]; then usage "Ingress endpoint required"; fi;
