@@ -77,7 +77,7 @@ kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_
 ketch pool add "${POOL}"  --ingress-service-endpoint "${INGRESS_ENDPOINT}" --ingress-type "${INGRESS_TYPE}"
 
 # Create app
-ketch app create "${APP_NAME}" --pool "${POOL}"   
+ketch app create "${APP_NAME}" --pool "${POOL}"  --env "${APP_ENV}"
 
 # Deploy app
 ketch app deploy "${APP_NAME}" -i "${DOCKER_REGISTRY}" --ketch-yaml="${KETCH_YAML}" --procfile="${PROCFILE}"
