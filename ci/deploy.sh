@@ -93,4 +93,4 @@ fi
 
 # Deploy app
 echo "deploying app ..."
-ketch app deploy "${APP_NAME}" -i "${DOCKER_REGISTRY}" --ketch-yaml "${KETCH_YAML}" --procfile "${PROCFILE}"
+ketch app deploy "${APP_NAME}" -i "${DOCKER_IMAGE}" --ketch-yaml "${KETCH_YAML}" --procfile "${PROCFILE}"
