@@ -5,7 +5,7 @@ This script can be used to deploy your apps right from your CI/CD pipelines usin
 ### Usage
 
 ```
-Usage: ./deploy.sh [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile]
+Usage: ./deploy.sh [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]
 ```
 
 | Flags | Descriptions |
