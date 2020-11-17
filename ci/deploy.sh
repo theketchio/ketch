@@ -46,6 +46,13 @@ while [[ "$#" > 0 ]]; do case $1 in
     *) usage "Unknown parameter passed: $1"; shift; shift;;
 esac; done
 
+# validate params
+if [ -z "$POOL" ]; then usage "Pool name required"; fi;
+if [ -z "$INGRESS_ENDPOINT" ]; then usage "Ingress endpoint required"; fi;
+if [ -z "$APP_NAME" ]; then usage "App Name required"; fi;
+if [ -z "$DOCKER_IMAGE" ]; then usage "Image for the app is required"; fi;
+
+
 # Install ketch binary at /usr/local/bin default location
 curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
