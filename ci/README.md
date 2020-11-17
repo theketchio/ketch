@@ -26,6 +26,7 @@ Usage: ./deploy.sh [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a
 Examples on how to use it with various CI providers are given below.
 
 #### Travis CI
+
 `.travis.yaml`
 
 ```
@@ -37,4 +38,18 @@ jobs:
       script: ./build.sh     # build and push docker images
     - stage: deploy
       script: ./deploy.sh --ketch-tag v0.1.0 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+```
+
+#### Circle CI
+
+`~/.circleci/config.yml`
+
+```
+......
+............
+deployment:
+  production:
+    branch: "master"
+    commands:
+      - ./deploy.sh --ketch-tag v0.1.0 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
