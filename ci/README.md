@@ -4,7 +4,7 @@ This script can be used to deploy your apps right from your CI/CD pipelines usin
 
 ### Prerequisites
 
-The ingress controller (Traefik or Istio), cluster issuer, and cert-manager should be installed inside the cluster before using the script. If not already installed, then please follow the steps described [here](https://learn.theketch.io/docs/getting-started).
+The ingress controller (Traefik or Istio), cluster issuer, and cert-manager should be installed inside the cluster before using the script. If not already installed, then please follow the steps described [here](https://learn.theketch.io/docs/getting-started). Kubectl should be installed inside the runner.
 
 ### Usage
 
