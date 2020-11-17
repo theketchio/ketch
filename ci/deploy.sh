@@ -29,7 +29,7 @@ function usage() {
     echo -e "${RED}👉 $1${CLEAR}\n";
   fi
 
-  echo "Usage: $0 [-t --ketch-tag] [-p --pool] [-ig --ingress] [-e --endpoint] [-a --app] [-i --image]"
+  echo "Usage: $0 [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile]"
   echo "  -t, --ketch-tag     Ketch version. Default is latest."
   echo "  -o, --pool                Pool where your application should be deployed."
   echo "  -a, --app                 App Name."
