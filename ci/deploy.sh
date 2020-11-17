@@ -29,17 +29,17 @@ function usage() {
     echo -e "${RED}👉 $1${CLEAR}\n";
   fi
 
-  echo "Usage: $0 [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile]"
-  echo "  -t, --ketch-tag     Ketch version. Default is latest."
-  echo "  -o, --pool                Pool where your application should be deployed."
-  echo "  -a, --app                 App Name."
-  echo "  -e, --env                 Application environment variables."
-  echo "  -ig, --ingress          Ingress type. Default is Traefik."
-  echo "  --endpoint               Ingress IP address."
-  echo "  -i, --image               The image that should be used with the application."
-  echo "  --registry-secret     A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool."
+  echo -e "Usage: $0 [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile]\n"
+  echo "  -t, --ketch-tag        Ketch version. Default is latest."
+  echo "  -o, --pool             Pool where your application should be deployed."
+  echo "  -a, --app              App Name."
+  echo "  -e, --env              Application environment variables."
+  echo "  -ig, --ingress         Ingress type. Default is Traefik."
+  echo "  --endpoint             Ingress IP address."
+  echo "  -i, --image            The image that should be used with the application."
+  echo "  --registry-secret      A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool."
   echo "  --ketch-yaml           The path to the ketch.yaml file."
-  echo "  --procfile	               The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
+  echo "  --procfile	         The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
   exit 1
 }
 
