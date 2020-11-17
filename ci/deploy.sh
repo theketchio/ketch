@@ -32,10 +32,10 @@ function usage() {
   echo "  -o, --pool           Pool Name."
   echo "  -a, --app            App Name."
   echo "  -ig, --ingress     Ingress type. Default is Traefik."
-  echo "  -e, --endpoint    Ingress IP address."
-  echo "  -i, --image          Docker image for the application."
-  echo "  --ketch-yaml      The path to the ketch.yaml file."
-  echo "  --procfile	          The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
+  echo "  -e, --endpoint   Ingress IP address."
+  echo "  -i, --image         Docker image for the application."
+  echo "  --ketch-yaml     The path to the ketch.yaml file."
+  echo "  --procfile	         The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
   exit 1
 }
 
