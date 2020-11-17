@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# Exit script if an uninitialized variable is used.
-set -o nounset
 # Exit script if a statement returns a non-true return value.
 set -o errexit
 # Use the error status of the first failure, rather than that of the last item in a pipeline.
@@ -74,10 +72,10 @@ if [ -z "$KETCH_TAG" ]; then
 fi
 
 # Install ketch binary at /usr/local/bin default location
- curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
+#  curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
 # Install Ketch controller
-kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
+# kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 
 if [ $RESOURCE_CREATION ] ; then
     # validate addtional required params
