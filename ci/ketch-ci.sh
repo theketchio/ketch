@@ -86,7 +86,14 @@ if [ "$RESOURCE_CREATION" = true ] ; then
 
     # Add a pool with ingress Traefik (default), replace ingress endpoint address by your ingress IP address
     echo "creating pool for deployment ..."
-    ketch pool add "${POOL}"  --ingress-service-endpoint "${INGRESS_ENDPOINT}" --ingress-type "${INGRESS_TYPE}"
+    POOL_CMD="ketch pool add ${POOL} --ingress-service-endpoint ${INGRESS_ENDPOINT}" 
+
+    if [ ! -z "$INGRESS_TYPE" ]; then
+        POOL_CMD+=" --ingress-type ${INGRESS_TYPE}"
+    fi
+
+    echo "CMD: ${POOL_CMD}"
+    eval "${POOL_CMD}"
 
     # Create app
     echo "creating app for deployment ..."
