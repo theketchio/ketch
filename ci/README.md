@@ -1,4 +1,4 @@
-# Ketch : Deployment Script for CI/CD
+# ketch-ci : Deployment Script for CI/CD
 
 This script can be used to deploy your apps right from your CI/CD pipelines using [Ketch](theketch.io). 
 
