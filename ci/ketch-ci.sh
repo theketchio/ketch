@@ -78,16 +78,34 @@ if [ -z  "$INGRESS_TYPE"  ]; then
     INGRESS_TYPE="traefik"
 fi
 
-# Ensure that required resource has atleast 1 pod in running state
+# Ensure that required resource has atleast N number of pods in running state
 function ensure_resource() {
-  while ((count < 1)); do
-    local count=$(kubectl get pods --field-selector=status.phase=Running --all-namespaces | grep "$1" | wc -l)
+  while ((count < "$2")); do
+    local count=$(kubectl get pods --field-selector=status.phase=Running --all-namespaces | grep "$1" | wc -l | xargs )
     sleep 5
-    echo "Waiting for $1 to be ready."
+    echo -e "Waiting for $1 to be ready. ${RED}Required: $2 but Running: ${count}${CLEAR}"
   done
+
+  echo "$1 looks good!"
 }
 
-ensure_resource traefik
+echo "ensuring all the requirements in the cluster..."
+echo "checking for Cert Manager ...."
+ensure_resource cert-manager 3
+
+if [ "$INGRESS_TYPE" = "istio" ]; then
+  echo "checking for istio-egressgateway ...."
+  ensure_resource istio-egressgateway 1
+
+  echo "checking for istio-ingressgateway ...."
+  ensure_resource istio-ingressgateway 1
+
+  echo "checking for istiod ...."
+  ensure_resource istiod 1
+fi
+
+
+
 
 
 # Install ketch binary at /usr/local/bin default location
