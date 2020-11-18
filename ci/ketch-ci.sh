@@ -95,4 +95,15 @@ fi
 
 # Deploy app
 echo "deploying app ..."
-ketch app deploy "${APP_NAME}" -i "${DOCKER_IMAGE}" --ketch-yaml "${KETCH_YAML}" --procfile "${PROCFILE}"
+DEP_CMD="ketch app deploy ${APP_NAME} -i ${DOCKER_IMAGE}" 
+
+if [ ! -z "$KETCH_YAML" ]; then
+  DEP_CMD+=" --ketch-yaml ${KETCH_YAML}"
+fi
+
+if [ ! -z "$PROCFILE" ]; then
+  DEP_CMD+=" --procfile ${PROCFILE}"
+fi
+
+echo "CMD: ${DEP_CMD}"
+eval "${DEP_CMD}"
