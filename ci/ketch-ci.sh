@@ -68,9 +68,14 @@ esac; done
 if [ -z "$APP_NAME" ]; then usage "App Name required"; fi;
 if [ -z "$DOCKER_IMAGE" ]; then usage "Image for the app is required"; fi;
 
-# set defaults if not set by user
+# set default ketch tag if not set by user
 if [ -z "$KETCH_TAG" ]; then 
     KETCH_TAG=$(curl -s https://api.github.com/repos/shipa-corp/ketch/releases/latest | grep -Eo '"tag_name":.*[^\\]",' | head -n 1 | sed 's/[," ]//g' | cut -d ':' -f 2)
+fi
+
+# set default ingress type if not set by user
+if [ -z  "$INGRESS_TYPE"  ]; then 
+    INGRESS_TYPE="traefik"
 fi
 
 # Install ketch binary at /usr/local/bin default location
