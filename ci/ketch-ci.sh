@@ -79,6 +79,7 @@ if [ -z  "$INGRESS_TYPE"  ]; then
 fi
 
 # Ensure that required resource has atleast N number of pods in running state
+# usage: ensure_resource <name> <pod count> 
 function ensure_resource() {
   local retries=5
 
@@ -119,7 +120,7 @@ fi
 # Install ketch binary at /usr/local/bin default location
  curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
-# Install Ketch controller
+# Install Ketch controller if not already installed or failed
 kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 
 if [ "$RESOURCE_CREATION" = true ] ; then
