@@ -78,6 +78,18 @@ if [ -z  "$INGRESS_TYPE"  ]; then
     INGRESS_TYPE="traefik"
 fi
 
+# Ensure that required resource has atleast 1 pod in running state
+function ensure_resource() {
+  while ((count < 1)); do
+    local count=$(kubectl get pods --field-selector=status.phase=Running --all-namespaces | grep "$1" | wc -l)
+    sleep 5
+    echo "Waiting for $1 to be ready."
+  done
+}
+
+ensure_resource traefik
+
+
 # Install ketch binary at /usr/local/bin default location
  curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
