@@ -80,12 +80,15 @@ fi
 
 # Ensure that required resource has atleast N number of pods in running state
 function ensure_resource() {
-  local count=0
-  while ((count < "$2")); do
-    count=$(kubectl get pods --field-selector=status.phase=Running --all-namespaces | grep "$1" | wc -l | xargs )
+  local retries=5
+
+  for (( count=$(kubectl get pods --field-selector=status.phase=Running --all-namespaces | grep "$1" | wc -l | xargs ); count < "$2"; --retries)); do
+    echo -e "Waiting for $1 to be ready ...."
     sleep 5
-    if ((count != "$2")); then
-        echo -e "Waiting for $1 to be ready. ${RED}Required: $2 but Running: ${count}${CLEAR}"
+
+    if ((retries == 0 )); then
+      echo -e "Failed to ensure $1 in the cluster! ${RED}Required: $2 but Running: ${count}${CLEAR}"
+      exit 1
     fi
   done
 
