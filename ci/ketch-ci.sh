@@ -80,10 +80,13 @@ fi
 
 # Ensure that required resource has atleast N number of pods in running state
 function ensure_resource() {
+  local count=0
   while ((count < "$2")); do
-    local count=$(kubectl get pods --field-selector=status.phase=Running --all-namespaces | grep "$1" | wc -l | xargs )
+    count=$(kubectl get pods --field-selector=status.phase=Running --all-namespaces | grep "$1" | wc -l | xargs )
     sleep 5
-    echo -e "Waiting for $1 to be ready. ${RED}Required: $2 but Running: ${count}${CLEAR}"
+    if ((count != "$2")); then
+        echo -e "Waiting for $1 to be ready. ${RED}Required: $2 but Running: ${count}${CLEAR}"
+    fi
   done
 
   echo "$1 looks good!"
@@ -109,7 +112,6 @@ if [ "$INGRESS_TYPE" = "traefik" ]; then
     echo "checking for Traefik..."
     ensure_resource traefik 1
 fi
-
 
 # Install ketch binary at /usr/local/bin default location
  curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
