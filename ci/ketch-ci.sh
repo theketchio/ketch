@@ -83,12 +83,12 @@ fi
 function ensure_resource() {
   local retries=5
 
-  for (( count=$(kubectl get pods --field-selector=status.phase=Running --all-namespaces | grep "$1" | wc -l | xargs ); count < "$2"; --retries)); do
+while [[ $(kubectl get pods --field-selector=status.phase=Running --all-namespaces | grep "$1" | wc -l | xargs ) -lt "$2" ]]; do
     echo -e "Waiting for $1 to be ready ...."
     sleep 5
-
+    ((retries--))
     if ((retries == 0 )); then
-      echo -e "Failed to ensure $1 in the cluster! ${RED}Required: $2 but Running: ${count}${CLEAR}"
+      echo -e "${RED}Failed to ensure $1 in the cluster!${CLEAR}"
       exit 1
     fi
   done
@@ -118,7 +118,7 @@ if [ "$INGRESS_TYPE" = "traefik" ]; then
 fi
 
 # Install ketch binary at /usr/local/bin default location
-#  curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
+curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
 # Install Ketch controller if not already installed or not in running state
 if [[ -z "$(kubectl get ns | grep ketch-system)" ]] || [[ $(kubectl get pods --field-selector=status.phase=Running -n ketch-system | grep ketch | wc -l | xargs) -eq 0 ]]; then
