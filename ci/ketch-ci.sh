@@ -127,6 +127,8 @@ if [[ -z "$(kubectl get ns | grep ketch-system)" ]] || [[ $(kubectl get pods --f
    kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 fi
 
+ensure_resource 'ketch-controller-manager' 1
+
 if [ "$RESOURCE_CREATION" = true ] ; then
     # validate addtional required params
     if [ -z "$POOL" ]; then usage "Pool name required"; fi;
