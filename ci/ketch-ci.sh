@@ -121,7 +121,11 @@ fi
  curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
 # Install Ketch controller if not already installed or failed
-kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
+if [[ -z "$(kubectl get ns | grep ketch-system)" ]]; then
+   echo "installing ketch controller..."
+   kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
+fi
+
 
 if [ "$RESOURCE_CREATION" = true ] ; then
     # validate addtional required params
