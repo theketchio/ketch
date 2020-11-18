@@ -93,15 +93,15 @@ function ensure_resource() {
     fi
   done
 
-  echo "$1 looks good!"
+  echo "$1 looks good! 👍"
 }
 
 echo "ensuring all the requirements in the cluster..."
-echo "checking for Cert Manager ...."
+echo "checking for Cert Manager ..."
 ensure_resource cert-manager 3
 
 if [ "$INGRESS_TYPE" = "istio" ]; then
-  echo "checking for istio-egressgateway ...."
+  echo "checking for istio-egressgateway ..."
   ensure_resource istio-egressgateway 1
 
   echo "checking for istio-ingressgateway ...."
