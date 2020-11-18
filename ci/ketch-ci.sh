@@ -105,7 +105,10 @@ if [ "$INGRESS_TYPE" = "istio" ]; then
 fi
 
 
-
+if [ "$INGRESS_TYPE" = "traefik" ]; then
+    echo "checking for Traefik..."
+    ensure_resource traefik 1
+fi
 
 
 # Install ketch binary at /usr/local/bin default location
