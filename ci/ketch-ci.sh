@@ -118,7 +118,7 @@ if [ "$INGRESS_TYPE" = "traefik" ]; then
 fi
 
 # Install ketch binary at /usr/local/bin default location
- curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
+#  curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
 # Install Ketch controller if not already installed or not in running state
 if [[ -z "$(kubectl get ns | grep ketch-system)" ]] || [[ $(kubectl get pods --field-selector=status.phase=Running -n ketch-system | grep ketch | wc -l | xargs) -eq 0 ]]; then
@@ -157,6 +157,8 @@ if [ "$RESOURCE_CREATION" = true ] ; then
 
     echo "CMD: ${APP_CMD}"
     eval "${APP_CMD}"
+    # wait for app creation
+    sleep 2
 fi
 
 # Deploy app
