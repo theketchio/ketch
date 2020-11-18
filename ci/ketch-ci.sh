@@ -90,7 +90,18 @@ if [ "$RESOURCE_CREATION" = true ] ; then
 
     # Create app
     echo "creating app for deployment ..."
-    ketch app create "${APP_NAME}" --pool "${POOL}"  --env "${APP_ENV}" --registry-secret "${REG_SECRET}"
+    CREATE_CMD="ketch app create ${APP_NAME} --pool ${POOL}" 
+
+    if [ ! -z "$APP_ENV" ]; then
+        CREATE_CMD+=" --env ${APP_ENV}"
+    fi
+
+    if [ ! -z "$REG_SECRET" ]; then
+        CREATE_CMD+=" --registry-secret ${REG_SECRET}"
+    fi
+
+    echo "CMD: ${CREATE_CMD}"
+    eval "${CREATE_CMD}"
 fi
 
 # Deploy app
