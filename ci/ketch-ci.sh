@@ -120,12 +120,12 @@ fi
 # Install ketch binary at /usr/local/bin default location
  curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
-# Install Ketch controller if not already installed or failed
-if [[ -z "$(kubectl get ns | grep ketch-system)" ]]; then
+# Install Ketch controller if not already installed or not in running state
+if [[ -z "$(kubectl get ns | grep ketch-system)" ]] || [[ $(kubectl get pods --field-selector=status.phase=Running -n ketch-system | grep ketch | wc -l | xargs) -eq 0 ]]; then
+   echo "ketch controller not found or not in running state!"
    echo "installing ketch controller..."
    kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 fi
-
 
 if [ "$RESOURCE_CREATION" = true ] ; then
     # validate addtional required params
