@@ -4,18 +4,22 @@ IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
-KUBEBUILDER_VERSION="1.0.8"
-KUBEBUILDER_INSTALL_DIR ?= "/usr/local"
-
-KUSTOMIZE ?= $(shell which kustomize)
-KUSTOMIZE_INSTALL_DIR ?= "/usr/local/bin"
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
+
+GOOS=$(shell go env GOOS)
+GOARCH=$(shell go env GOARCH)
+
+KUBEBUILDER_VERSION="1.0.8"
+KUBEBUILDER_INSTALL_DIR ?= "/usr/local"
+KUBEBUILDER_RELEASE="kubebuilder_${KUBEBUILDER_VERSION}_${GOOS}_${GOARCH}"
+
+KUSTOMIZE ?= $(shell which kustomize)
+KUSTOMIZE_INSTALL_DIR ?= "/usr/local/bin"
 
 .PHONY: all
 all: manager ketch
@@ -47,9 +51,10 @@ install: manifests
 
 .PHONY: install-kubebuilder
 install-kubebuilder:
-	curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/kubebuilder_${KUBEBUILDER_VERSION}_linux_amd64.tar.gz"
-	tar -zxvf kubebuilder_${KUBEBUILDER_VERSION}_linux_amd64.tar.gz
-	mv kubebuilder_${KUBEBUILDER_VERSION}_linux_amd64 kubebuilder && mv kubebuilder ${KUBEBUILDER_INSTALL_DIR}
+	curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/${KUBEBUILDER_RELEASE}.tar.gz"
+	tar -zxvf ${KUBEBUILDER_RELEASE}.tar.gz
+	mv ${KUBEBUILDER_RELEASE} kubebuilder && sudo mv kubebuilder ${KUBEBUILDER_INSTALL_DIR}
+	rm ${KUBEBUILDER_RELEASE}.tar.gz
 
 .PHONY: install-kustomize
 install-kustomize:
