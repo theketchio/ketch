@@ -41,7 +41,7 @@ jobs:
     - stage: build
       script: ./build.sh     # build and push docker images
     - stage: deploy
-      script: ./ketch-ci.sh --ketch-tag v0.1.0 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+      script: ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
 
 #### Circle CI
@@ -55,7 +55,7 @@ deployment:
   production:
     branch: "master"
     commands:
-      - ./ketch-ci.sh --ketch-tag v0.1.0 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
 
 #### Gitlab CI
@@ -91,5 +91,5 @@ production:
     - branches
 
     script:
-      - ./ketch-ci.sh --ketch-tag v0.1.0 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
