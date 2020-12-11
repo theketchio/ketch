@@ -9,7 +9,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
+	"time"
 
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -226,19 +228,20 @@ func (config ChartConfig) render() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// ExportToDirectory saves the chart to the provided directory.
-// Be careful because the previous content of the directory is removed.
+// ExportToDirectory saves the chart to the provided directory inside a folder with app_Name_TIMESTAMP
+//  for example, for any app with name `hello`, it will save chart inside a folder with name `hello_11_Dec_20_12_30_IST`
 func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig ChartConfig) error {
-	err := os.RemoveAll(directory)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(filepath.Join(directory, "templates"), os.ModePerm)
+	timestamp := time.Now().Format(time.RFC822)
+	replacer := strings.NewReplacer(" ", "_", ":", "_")
+	chartDir := chartConfig.AppName + "_" + replacer.Replace(timestamp)
+	targetDir := filepath.Join(directory, chartDir)
+
+	err := os.MkdirAll(filepath.Join(targetDir, "templates"), os.ModePerm)
 	if err != nil {
 		return err
 	}
 	for filename, content := range chrt.templates {
-		path := filepath.Join(directory, "templates", filename)
+		path := filepath.Join(targetDir, "templates", filename)
 		err = ioutil.WriteFile(path, []byte(content), 0644)
 		if err != nil {
 			return err
@@ -248,7 +251,7 @@ func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig Cha
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath.Join(directory, "values.yaml"), valuesBytes, 0644)
+	err = ioutil.WriteFile(filepath.Join(targetDir, "values.yaml"), valuesBytes, 0644)
 	if err != nil {
 		return err
 	}
@@ -256,7 +259,7 @@ func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig Cha
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath.Join(directory, "Chart.yaml"), chartYamlContent, 0644)
+	err = ioutil.WriteFile(filepath.Join(targetDir, "Chart.yaml"), chartYamlContent, 0644)
 	if err != nil {
 		return err
 	}
