@@ -234,14 +234,14 @@ func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig Cha
 	timestamp := time.Now().Format(time.RFC822)
 	replacer := strings.NewReplacer(" ", "_", ":", "_")
 	chartDir := chartConfig.AppName + "_" + replacer.Replace(timestamp)
-	targetDir := filepath.Join(directory, chartDir, "templates")
+	targetDir := filepath.Join(directory, chartDir)
 
-	err := os.MkdirAll(targetDir, os.ModePerm)
+	err := os.MkdirAll(filepath.Join(targetDir, "templates"), os.ModePerm)
 	if err != nil {
 		return err
 	}
 	for filename, content := range chrt.templates {
-		path := filepath.Join(targetDir, filename)
+		path := filepath.Join(targetDir, "templates", filename)
 		err = ioutil.WriteFile(path, []byte(content), 0644)
 		if err != nil {
 			return err
