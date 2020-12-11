@@ -233,7 +233,7 @@ func (config ChartConfig) render() ([]byte, error) {
 func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig ChartConfig) error {
 	timestamp := time.Now().Format(time.RFC822)
 	replacer := strings.NewReplacer(" ", "_", ":", "_")
-	chartDir := config.AppName + "_" + replacer.Replace(timestamp)
+	chartDir := chartConfig.AppName + "_" + replacer.Replace(timestamp)
 	targetDir := filepath.Join(directory, chartDir, "templates")
 
 	err := os.MkdirAll(targetDir, os.ModePerm)
