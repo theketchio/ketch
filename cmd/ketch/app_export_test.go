@@ -163,7 +163,7 @@ func Test_appExport(t *testing.T) {
 			}
 			require.Nil(t, err)
 			require.Equal(t, tt.wantOut, out.String())
-			files, err := ioutil.ReadDir(tt.options.directory)
+			files, err := ioutil.ReadDir(tt.options.directory + "/" + tt.options.appName)
 			require.Nil(t, err)
 
 			directoryContent := make(map[string]struct{})
