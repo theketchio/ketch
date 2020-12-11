@@ -155,6 +155,8 @@ func Test_appExport(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// safely patch time.Now for tests
+			patch := monkey.Patch(time.Now, func() time.Time { return time.Date(2020, 12, 11, 20, 34, 58, 651387237, time.UTC) })
 			out := &bytes.Buffer{}
 			err := appExport(context.Background(), tt.cfg, tt.chartNew, tt.options, out)
 			if len(tt.wantErr) > 0 {
@@ -164,9 +166,6 @@ func Test_appExport(t *testing.T) {
 			}
 			require.Nil(t, err)
 			require.Equal(t, tt.wantOut, out.String())
-			// safely patch time.Now for tests
-			patch := monkey.Patch(time.Now, func() time.Time { return time.Date(2020, 12, 11, 20, 34, 58, 651387237, time.UTC) })
-			defer patch.Unpatch()
 			files, err := ioutil.ReadDir(tt.options.directory + "/" + tt.options.appName + "_11_Dec_20_20_34_UTC")
 			require.Nil(t, err)
 
@@ -180,6 +179,7 @@ func Test_appExport(t *testing.T) {
 				"values.yaml": {},
 			}
 			require.Equal(t, expected, directoryContent)
+			patch.Unpatch()
 		})
 	}
 }
