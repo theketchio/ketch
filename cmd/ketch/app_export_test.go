@@ -157,6 +157,7 @@ func Test_appExport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// safely patch time.Now for tests
 			patch := monkey.Patch(time.Now, func() time.Time { return time.Date(2020, 12, 11, 20, 34, 58, 651387237, time.UTC) })
+			defer patch.Unpatch()
 			out := &bytes.Buffer{}
 			err := appExport(context.Background(), tt.cfg, tt.chartNew, tt.options, out)
 			if len(tt.wantErr) > 0 {
@@ -179,7 +180,6 @@ func Test_appExport(t *testing.T) {
 				"values.yaml": {},
 			}
 			require.Equal(t, expected, directoryContent)
-			patch.Unpatch()
 		})
 	}
 }
