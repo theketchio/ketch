@@ -9,7 +9,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
+	"time"
 
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -226,14 +228,13 @@ func (config ChartConfig) render() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// ExportToDirectory saves the chart to the provided directory.
-// Be careful because the previous content of the directory is removed.
+// ExportToDirectory saves the chart to the provided directory inside a folder with app_Name_TIMESTAMP
+//  for example, for any app with name `hello`, it will save chart inside a folder with name `hello_11_Dec_20_12_30_IST`
 func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig ChartConfig) error {
-	targetDir := directory + "/" + chartConfig.AppName
-	err := os.RemoveAll(targetDir)
-	if err != nil {
-		return err
-	}
+	timestamp := time.Now().Format(time.RFC822)
+	replacer := strings.NewReplacer(" ", "_", ":", "_")
+	targetDir := directory + "/" + chartConfig.AppName + "_" + replacer.Replace(timestamp)
+
 	err = os.MkdirAll(filepath.Join(targetDir, "templates"), os.ModePerm)
 	if err != nil {
 		return err
