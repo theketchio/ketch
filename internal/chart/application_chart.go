@@ -235,7 +235,7 @@ func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig Cha
 	replacer := strings.NewReplacer(" ", "_", ":", "_")
 	targetDir := directory + "/" + chartConfig.AppName + "_" + replacer.Replace(timestamp)
 
-	err = os.MkdirAll(filepath.Join(targetDir, "templates"), os.ModePerm)
+	err := os.MkdirAll(filepath.Join(targetDir, "templates"), os.ModePerm)
 	if err != nil {
 		return err
 	}
