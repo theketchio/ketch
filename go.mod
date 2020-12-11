@@ -3,6 +3,7 @@ module github.com/shipa-corp/ketch
 go 1.15
 
 require (
+	bou.ke/monkey v1.0.2
 	github.com/go-logr/logr v0.1.0
 	github.com/google/go-cmp v0.4.1
 	github.com/google/go-containerregistry v0.1.4

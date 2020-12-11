@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
+	"bou.ke/monkey"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,7 +73,6 @@ func (m mockStorage) Update(name string, templates templates.Templates) error {
 var _ templates.Client = &mockStorage{}
 
 func Test_appExport(t *testing.T) {
-
 	directory1, err := ioutil.TempDir("", "ketch-app-export")
 	require.Nil(t, err)
 
@@ -163,7 +164,10 @@ func Test_appExport(t *testing.T) {
 			}
 			require.Nil(t, err)
 			require.Equal(t, tt.wantOut, out.String())
-			files, err := ioutil.ReadDir(tt.options.directory + "/" + tt.options.appName)
+			// safely patch time.Now for tests
+			patch := monkey.Patch(time.Now, func() time.Time { return time.Date(2020, 12, 11, 20, 34, 58, 651387237, time.UTC) })
+			defer patch.Unpatch()
+			files, err := ioutil.ReadDir(tt.options.directory + "/" + tt.options.appName + "_11_Dec_20_20_34_UTC")
 			require.Nil(t, err)
 
 			directoryContent := make(map[string]struct{})
