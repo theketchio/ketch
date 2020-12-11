@@ -241,7 +241,7 @@ func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig Cha
 		return err
 	}
 	for filename, content := range chrt.templates {
-		path := filepath.Join(targetDir, "templates", filename)
+		path := filepath.Join(targetDir, filename)
 		err = ioutil.WriteFile(path, []byte(content), 0644)
 		if err != nil {
 			return err
