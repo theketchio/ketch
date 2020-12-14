@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/validation"
@@ -71,6 +72,10 @@ func appCreate(ctx context.Context, cfg config, options appCreateOptions, out io
 				SecretName: options.dockerRegistrySecret,
 			},
 		},
+	}
+	var pool ketchv1.Pool
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
+		return fmt.Errorf("failed to get pool instance: %w", err)
 	}
 	if err = cfg.Client().Create(ctx, &app); err != nil {
 		return fmt.Errorf("failed to create an app: %w", err)
