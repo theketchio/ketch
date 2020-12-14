@@ -51,6 +51,9 @@ type appDeployOptions struct {
 	ketchYamlFileName       string
 	procfileFileName        string
 	strictKetchYamlDecoding bool
+	steps                   int
+	stepWeight              int
+	stepTimeInterval        string
 }
 
 type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
