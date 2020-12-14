@@ -40,6 +40,10 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.procfileFileName, "procfile", "", "the path to Procfile. If not set, ketch will use entrypoint and cmd from the image")
 	cmd.Flags().StringVar(&options.ketchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
 	cmd.Flags().BoolVar(&options.strictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
+	cmd.Flags().IntVar(&options.steps, "steps", 1, "Number of steps to roll out the new deployment")
+	cmd.Flags().IntVar(&options.stepWeight, "step-weight", 1, "Canary Traffic weight percentage between 0 and 100")
+	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "0", "Time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
+
 	cmd.MarkFlagRequired("image")
 
 	return cmd
