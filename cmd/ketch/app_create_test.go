@@ -13,13 +13,22 @@ import (
 	"github.com/shipa-corp/ketch/internal/mocks"
 )
 
-func Test_appCreateFailsWithInvalidPool(t *testing.T) {
-	app := &ketchv1.App{
+func Test_appCreatePoolValidity(t *testing.T) {
+	invalidPoolApp := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "testapp",
+			Name: "invalid-pool-app",
 		},
 		Spec: ketchv1.AppSpec{
 			Pool: "invalid-pool",
+		},
+	}
+
+	validPoolApp := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "valid-pool-app",
+		},
+		Spec: ketchv1.AppSpec{
+			Pool: "valid-pool",
 		},
 	}
 
@@ -30,21 +39,38 @@ func Test_appCreateFailsWithInvalidPool(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name: "error - no pool",
+			name: "failing - invalid pool",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app},
+				CtrlClientObjects: []runtime.Object{invalidPoolApp},
 			},
 			options: appCreateOptions{
-				name: app.Name,
-				pool: app.Spec.Pool,
+				name: invalidPoolApp.Name,
+				pool: invalidPoolApp.Spec.Pool,
 			},
 			wantErr: `failed to get pool instance: pools.theketch.io "invalid-pool" not found`,
 		},
+		{
+			name: "passing - valid pool",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{validPoolApp},
+			},
+			options: appCreateOptions{
+				name: validPoolApp.Name,
+				pool: validPoolApp.Spec.Pool,
+			},
+		},
+	}
+
+	// Create pool for testing happy path
+	poolCfg := &mocks.Configuration{CtrlClientObjects: []runtime.Object{}}
+	poolOpt := poolAddOptions{name: "valid-pool", ingressServiceEndpoint: "10.10.20.30", ingressType: traefik}
+	if err := addPool(context.Background(), poolCfg, poolOpt, &bytes.Buffer{}); err != nil {
+		t.Error(err)
+		return
 	}
 
 	for _, tt := range tests {
-		out := &bytes.Buffer{}
-		err := appCreate(context.Background(), tt.cfg, tt.options, out)
+		err := appCreate(context.Background(), tt.cfg, tt.options, &bytes.Buffer{})
 		wantErr := len(tt.wantErr) > 0
 		if (err != nil) != wantErr {
 			t.Errorf("appCreate() error = %v, wantErr %v", err, tt.wantErr)
