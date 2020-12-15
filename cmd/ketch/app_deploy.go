@@ -7,6 +7,9 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/buildpacks/pack"
+	packConfig "github.com/buildpacks/pack/config"
+	"github.com/buildpacks/pack/logging"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -29,7 +32,14 @@ import (
 
 const (
 	appDeployHelp = `
-Roll out a new version of an application with an image. 
+Roll out a new version of an application with an image.
+
+Deploy from source code, <source> is path to source code or a zip formatted file :
+  ketch app deploy <app name> <source> -i myregistry/myimage:latest 
+
+Deploy from an image:
+  ketch app deploy <app name> -i myregistry/myimage:latest
+
 `
 	// default weight used to route incoming traffic to a deployment
 	defaultTrafficWeight = 100
@@ -37,29 +47,35 @@ Roll out a new version of an application with an image.
 	defaultStepTimeInterval = "1h"
 )
 
+const defaultProcessType = "web"
+
 func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	options := appDeployOptions{}
 	cmd := &cobra.Command{
-		Use:   "deploy APPNAME",
+		Use:   "deploy APPNAME [SOURCE DIRECTORY]",
 		Short: "Deploy an app",
 		Long:  appDeployHelp,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
+			if len(args) == 2 {
+				options.appPath = args[1]
+			}
 			return appDeploy(cmd.Context(), metav1.Now, cfg, getImageConfigFile, watchAppReconcileEvent, options, out)
 		},
 	}
 
 	cmd.Flags().StringVarP(&options.image, "image", "i", "", "the image with the application")
-	cmd.Flags().StringVar(&options.procfileFileName, "procfile", "", "the path to Procfile. If not set, ketch will use entrypoint and cmd from the image")
 	cmd.Flags().StringVar(&options.ketchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
+	cmd.Flags().StringVar(&options.procfileFileName, "procfile", "", "the path to Procfile. If not set, ketch will use entrypoint and cmd from the image")
 	cmd.Flags().BoolVar(&options.strictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
 	cmd.Flags().IntVar(&options.steps, "steps", 1, "number of steps to roll out the new deployment")
 	cmd.Flags().Uint8Var(&options.stepWeight, "step-weight", 1, "canary Traffic weight percentage between 0 and 100")
 	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "1h", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
 	cmd.Flags().BoolVar(&options.wait, "wait", false, "await for reconcile event")
 	cmd.Flags().Uint8Var(&options.timeout, "timeout", 20, "timeout for await of reconcile (seconds)")
-
+	cmd.Flags().StringSliceVar(&options.buildPacks, "build-packs", nil, "a list of build packs")
+	cmd.Flags().StringVar(&options.builder, "builder", "heroku/buildpacks:18", "builder to use")
 	cmd.MarkFlagRequired("image")
 
 	return cmd
@@ -70,12 +86,15 @@ type appDeployOptions struct {
 	image                   string
 	ketchYamlFileName       string
 	procfileFileName        string
+	appPath                 string
 	strictKetchYamlDecoding bool
 	steps                   int
 	stepWeight              uint8
 	stepTimeInterval        string
 	wait                    bool
 	timeout                 uint8
+	buildPacks              []string
+	builder                 string
 }
 
 func (opts *appDeployOptions) validateCanaryOpts() error {
@@ -110,7 +129,51 @@ type watchReconcileEventFn func(ctx context.Context, kubeClient kubernetes.Inter
 // pass timeNowFn to appDeploy(). Useful for testing canary deployments.
 type timeNowFn func() metav1.Time
 
-func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
+func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, logWriter io.Writer) error {
+	if options.appPath != "" {
+		// If appPath is defined we build and publish and image from source, then use published image to deploy the
+		// application.
+		buildLogger := logging.New(logWriter)
+		buildLogger.Infof("building from source %q", options.appPath)
+		builder, err := pack.NewClient(pack.WithLogger(buildLogger))
+		if err != nil {
+			return fmt.Errorf("could not create builder: %w", err)
+		}
+		if err := buildImageFromSource(ctx, options, builder); err != nil {
+			return fmt.Errorf("could not build image from source: %w", err)
+		}
+	}
+	return appDeployImage(ctx, timeNow, cfg, getImageConfigFile, watchReconcileEvent , options, logWriter)
+}
+
+type sourceBuilder interface {
+	Build(ctx context.Context, bo pack.BuildOptions) error
+}
+
+func buildImageFromSource(ctx context.Context, options appDeployOptions, builder sourceBuilder) error {
+	buildOptions := pack.BuildOptions{
+		Image:              options.image,
+		Builder:            options.builder,
+		Registry:           "",
+		AppPath:            options.appPath,
+		RunImage:           "",
+		AdditionalMirrors:  nil,
+		Env:                nil,
+		Publish:            true,
+		ClearCache:         false,
+		TrustBuilder:       true,
+		Buildpacks:         options.buildPacks,
+		ProxyConfig:        nil,
+		ContainerConfig:    pack.ContainerConfig{},
+		DefaultProcessType: defaultProcessType,
+		FileFilter:         nil,
+		PullPolicy:         packConfig.PullIfNotPresent,
+	}
+
+	return builder.Build(ctx, buildOptions)
+}
+
+func appDeployImage(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn,watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
