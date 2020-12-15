@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -32,6 +32,14 @@ func Test_appCreatePoolValidity(t *testing.T) {
 		},
 	}
 
+	// We need to create this outside of the `tests` struct because
+	// the same cfg needs to be used for pool add and app create.
+	// We are not creating a pool for `invalid-pool-app` so its cfg
+	// can be instantiated in-line
+	validPoolCfg := &mocks.Configuration{
+		CtrlClientObjects: []runtime.Object{},
+	}
+
 	tests := []struct {
 		name    string
 		cfg     config
@@ -41,7 +49,7 @@ func Test_appCreatePoolValidity(t *testing.T) {
 		{
 			name: "failing - invalid pool",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{invalidPoolApp},
+				CtrlClientObjects: []runtime.Object{},
 			},
 			options: appCreateOptions{
 				name: invalidPoolApp.Name,
@@ -51,9 +59,7 @@ func Test_appCreatePoolValidity(t *testing.T) {
 		},
 		{
 			name: "passing - valid pool",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{validPoolApp},
-			},
+			cfg:  validPoolCfg,
 			options: appCreateOptions{
 				name: validPoolApp.Name,
 				pool: validPoolApp.Spec.Pool,
@@ -62,23 +68,18 @@ func Test_appCreatePoolValidity(t *testing.T) {
 	}
 
 	// Create pool for testing happy path
-	poolCfg := &mocks.Configuration{CtrlClientObjects: []runtime.Object{}}
 	poolOpt := poolAddOptions{name: "valid-pool", ingressServiceEndpoint: "10.10.20.30", ingressType: traefik}
-	if err := addPool(context.Background(), poolCfg, poolOpt, &bytes.Buffer{}); err != nil {
+	if err := addPool(context.Background(), validPoolCfg, poolOpt, &bytes.Buffer{}); err != nil {
 		t.Error(err)
 		return
 	}
 
 	for _, tt := range tests {
 		err := appCreate(context.Background(), tt.cfg, tt.options, &bytes.Buffer{})
-		wantErr := len(tt.wantErr) > 0
-		if (err != nil) != wantErr {
-			t.Errorf("appCreate() error = %v, wantErr %v", err, tt.wantErr)
-			return
-		}
-		if wantErr {
+		if len(tt.wantErr) > 0 {
 			assert.Equal(t, tt.wantErr, err.Error())
-			return
+		} else {
+			assert.Nil(t, err)
 		}
 	}
 }
