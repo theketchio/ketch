@@ -25,5 +25,5 @@ jobs:
       sudo: required
       script:
         - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
-        - docker build -t shipasoftware/ketch:$TRAVIS_PULL_REQUEST_BRANCH .
-        - docker push shipasoftware/ketch:$TRAVIS_PULL_REQUEST_BRANCH
+        - docker build -t shipasoftware/ketch:$TRAVIS_COMMIT .
+        - docker push shipasoftware/ketch:$TRAVIS_COMMIT
