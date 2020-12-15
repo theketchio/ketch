@@ -6,6 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/buildpacks/pack"
+	packConfig "github.com/buildpacks/pack/config"
+	"github.com/buildpacks/pack/logging"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -20,26 +23,40 @@ import (
 )
 
 const appDeployHelp = `
-Roll out a new version of an application with an image. 
+Roll out a new version of an application with an image.
+
+Deploy from source code, <source> is path to source code or a zip formatted file :
+  ketch app deploy <app name> <source> -i myregistry/myimage:latest 
+
+Deploy from an image:
+  ketch app deploy <app name> -i myregistry/myimage:latest
+
 `
+
+const defaultProcessType = "web"
 
 func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	options := appDeployOptions{}
 	cmd := &cobra.Command{
-		Use:   "deploy APPNAME",
+		Use:   "deploy APPNAME [SOURCE DIRECTORY]",
 		Short: "Deploy an app",
 		Long:  appDeployHelp,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
+			if len(args) == 2 {
+				options.appPath = args[1]
+			}
 			return appDeploy(cmd.Context(), cfg, getImageConfigFile, options, out)
 		},
 	}
 
 	cmd.Flags().StringVarP(&options.image, "image", "i", "", "the image with the application")
-	cmd.Flags().StringVar(&options.procfileFileName, "procfile", "", "the path to Procfile. If not set, ketch will use entrypoint and cmd from the image")
 	cmd.Flags().StringVar(&options.ketchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
+	cmd.Flags().StringVar(&options.procfileFileName, "procfile", "", "the path to Procfile. If not set, ketch will use entrypoint and cmd from the image")
 	cmd.Flags().BoolVar(&options.strictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
+	cmd.Flags().StringSliceVar(&options.buildPacks, "build-packs", nil, "a list of build packs")
+	cmd.Flags().StringVar(&options.builder, "builder", "heroku/buildpacks:18", "builder to use")
 	cmd.MarkFlagRequired("image")
 
 	return cmd
@@ -50,12 +67,59 @@ type appDeployOptions struct {
 	image                   string
 	ketchYamlFileName       string
 	procfileFileName        string
+	appPath                 string
 	strictKetchYamlDecoding bool
+	buildPacks              []string
+	builder                 string
 }
 
 type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
 
-func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, out io.Writer) error {
+func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, logWriter io.Writer) error {
+	if options.appPath != "" {
+		// If appPath is defined we build and publish and image from source, then use published image to deploy the
+		// application.
+		buildLogger := logging.New(logWriter)
+		buildLogger.Infof("building from source %q", options.appPath)
+		builder, err := pack.NewClient(pack.WithLogger(buildLogger))
+		if err != nil {
+			return fmt.Errorf("could not create builder: %w", err)
+		}
+		if err := buildImageFromSource(ctx, options, builder); err != nil {
+			return fmt.Errorf("could not build image from source: %w", err)
+		}
+	}
+	return appDeployImage(ctx, cfg, getImageConfigFile, options, logWriter)
+}
+
+type sourceBuilder interface {
+	Build(ctx context.Context, bo pack.BuildOptions) error
+}
+
+func buildImageFromSource(ctx context.Context, options appDeployOptions, builder sourceBuilder) error {
+	buildOptions := pack.BuildOptions{
+		Image:              options.image,
+		Builder:            options.builder,
+		Registry:           "",
+		AppPath:            options.appPath,
+		RunImage:           "",
+		AdditionalMirrors:  nil,
+		Env:                nil,
+		Publish:            true,
+		ClearCache:         false,
+		TrustBuilder:       true,
+		Buildpacks:         options.buildPacks,
+		ProxyConfig:        nil,
+		ContainerConfig:    pack.ContainerConfig{},
+		DefaultProcessType: defaultProcessType,
+		FileFilter:         nil,
+		PullPolicy:         packConfig.PullIfNotPresent,
+	}
+
+	return builder.Build(ctx, buildOptions)
+}
+
+func appDeployImage(ctx context.Context, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)

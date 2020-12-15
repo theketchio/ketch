@@ -406,10 +406,10 @@ func Test_appDeploy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
+			err := appDeployImage(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
 			if (err != nil) != wantErr {
-				t.Errorf("appDeploy() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("appDeployImage() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if wantErr {
