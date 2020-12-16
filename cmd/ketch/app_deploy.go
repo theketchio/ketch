@@ -60,18 +60,22 @@ type appDeployOptions struct {
 	stepTimeInterval        string
 }
 
-func (a *appDeployOptions) validateCanaryOpts() {
-	if a.steps <= 1 {
-		a.steps = 1
+func (opts *appDeployOptions) validateCanaryOpts() {
+	if opts.steps <= 1 {
+		opts.steps = 1
 	}
 
-	if a.stepWeight <= 0 {
-		a.stepWeight = 100
+	if opts.stepWeight <= 0 {
+		opts.stepWeight = 100
 	}
 
-	if a.stepTimeInterval == "" {
-		a.stepTimeInterval = "1h"
+	if opts.stepTimeInterval == "" {
+		opts.stepTimeInterval = "1h"
 	}
+}
+
+func (opts appDeployOptions) isCanarySet() bool {
+	return opts.steps > 1
 }
 
 type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
