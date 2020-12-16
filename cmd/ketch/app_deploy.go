@@ -173,7 +173,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		weights = []int{(defaultTrafficWeight - options.stepWeight), options.stepWeight}
 	}
 
-	for weight := range weights {
+	for _, weight := range weights {
 		deploymentSpec := ketchv1.AppDeploymentSpec{
 			Image:     options.image,
 			Version:   ketchv1.DeploymentVersion(app.Spec.DeploymentsCount + 1),
