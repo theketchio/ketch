@@ -43,6 +43,25 @@ spec:
         spec:
           description: AppSpec defines the desired state of App.
           properties:
+            canary:
+              description: Canary contains a configuration which will be rquired for
+                canary deployments.
+              properties:
+                step_time_interval:
+                  description: A Duration represents the elapsed time between two
+                    instants as an int64 nanosecond count. The representation limits
+                    the largest representable duration to approximately 290 years.
+                  format: int64
+                  type: integer
+                step_weight:
+                  type: integer
+                steps:
+                  type: integer
+              required:
+              - step_time_interval
+              - step_weight
+              - steps
+              type: object
             deployments:
               description: Deployments is a list of running deployments.
               items:
@@ -484,6 +503,10 @@ spec:
                 - type
                 type: object
               type: array
+            current_canary_step:
+              description: CurrentCanaryStep is the count for current step for a canary
+                deployment
+              type: integer
             pool:
               description: 'ObjectReference contains enough information to let you
                 inspect or modify the referred object. --- New uses of this type are
