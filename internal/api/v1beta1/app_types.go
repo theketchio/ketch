@@ -163,6 +163,9 @@ type AppStatus struct {
 	Conditions []AppCondition `json:"conditions,omitempty"`
 
 	Pool *v1.ObjectReference `json:"pool,omitempty"`
+
+	// CurrentCanaryStep is the count for current step for a canary deployment
+	CurrentCanaryStep int `json:"current_canary_step,omitempty"`
 }
 
 // CanarySpec represents configuration for a canary deployment
