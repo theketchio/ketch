@@ -20,9 +20,13 @@ import (
 	"github.com/shipa-corp/ketch/internal/chart"
 )
 
-const appDeployHelp = `
+const (
+	appDeployHelp = `
 Roll out a new version of an application with an image. 
 `
+	// default weight used to route incoming traffic to a deployment
+	defaultTrafficWeight = 100
+)
 
 func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	options := appDeployOptions{}
@@ -146,7 +150,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 	}
 
 	// default traffic weight for a deployment, i.e. 100%
-	weights := []int{100}
+	weights := []int{defaultTrafficWeight}
 
 	if options.isCanarySet() {
 		if err := options.validateCanaryOpts(); err != nil {
@@ -166,7 +170,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 
 		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
 		//  weights contains traffic distribution weights for different version of deployments.
-		weights = []int{(100 - options.stepWeight), options.stepWeight}
+		weights = []int{(defaultTrafficWeight - options.stepWeight), options.stepWeight}
 	}
 
 	for weight := range weights {
