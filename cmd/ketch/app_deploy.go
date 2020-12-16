@@ -162,6 +162,8 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 			StepTimeInteval: stepInt,
 		}
 
+		app.Status.CurrentCanaryStep = 0
+
 		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
 		//  weights contains traffic distribution weights for different version of deployments.
 		weights = []int{(100 - options.stepWeight), options.stepWeight}
