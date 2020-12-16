@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -60,7 +61,7 @@ type appDeployOptions struct {
 	stepTimeInterval        string
 }
 
-func (opts *appDeployOptions) validateCanaryOpts() {
+func (opts *appDeployOptions) validateCanaryOpts() error {
 	if opts.steps <= 1 {
 		opts.steps = 1
 	}
@@ -72,6 +73,13 @@ func (opts *appDeployOptions) validateCanaryOpts() {
 	if opts.stepTimeInterval == "" {
 		opts.stepTimeInterval = "1h"
 	}
+
+	_, err := time.ParseDuration(opts.stepTimeInterval)
+	if err != nil {
+		return fmt.Errorf("Invalid step interval: %w", err)
+	}
+
+	return nil
 }
 
 func (opts appDeployOptions) isCanarySet() bool {
@@ -141,6 +149,10 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 	weights := []int{100}
 
 	if options.isCanarySet() {
+		if err := options.validateCanaryOpts(); err != nil {
+			return err
+		}
+
 		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
 		//  weights contains traffic distribution weights for different version of deployments.
 		weights = []int{(100 - options.stepWeight), options.stepWeight}
