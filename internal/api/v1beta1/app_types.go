@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -164,12 +165,22 @@ type AppStatus struct {
 	Pool *v1.ObjectReference `json:"pool,omitempty"`
 }
 
+// CanarySpec represents configuration for a canary deployment
+type CanarySpec struct {
+	Steps           int           `json:"steps"`
+	StepWeight      int           `json:"step_weight"`
+	StepTimeInteval time.Duration `json:"step_time_interval"`
+}
+
 // AppSpec defines the desired state of App.
 type AppSpec struct {
 	Version *string `json:"version,omitempty"`
 
 	// +kubebuilder:validation:MaxLength=140
 	Description string `json:"description,omitempty"`
+
+	// Canary contains a configuration which will be rquired for canary deployments.
+	Canary CanarySpec `json:"canary,omitempty"`
 
 	// Deployments is a list of running deployments.
 	Deployments []AppDeploymentSpec `json:"deployments"`
