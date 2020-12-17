@@ -29,6 +29,7 @@ func newAppCreateCmd(cfg config, out io.Writer) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVarP(&options.platform, "platform", "P", "", "Platform name")
 	cmd.Flags().StringVarP(&options.description, "description", "d", "", "App description")
 	cmd.Flags().StringSliceVarP(&options.envs, "env", "e", []string{}, "App env variables")
 	cmd.Flags().StringVarP(&options.pool, "pool", "o", "", "Pool to deploy your app")
@@ -44,6 +45,7 @@ type appCreateOptions struct {
 	description          string
 	envs                 []string
 	dockerRegistrySecret string
+	platform             string
 }
 
 func appCreate(ctx context.Context, cfg config, options appCreateOptions, out io.Writer) error {
@@ -53,6 +55,11 @@ func appCreate(ctx context.Context, cfg config, options appCreateOptions, out io
 	envs, err := getEnvs(options.envs)
 	if err != nil {
 		return fmt.Errorf("failed to parse env variables: %w", err)
+	}
+	if options.platform != "" {
+		if _, err := platformGet(ctx, cfg.Client(), options.platform); err != nil {
+			return fmt.Errorf("unable to add platform %q to app: %w", options.platform, err)
+		}
 	}
 	app := ketchv1.App{
 		TypeMeta: metav1.TypeMeta{},
@@ -70,6 +77,7 @@ func appCreate(ctx context.Context, cfg config, options appCreateOptions, out io
 			DockerRegistry: ketchv1.DockerRegistrySpec{
 				SecretName: options.dockerRegistrySecret,
 			},
+			Platform: options.platform,
 		},
 	}
 	if err = cfg.Client().Create(ctx, &app); err != nil {
