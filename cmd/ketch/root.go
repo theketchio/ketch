@@ -32,5 +32,6 @@ func newRootCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.AddCommand(newPoolCmd(cfg, out))
 	cmd.AddCommand(newUnitCmd(cfg, out))
 	cmd.AddCommand(newEnvCmd(cfg, out))
+	cmd.AddCommand(newPlatformCmd(cfg, out))
 	return cmd
 }
