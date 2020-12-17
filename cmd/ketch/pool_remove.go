@@ -6,7 +6,8 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
@@ -35,14 +36,28 @@ type poolRemoveOptions struct {
 }
 
 func poolRemove(ctx context.Context, cfg config, options poolRemoveOptions, out io.Writer) error {
-	pool := ketchv1.Pool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: options.Name,
-		},
+	var pool ketchv1.Pool
+	var ns corev1.Namespace
+
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.Name}, &pool); err != nil {
+		return fmt.Errorf("failed to get pool: %w", err)
 	}
+
+	// Get namespace that was created with the pool so it can be removed
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: pool.Spec.NamespaceName}, &ns); err != nil {
+		return fmt.Errorf("failed to get namespace: %w", err)
+	}
+
 	if err := cfg.Client().Delete(ctx, &pool); err != nil {
 		return fmt.Errorf("failed to remove the pool: %w", err)
 	}
+
+	// Remove namespace after pool is deleted
+	if err := cfg.Client().Delete(ctx, &ns); err != nil {
+		return fmt.Errorf("failed to remove the namespace: %w", err)
+	}
+
 	fmt.Fprintln(out, "Successfully removed!")
+
 	return nil
 }
