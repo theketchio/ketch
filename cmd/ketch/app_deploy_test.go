@@ -339,6 +339,52 @@ func Test_appDeploy(t *testing.T) {
 			wantOut: "Successfully deployed!\n",
 		},
 		{
+			name: "app deploy - exposed ports should be sorted",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName: "app-1",
+				image:   "ketch:v1",
+			},
+			imageConfigFn: func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error) {
+				return &registryv1.ConfigFile{
+					Config: registryv1.Config{
+						Cmd: []string{"cmd"},
+						ExposedPorts: map[string]struct{}{
+							"8000/TCP": {},
+							"8000/UDP": {},
+							"9000/UDP": {},
+							"9000/TCP": {},
+							"30/TCP":   {},
+							"40/TCP":   {},
+						},
+					},
+				}, nil
+			},
+			wantAppSpec: ketchv1.AppSpec{
+				Deployments: []ketchv1.AppDeploymentSpec{
+					{
+						Image:           "ketch:v1",
+						Version:         1,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 100},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 30, Protocol: "TCP"},
+							{Port: 40, Protocol: "TCP"},
+							{Port: 8000, Protocol: "TCP"},
+							{Port: 8000, Protocol: "UDP"},
+							{Port: 9000, Protocol: "TCP"},
+							{Port: 9000, Protocol: "UDP"},
+						},
+					},
+				},
+				DeploymentsCount: 1,
+				Pool:             "pool-1",
+			},
+			wantOut: "Successfully deployed!\n",
+		},
+		{
 			name: "error - no pool",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{app1},

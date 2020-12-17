@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sort"
 
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -102,8 +103,13 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 			Cmd:  cmd,
 		})
 	}
-	exposedPorts := make([]ketchv1.ExposedPort, 0, len(configFile.Config.ExposedPorts))
+	ports:= make([]string, 0, len(configFile.Config.ExposedPorts))
 	for port := range configFile.Config.ExposedPorts {
+		ports = append(ports, port)
+	}
+	sort.Strings(ports)
+	exposedPorts := make([]ketchv1.ExposedPort, 0, len(configFile.Config.ExposedPorts))
+	for _, port := range ports {
 		exposedPort, err := ketchv1.NewExposedPort(port)
 		if err != nil {
 			// Shouldn't happen
