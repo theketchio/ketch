@@ -43,11 +43,11 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 		poolsByName[pool.Name] = pool
 	}
 	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
-	fmt.Fprintln(w, "NAME\tPOOL\tUNITS\tADDRESSES\tDESCRIPTION")
+	fmt.Fprintln(w, "NAME\tPOOL\tUNITS\tADDRESSES\tPLATFORM\tDESCRIPTION")
 	for _, item := range apps.Items {
 		pool := poolsByName[item.Spec.Pool]
 		urls := strings.Join(item.CNames(&pool), " ")
-		line := []string{item.Name, item.Spec.Pool, fmt.Sprintf("%d", item.Units()), urls, item.Spec.Description}
+		line := []string{item.Name, item.Spec.Pool, fmt.Sprintf("%d", item.Units()), urls, item.Spec.Platform, item.Spec.Description}
 		fmt.Fprintln(w, strings.Join(line, "\t"))
 	}
 	w.Flush()
