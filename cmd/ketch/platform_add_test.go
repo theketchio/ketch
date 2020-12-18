@@ -1,16 +1,13 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"io/ioutil"
 	"testing"
 
+	"github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
 func TestPlatformAdd(t *testing.T) {
@@ -87,7 +84,7 @@ func TestPlatformAdd(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			cli := &paCreateMock{tc.testFn, false}
+			cli := &resourceCreatorMock{tc.testFn, false}
 			cmd := newPlatformAddCmd(cli, ioutil.Discard)
 			cmd.SetArgs(tc.args)
 			cmd.SetOut(ioutil.Discard)
@@ -100,14 +97,4 @@ func TestPlatformAdd(t *testing.T) {
 			require.Equal(t, tc.called, cli.called)
 		})
 	}
-}
-
-type paCreateMock struct {
-	f      func(o runtime.Object) error
-	called bool
-}
-
-func (m *paCreateMock) Create(ctx context.Context, object runtime.Object, option ...client.CreateOption) error {
-	m.called = true
-	return m.f(object)
 }
