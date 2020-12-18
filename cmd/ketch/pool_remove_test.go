@@ -53,8 +53,9 @@ func Test_poolRemove(t *testing.T) {
 			}
 
 			// TODO: find a better way to test namespace removal in `poolRemove`.
-			// This doesn't actually check the `err` from `poolRemove`, which fails here because the `fake` client does not
-			// create a namespace when test pool is created.
+			// This doesn't actually check the `err` from `poolRemove`, which fails
+			// here because the `fake` client does not create a namespace when test
+			// pool is created.
 			if err := tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.pool.Spec.NamespaceName}, &corev1.Namespace{}); err != nil && !errors.IsNotFound(err) {
 				t.Errorf("failed to get namespace: %s", err.Error())
 			} else {
