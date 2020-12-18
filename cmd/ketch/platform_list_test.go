@@ -15,11 +15,8 @@ import (
 )
 
 func TestPlatformList(t *testing.T) {
-	expected := `+------+-----------------------+-------------+
-| NAME |         IMAGE         | DESCRIPTION |
-+------+-----------------------+-------------+
-| java | shipacorp/java:latest | something   |
-+------+-----------------------+-------------+
+	expected := `NAME    IMAGE                    DESCRIPTION
+java    shipacorp/java:latest    something
 `
 	var mock mockPlatformLister
 	var buff bytes.Buffer
