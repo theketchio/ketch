@@ -12,7 +12,7 @@ import (
 const (
 	platformAddHelp = `
 Adds a new platform.  The platform image can be inferred if you're using an
-official platform. See https://github.com/shipa-corp/platforms for a list.
+official platform.
 
 Examples:
   ketch platform add java  # Uses official Shipa image from docker hub
