@@ -11,7 +11,7 @@ import (
 	"github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
-func newPlatformCmd(cfg config, logOut io.Writer) *cobra.Command {
+func newPlatformCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "platform COMMAND",
 		Short: "Manage platforms",
@@ -20,9 +20,9 @@ func newPlatformCmd(cfg config, logOut io.Writer) *cobra.Command {
 			return cmd.Usage()
 		},
 	}
-	cmd.AddCommand(newPlatformAddCmd(cfg.Client(), logOut))
-	cmd.AddCommand(newPlatformListCmd(cfg.Client(), logOut))
-	cmd.AddCommand(newPlatformDeleteCmd(cfg.Client(), logOut))
+	cmd.AddCommand(newPlatformAddCmd(cfg.Client(), out))
+	cmd.AddCommand(newPlatformListCmd(cfg.Client(), out))
+	cmd.AddCommand(newPlatformDeleteCmd(cfg.Client(), out))
 
 	return cmd
 }
