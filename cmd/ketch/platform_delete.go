@@ -20,11 +20,6 @@ func newPlatformDeleteCmd(cli resourceGetDeleter, logWriter io.Writer) *cobra.Co
 	}
 }
 
-type resourceGetDeleter interface {
-	resourceGetter
-	resourceDeleter
-}
-
 func deletePlatformByName(ctx context.Context, cli resourceGetDeleter, platformName string, w io.Writer) error {
 	p, err := platformGet(ctx, cli, platformName)
 	if err != nil {
