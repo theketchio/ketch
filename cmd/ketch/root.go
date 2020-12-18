@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"io"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
@@ -14,6 +17,27 @@ type config interface {
 	Client() client.Client
 	Storage() templates.Client
 	KubernetesClient() kubernetes.Interface
+}
+
+type resourceCreator interface {
+	Create(context.Context, runtime.Object, ...client.CreateOption) error
+}
+
+type resourceLister interface {
+	List(context.Context, runtime.Object, ...client.ListOption) error
+}
+
+type resourceGetter interface {
+	Get(ctx context.Context, name types.NamespacedName, object runtime.Object) error
+}
+
+type resourceDeleter interface {
+	Delete(context.Context, runtime.Object, ...client.DeleteOption) error
+}
+
+type resourceGetDeleter interface {
+	resourceGetter
+	resourceDeleter
 }
 
 // RootCmd represents the base command when called without any subcommands
