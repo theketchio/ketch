@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
+	"text/tabwriter"
 
-	tw "github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -20,20 +21,21 @@ func newPlatformListCmd(lister resourceLister, logWriter io.Writer) *cobra.Comma
 	}
 }
 
-func writePlatformList(ctx context.Context, lister resourceLister, logWriter io.Writer) error {
+func writePlatformList(ctx context.Context, lister resourceLister, out io.Writer) error {
 	platforms, err := platformList(ctx, lister)
 	if err != nil {
 		return fmt.Errorf("could not list platforms: %w", err)
 	}
-	table := tw.NewWriter(logWriter)
-	table.SetHeader([]string{
-		"NAME",
-		"IMAGE",
-		"DESCRIPTION",
-	})
+	tw := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
+	fmt.Fprintln(tw, "NAME\tIMAGE\tDESCRIPTION")
 	for _, platform := range platforms.Items {
-		table.Append([]string{platform.Name, platform.Spec.Image, platform.Spec.Description})
+		line := []string{
+			platform.Name,
+			platform.Spec.Image,
+			platform.Spec.Description,
+		}
+		fmt.Fprintln(tw, strings.Join(line, "\t"))
 	}
-	table.Render()
+	tw.Flush()
 	return nil
 }
