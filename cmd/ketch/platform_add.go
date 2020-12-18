@@ -102,23 +102,21 @@ func platformAdd(ctx context.Context, creator resourceCreator, options platformA
 }
 
 func officialPlatforms() func(name string) (string, bool) {
-	f := func(m map[string]string, name string) { m[name] = fmt.Sprintf("shipasoftware/%s:latest", name) }
-	p := make(map[string]string)
-
-	f(p, "cordova")
-	f(p, "dotnet")
-	f(p, "elixir")
-	f(p, "go")
-	f(p, "java")
-	f(p, "lua")
-	f(p, "nodejs")
-	f(p, "perl")
-	f(p, "php")
-	f(p, "play")
-	f(p, "python")
-	f(p, "pypy")
-	f(p, "ruby")
-	f(p, "static")
+	p := map[string]string{
+		"cordova": "shipasoftware/cordova:v1.2",
+		"dotnet":  "shipasoftware/dotnet:v1.2",
+		"elixir":  "shipasoftware/elixir:v1.2",
+		"go":      "shipasoftware/go:v1.2",
+		"java":    "shipasoftware/java:v1.2",
+		"lua":     "shipasoftware/lua:v1.2",
+		"nodejs":  "shipasoftware/nodejs:v1.2",
+		"perl":    "shipasoftware/perl:v1.2",
+		"php":     "shipasoftware/php:v1.2",
+		"play":    "shipasoftware/play:v1.2",
+		"pypy":    "shipasoftware/pypy:v1.2",
+		"ruby":    "shipasoftware/ruby:v1.2",
+		"static":  "shipasoftware/static:v1.2",
+	}
 
 	return func(name string) (string, bool) {
 		imageRef, ok := p[name]

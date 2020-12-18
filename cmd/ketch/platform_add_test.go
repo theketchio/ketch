@@ -48,7 +48,7 @@ func TestPlatformAdd(t *testing.T) {
 				p, ok := obj.(*v1beta1.Platform)
 				require.True(t, ok)
 				require.Equal(t, "java", p.ObjectMeta.Name)
-				require.Equal(t, "shipasoftware/java:latest", p.Spec.Image)
+				require.Equal(t, "shipasoftware/java:v1.2", p.Spec.Image)
 				return nil
 			},
 		},
