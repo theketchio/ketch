@@ -6,9 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
@@ -29,20 +27,12 @@ func newPlatformCmd(cfg config, logOut io.Writer) *cobra.Command {
 	return cmd
 }
 
-type resourceGetter interface {
-	Get(ctx context.Context, name types.NamespacedName, object runtime.Object) error
-}
-
 func platformGet(ctx context.Context, getter resourceGetter, platformName string) (*v1beta1.Platform, error) {
 	var platform v1beta1.Platform
 	if err := getter.Get(ctx, types.NamespacedName{Name: platformName}, &platform); err != nil {
 		return nil, err
 	}
 	return &platform, nil
-}
-
-type resourceLister interface {
-	List(context.Context, runtime.Object, ...client.ListOption) error
 }
 
 func platformList(ctx context.Context, lister resourceLister) (*v1beta1.PlatformList, error) {
@@ -60,10 +50,6 @@ type platformSpec struct {
 	description string
 }
 
-type resourceCreator interface {
-	Create(context.Context, runtime.Object, ...client.CreateOption) error
-}
-
 func platformCreate(ctx context.Context, creator resourceCreator, ps platformSpec) error {
 	platform := v1beta1.Platform{
 		TypeMeta: metav1.TypeMeta{},
@@ -76,10 +62,6 @@ func platformCreate(ctx context.Context, creator resourceCreator, ps platformSpe
 		},
 	}
 	return creator.Create(ctx, &platform)
-}
-
-type resourceDeleter interface {
-	Delete(context.Context, runtime.Object, ...client.DeleteOption) error
 }
 
 func platformDelete(ctx context.Context, deleter resourceDeleter, platform *v1beta1.Platform) error {
