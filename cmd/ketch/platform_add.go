@@ -29,7 +29,7 @@ Examples:
 	descriptionShortFlag = "D"
 )
 
-func newPlatformAddCmd(creator resourceCreator, logWriter io.Writer) *cobra.Command {
+func newPlatformAddCmd(creator resourceCreator, out io.Writer) *cobra.Command {
 	var options platformAddOptions
 	cmd := &cobra.Command{
 		Use:   "add PLATFORM",
@@ -41,7 +41,7 @@ func newPlatformAddCmd(creator resourceCreator, logWriter io.Writer) *cobra.Comm
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.name = args[0]
-			return platformAdd(cmd.Context(), creator, options, logWriter)
+			return platformAdd(cmd.Context(), creator, options, out)
 		},
 	}
 
@@ -70,7 +70,7 @@ func platformFromDockerfile(ctx context.Context, dockerFileReference string) (st
 	return "", errors.New("build platform from dockerfile not implemented")
 }
 
-func platformAdd(ctx context.Context, creator resourceCreator, options platformAddOptions, logWriter io.Writer) error {
+func platformAdd(ctx context.Context, creator resourceCreator, options platformAddOptions, out io.Writer) error {
 	var imageRef string
 	var err error
 	if options.dockerFileLocation != "" {
@@ -97,7 +97,7 @@ func platformAdd(ctx context.Context, creator resourceCreator, options platformA
 	if err = platformCreate(ctx, creator, platform); err != nil {
 		return fmt.Errorf("could not create platform: %w", err)
 	}
-	fmt.Fprintf(logWriter, "Added platform %q\n", options.name)
+	fmt.Fprintf(out, "Added platform %q\n", options.name)
 	return nil
 }
 
