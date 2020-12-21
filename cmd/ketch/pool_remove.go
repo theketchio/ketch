@@ -52,12 +52,37 @@ func poolRemove(ctx context.Context, cfg config, options poolRemoveOptions, out 
 		return fmt.Errorf("failed to remove the pool: %w", err)
 	}
 
-	// Remove namespace after pool is deleted
-	if err := cfg.Client().Delete(ctx, &ns); err != nil {
-		return fmt.Errorf("failed to remove the namespace: %w", err)
+	if userWantsToRemoveNamespace(ns.Name, out) {
+		if err := cfg.Client().Delete(ctx, &ns); err != nil {
+			return fmt.Errorf("failed to remove the namespace: %w", err)
+		}
+		fmt.Fprintln(out, "Namespace successfully removed!")
 	}
 
-	fmt.Fprintln(out, "Successfully removed!")
+	fmt.Fprintln(out, "Pool successfully removed!")
 
 	return nil
+}
+
+func userWantsToRemoveNamespace(ns string, out io.Writer) bool {
+	response := promptToRemoveNamespace(ns, out)
+	return handleNamespaceRemovalResponse(response, ns, out)
+}
+
+func promptToRemoveNamespace(ns string, out io.Writer) string {
+	fmt.Fprintf(out, "Do you want to remove the namespace along with the pool? Please enter namespace to confirm (%s): ", ns)
+
+	var response string
+	fmt.Scanln(&response)
+
+	return response
+}
+
+func handleNamespaceRemovalResponse(response, ns string, out io.Writer) bool {
+	if response != ns {
+		fmt.Fprintln(out, "Skipping namespace removal...")
+		return false
+	}
+
+	return true
 }
