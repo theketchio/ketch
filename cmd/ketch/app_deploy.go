@@ -149,8 +149,16 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		exposedPorts = append(exposedPorts, *exposedPort)
 	}
 
-	// default traffic weight for a deployment, i.e. 100%
-	weight := defaultTrafficWeight
+	deploymentSpec := ketchv1.AppDeploymentSpec{
+		Image:     options.image,
+		Version:   ketchv1.DeploymentVersion(app.Spec.DeploymentsCount + 1),
+		Processes: processes,
+		KetchYaml: ketchYaml,
+		RoutingSettings: ketchv1.RoutingSettings{
+			Weight: defaultTrafficWeight,
+		},
+		ExposedPorts: exposedPorts,
+	}
 
 	if options.isCanarySet() {
 		if err := options.validateCanaryOpts(); err != nil {
@@ -168,30 +176,14 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 
 		app.Status.CurrentCanaryStep = 0
 
-		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
-		//  weight contains traffic distribution weight for different version of deployments.
-		weight = options.stepWeight
+		// set weight for canary deployment
+		deploymentSpec.RoutingSettings.Weight = options.stepWeight
 
 		//  update old deployment weight
-		app.Spec.Deployments[0].RoutingSettings.Weight = defaultTrafficWeight - weight
-	}
+		app.Spec.Deployments[0].RoutingSettings.Weight = defaultTrafficWeight - options.stepWeight
 
-	deploymentSpec := ketchv1.AppDeploymentSpec{
-		Image:     options.image,
-		Version:   ketchv1.DeploymentVersion(app.Spec.DeploymentsCount + 1),
-		Processes: processes,
-		KetchYaml: ketchYaml,
-		RoutingSettings: ketchv1.RoutingSettings{
-			Weight: weight,
-		},
-		ExposedPorts: exposedPorts,
-	}
-
-	if options.isCanarySet() {
+		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
 		app.Spec.Deployments = append(app.Spec.Deployments, deploymentSpec)
-		if len(app.Spec.Deployments) > 2 {
-			return fmt.Errorf("Canary deployment failed. Maximum of two deployments are currently supported.")
-		}
 	} else {
 		app.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
 	}
