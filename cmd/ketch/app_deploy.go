@@ -171,6 +171,9 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
 		//  weight contains traffic distribution weight for different version of deployments.
 		weight = options.stepWeight
+
+		//  update old deployment weight
+		app.Spec.Deployments[0].RoutingSettings.Weight = defaultTrafficWeight - weight
 	}
 
 	deploymentSpec := ketchv1.AppDeploymentSpec{
@@ -184,7 +187,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		ExposedPorts: exposedPorts,
 	}
 
-	app.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
+	app.Spec.Deployments = append(app.Spec.Deployments, deploymentSpec)
 	app.Spec.DeploymentsCount += 1
 
 	if err = cfg.Client().Update(ctx, &app); err != nil {
