@@ -469,6 +469,51 @@ func Test_canaryAppDeploy(t *testing.T) {
 		wantErr        string
 	}{
 		{
+			name: "app deploy for canary deployment with primary deployment",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName:          "app-1",
+				image:            "ketch:v2",
+				steps:            5,
+				stepWeight:       10,
+				stepTimeInterval: "1h",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantAppSpec: ketchv1.AppSpec{
+				Deployments: []ketchv1.AppDeploymentSpec{
+					{
+						Image:           "ketch:v1",
+						Version:         1,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 90},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+					{
+						Image:           "ketch:v2",
+						Version:         2,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 10},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+				},
+				Canary: ketchv1.CanarySpec{
+					Steps:           5,
+					StepWeight:      10,
+					StepTimeInteval: testStepInt,
+				},
+				DeploymentsCount: 2,
+				Pool:             "pool-1",
+			},
+			wantPrimaryApp: true,
+			wantOut:        "Successfully deployed!\n",
+		},
+		{
 			name: "app deploy for canary deployment without primary deployment",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{app1, pool1},
@@ -507,19 +552,18 @@ func Test_canaryAppDeploy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out := &bytes.Buffer{}
-
 			if tt.wantPrimaryApp {
 				primOpts := appDeployOptions{
 					appName: "app-1",
 					image:   "ketch:v1",
 				}
-				err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, primOpts, out)
+				err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, primOpts, &bytes.Buffer{})
 				if err != nil {
 					t.Errorf("appDeploy() error = %v", err)
 				}
 			}
 
+			out := &bytes.Buffer{}
 			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
 			if (err != nil) != wantErr {
