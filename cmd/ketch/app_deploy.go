@@ -149,6 +149,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		exposedPorts = append(exposedPorts, *exposedPort)
 	}
 
+	// default deployment spec for an app
 	deploymentSpec := ketchv1.AppDeploymentSpec{
 		Image:     options.image,
 		Version:   ketchv1.DeploymentVersion(app.Spec.DeploymentsCount + 1),
