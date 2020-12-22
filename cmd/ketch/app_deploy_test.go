@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -401,6 +402,105 @@ func Test_appDeploy(t *testing.T) {
 			},
 			imageConfigFn: validExtractFn.get,
 			wantErr:       `failed to read ketch.yaml: error unmarshaling JSON: while decoding JSON: json: unknown field "invalidField"`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := &bytes.Buffer{}
+			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
+			wantErr := len(tt.wantErr) > 0
+			if (err != nil) != wantErr {
+				t.Errorf("appDeploy() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if wantErr {
+				assert.Equal(t, tt.wantErr, err.Error())
+				return
+			}
+			assert.Equal(t, tt.wantOut, out.String())
+
+			gotApp := ketchv1.App{}
+			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: "app-1"}, &gotApp)
+			assert.Nil(t, err)
+			if diff := cmp.Diff(gotApp.Spec, tt.wantAppSpec); diff != "" {
+				t.Errorf("AppSpec mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func Test_canaryAppDeploy(t *testing.T) {
+	testStepInt, _ := time.ParseDuration("1h")
+	app1 := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "app-1",
+		},
+		Spec: ketchv1.AppSpec{
+			Pool: "pool-1",
+		},
+	}
+	pool1 := &ketchv1.Pool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "pool-1",
+		},
+		Spec: ketchv1.PoolSpec{
+			NamespaceName: "pool-1-namespace",
+		},
+	}
+	validExtractFn := mockGetImageConfig{
+		returnConfigFile: &registryv1.ConfigFile{
+			Config: registryv1.Config{
+				Cmd: []string{"cmd"},
+				ExposedPorts: map[string]struct{}{
+					"999/tcp": {},
+				},
+			},
+		},
+	}
+	tests := []struct {
+		name          string
+		cfg           config
+		options       appDeployOptions
+		imageConfigFn getImageConfigFileFn
+
+		wantAppSpec ketchv1.AppSpec
+		wantOut     string
+		wantErr     string
+	}{
+		{
+			name: "app deploy for canary deployment without primary deployment",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName:          "app-1",
+				image:            "ketch:v1",
+				steps:            5,
+				stepWeight:       10,
+				stepTimeInterval: "1h",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantAppSpec: ketchv1.AppSpec{
+				Deployments: []ketchv1.AppDeploymentSpec{
+					{
+						Image:           "ketch:v1",
+						Version:         1,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 10},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+				},
+				Canary: ketchv1.CanarySpec{
+					Steps:           5,
+					StepWeight:      10,
+					StepTimeInteval: testStepInt,
+				},
+				DeploymentsCount: 1,
+				Pool:             "pool-1",
+			},
+			wantErr: "Canary deployment failed. No primary deployment found for the app",
 		},
 	}
 	for _, tt := range tests {
