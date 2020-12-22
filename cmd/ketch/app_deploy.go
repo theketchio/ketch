@@ -150,7 +150,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 	}
 
 	// default traffic weight for a deployment, i.e. 100%
-	weights := []int{defaultTrafficWeight}
+	weight := defaultTrafficWeight
 
 	if options.isCanarySet() {
 		if err := options.validateCanaryOpts(); err != nil {
@@ -169,25 +169,23 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		app.Status.CurrentCanaryStep = 0
 
 		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
-		//  weights contains traffic distribution weights for different version of deployments.
-		weights = []int{(defaultTrafficWeight - options.stepWeight), options.stepWeight}
+		//  weight contains traffic distribution weights for different version of deployments.
+		weights = options.stepWeight
 	}
 
-	for _, weight := range weights {
-		deploymentSpec := ketchv1.AppDeploymentSpec{
-			Image:     options.image,
-			Version:   ketchv1.DeploymentVersion(app.Spec.DeploymentsCount + 1),
-			Processes: processes,
-			KetchYaml: ketchYaml,
-			RoutingSettings: ketchv1.RoutingSettings{
-				Weight: weight,
-			},
-			ExposedPorts: exposedPorts,
-		}
-
-		app.Spec.Deployments = append(app.Spec.Deployments, deploymentSpec)
-		app.Spec.DeploymentsCount += 1
+	deploymentSpec := ketchv1.AppDeploymentSpec{
+		Image:     options.image,
+		Version:   ketchv1.DeploymentVersion(app.Spec.DeploymentsCount + 1),
+		Processes: processes,
+		KetchYaml: ketchYaml,
+		RoutingSettings: ketchv1.RoutingSettings{
+			Weight: weight,
+		},
+		ExposedPorts: exposedPorts,
 	}
+
+	app.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
+	app.Spec.DeploymentsCount += 1
 
 	if err = cfg.Client().Update(ctx, &app); err != nil {
 		return fmt.Errorf("failed to update the app: %v", err)
