@@ -463,9 +463,10 @@ func Test_canaryAppDeploy(t *testing.T) {
 		options       appDeployOptions
 		imageConfigFn getImageConfigFileFn
 
-		wantAppSpec ketchv1.AppSpec
-		wantOut     string
-		wantErr     string
+		wantAppSpec    ketchv1.AppSpec
+		wantPrimaryApp bool
+		wantOut        string
+		wantErr        string
 	}{
 		{
 			name: "app deploy for canary deployment without primary deployment",
@@ -500,12 +501,25 @@ func Test_canaryAppDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantErr: "Canary deployment failed. No primary deployment found for the app",
+			wantErr:        "Canary deployment failed. No primary deployment found for the app",
+			wantPrimaryApp: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
+
+			if tt.wantPrimaryApp {
+				primOpts := appDeployOptions{
+					appName: "app-1",
+					image:   "ketch:v1",
+				}
+				err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, primOpts, out)
+				if err != nil {
+					t.Errorf("appDeploy() error = %v", err)
+				}
+			}
+
 			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
 			if (err != nil) != wantErr {
