@@ -187,7 +187,15 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		ExposedPorts: exposedPorts,
 	}
 
-	app.Spec.Deployments = append(app.Spec.Deployments, deploymentSpec)
+	if options.isCanarySet() {
+		app.Spec.Deployments = append(app.Spec.Deployments, deploymentSpec)
+		if len(app.Spec.Deployments) > 2 {
+			return fmt.Errorf("Canary deployment failed. Maximum of two deployments are currently supported.")
+		}
+	} else {
+		app.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
+	}
+
 	app.Spec.DeploymentsCount += 1
 
 	if err = cfg.Client().Update(ctx, &app); err != nil {
