@@ -37,26 +37,28 @@ type poolRemoveOptions struct {
 
 func poolRemove(ctx context.Context, cfg config, options poolRemoveOptions, out io.Writer) error {
 	var pool ketchv1.Pool
-	var ns corev1.Namespace
 
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.Name}, &pool); err != nil {
 		return fmt.Errorf("failed to get pool: %w", err)
 	}
 
-	// Get namespace that was created with the pool so it can be removed
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: pool.Spec.NamespaceName}, &ns); err != nil {
-		return fmt.Errorf("failed to get namespace: %w", err)
+	if userWantsToRemoveNamespace(pool.Spec.NamespaceName, out) {
+		var ns corev1.Namespace
+
+		// Get namespace that was created with the pool so it can be removed
+		if err := cfg.Client().Get(ctx, types.NamespacedName{Name: pool.Spec.NamespaceName}, &ns); err != nil {
+			return fmt.Errorf("failed to get namespace: %w", err)
+		}
+
+		if err := cfg.Client().Delete(ctx, &ns); err != nil {
+			return fmt.Errorf("failed to remove the namespace: %w", err)
+		}
+		
+		fmt.Fprintln(out, "Namespace successfully removed!")
 	}
 
 	if err := cfg.Client().Delete(ctx, &pool); err != nil {
 		return fmt.Errorf("failed to remove the pool: %w", err)
-	}
-
-	if userWantsToRemoveNamespace(ns.Name, out) {
-		if err := cfg.Client().Delete(ctx, &ns); err != nil {
-			return fmt.Errorf("failed to remove the namespace: %w", err)
-		}
-		fmt.Fprintln(out, "Namespace successfully removed!")
 	}
 
 	fmt.Fprintln(out, "Pool successfully removed!")
