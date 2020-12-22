@@ -161,6 +161,11 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 	}
 
 	if options.isCanarySet() {
+
+		if len(app.Spec.Deployments) == 0 {
+			return fmt.Errorf("Canary deployment failed. No primary deployment found for the app.")
+		}
+
 		if err := options.validateCanaryOpts(); err != nil {
 			return err
 		}
