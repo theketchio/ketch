@@ -169,8 +169,8 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		app.Status.CurrentCanaryStep = 0
 
 		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
-		//  weight contains traffic distribution weights for different version of deployments.
-		weights = options.stepWeight
+		//  weight contains traffic distribution weight for different version of deployments.
+		weight = options.stepWeight
 	}
 
 	deploymentSpec := ketchv1.AppDeploymentSpec{
