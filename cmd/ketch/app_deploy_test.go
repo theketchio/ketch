@@ -463,10 +463,11 @@ func Test_canaryAppDeploy(t *testing.T) {
 		options       appDeployOptions
 		imageConfigFn getImageConfigFileFn
 
-		wantAppSpec    ketchv1.AppSpec
-		wantPrimaryApp bool
-		wantOut        string
-		wantErr        string
+		wantAppSpec               ketchv1.AppSpec
+		wantPrimaryDeployment     bool
+		wantExtraCanaryDeployment bool
+		wantOut                   string
+		wantErr                   string
 	}{
 		{
 			name: "app deploy for canary deployment with primary deployment",
@@ -510,8 +511,8 @@ func Test_canaryAppDeploy(t *testing.T) {
 				DeploymentsCount: 2,
 				Pool:             "pool-1",
 			},
-			wantPrimaryApp: true,
-			wantOut:        "Successfully deployed!\n",
+			wantPrimaryDeployment: true,
+			wantOut:               "Successfully deployed!\n",
 		},
 		{
 			name: "app deploy for canary deployment without primary deployment",
@@ -546,18 +547,42 @@ func Test_canaryAppDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantErr:        "Canary deployment failed. No primary deployment found for the app",
-			wantPrimaryApp: false,
+			wantErr:               "Canary deployment failed. No primary deployment found for the app",
+			wantPrimaryDeployment: false,
+		},
+		{
+			name: "app deploy for canary deployment with primary deployment",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName:          "app-1",
+				image:            "ketch:v2",
+				steps:            5,
+				stepWeight:       10,
+				stepTimeInterval: "1h",
+			},
+			imageConfigFn:             validExtractFn.get,
+			wantErr:                   "Canary deployment failed. Maximum number of two deployments are currently supported",
+			wantPrimaryDeployment:     true,
+			wantExtraCanaryDeployment: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.wantPrimaryApp {
+			if tt.wantPrimaryDeployment {
 				primOpts := appDeployOptions{
 					appName: "app-1",
 					image:   "ketch:v1",
 				}
 				err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, primOpts, &bytes.Buffer{})
+				if err != nil {
+					t.Errorf("appDeploy() error = %v", err)
+				}
+			}
+
+			if tt.wantExtraCanaryDeployment {
+				err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, &bytes.Buffer{})
 				if err != nil {
 					t.Errorf("appDeploy() error = %v", err)
 				}
