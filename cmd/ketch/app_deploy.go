@@ -161,13 +161,16 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 	}
 
 	if options.isCanarySet() {
-
-		if len(app.Spec.Deployments) == 0 {
-			return fmt.Errorf("Canary deployment failed. No primary deployment found for the app.")
-		}
-
 		if err := options.validateCanaryOpts(); err != nil {
 			return err
+		}
+
+		// check for old deployements
+		switch deps := len(app.Spec.Deployments); {
+		case deps == 0:
+			return fmt.Errorf("Canary deployment failed. No primary deployment found for the app")
+		case deps >= 2:
+			return fmt.Errorf("Canary deployment failed. Maximum of number two deployments are currently supported")
 		}
 
 		// parses step interval string to time.Duration
