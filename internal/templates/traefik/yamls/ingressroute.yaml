@@ -1,5 +1,5 @@
 {{- if .Values.app.isAccessible }}
-{{- if .Values.app.ingress.http }}
+{{- if or .Values.app.ingress.http .Values.app.ingress.http}}
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
@@ -11,8 +11,14 @@ metadata:
     theketch.io/app-name: {{ $.Values.app.name }}
 spec:
   entryPoints:
+  {{- if  .Values.app.ingress.http }}
     - web
+  {{- end }}
+  {{- if  .Values.app.ingress.https }}
+    - websecure
+  {{- end }}
   routes:
+{{- if  .Values.app.ingress.http }}
   {{- range $_, $cname := .Values.app.ingress.http }}
   - match: Host(`{{ $cname }}`)
     kind: Rule
@@ -23,6 +29,23 @@ spec:
     - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
       port: {{ $process.publicServicePort }}
       weight: {{$deployment.routingSettings.weight}}
+      {{- end }}   
+      {{- end }}   
+      {{- end }}   
+      {{- end }}   
+  {{- end }}   
+{{- if  .Values.app.ingress.http }}
+  {{- range $_, $cname := .Values.app.ingress.https }}
+  - match: Host(`{{ $cname }}`)
+    kind: Rule
+    services:
+    {{- range $_, $deployment := $.Values.app.deployments }}
+    {{- range $_, $process := $deployment.processes }}
+     {{- if $process.routable }}
+    - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+      port: {{ $process.publicServicePort }}
+      weight: {{$deployment.routingSettings.weight}}
+      {{- end }}   
       {{- end }}   
       {{- end }}   
       {{- end }}   
