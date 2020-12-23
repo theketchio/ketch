@@ -1,5 +1,5 @@
 {{- if .Values.app.isAccessible }}
-{{- if or .Values.app.ingress.http .Values.app.ingress.http}}
+{{- if or .Values.app.ingress.http .Values.app.ingress.https }}
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
@@ -34,7 +34,7 @@ spec:
       {{- end }}   
       {{- end }}   
   {{- end }}   
-{{- if  .Values.app.ingress.http }}
+{{- if  .Values.app.ingress.https }}
   {{- range $_, $cname := .Values.app.ingress.https }}
   - match: Host(`{{ $cname }}`)
     kind: Rule
