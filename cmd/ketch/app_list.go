@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
@@ -43,11 +44,19 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 		poolsByName[pool.Name] = pool
 	}
 	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
-	fmt.Fprintln(w, "NAME\tPOOL\tUNITS\tADDRESSES\tPLATFORM\tDESCRIPTION")
+	fmt.Fprintln(w, "NAME\tPOOL\tSTATE\tADDRESSES\tPLATFORM\tDESCRIPTION")
 	for _, item := range apps.Items {
+		pods, err := cfg.KubernetesClient().CoreV1().Pods(item.Namespace).List(ctx, metav1.ListOptions{
+			LabelSelector: fmt.Sprintf(`theketch.io/app-name=%s`, item.Name),
+		})
+		if err != nil {
+			return err
+		}
+		state := appState(pods.Items)
+
 		pool := poolsByName[item.Spec.Pool]
 		urls := strings.Join(item.CNames(&pool), " ")
-		line := []string{item.Name, item.Spec.Pool, fmt.Sprintf("%d", item.Units()), urls, item.Spec.Platform, item.Spec.Description}
+		line := []string{item.Name, item.Spec.Pool, state, urls, item.Spec.Platform, item.Spec.Description}
 		fmt.Fprintln(w, strings.Join(line, "\t"))
 	}
 	w.Flush()
