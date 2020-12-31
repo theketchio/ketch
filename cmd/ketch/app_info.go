@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -91,19 +92,18 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	t := template.Must(template.New("app-info").Parse(appInfoTemplate))
 	table := &bytes.Buffer{}
 	w := tabwriter.NewWriter(table, 0, 4, 4, ' ', 0)
+	appPods, err := cfg.KubernetesClient().CoreV1().Pods(app.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf(`%s=%s`, ketchAppNameLabel, app.Name),
+	})
+	if err != nil {
+		return err
+	}
 	fmt.Fprintln(w, "DEPLOYMENT VERSION\tIMAGE\tPROCESS NAME\tSTATE\tCMD")
 	noProcesses := true
 	for _, deployment := range app.Spec.Deployments {
 		for _, process := range deployment.Processes {
 			noProcesses = false
-
-			pods, err := cfg.KubernetesClient().CoreV1().Pods(app.Namespace).List(ctx, metav1.ListOptions{
-				LabelSelector: fmt.Sprintf(`theketch.io/app-name=%s,theketch.io/app-deployment-version=%s,theketch.io/app-process=%s`, app.Name, deployment.Version, process.Name),
-			})
-			if err != nil {
-				return err
-			}
-			state := appState(pods.Items)
+			state := appState(filterProcessDeploymentPods(appPods.Items, deployment.Version.String(), process.Name))
 
 			line := []string{
 				deployment.Version.String(),
@@ -127,4 +127,33 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	}
 	fmt.Fprintf(out, "%v", buf.String())
 	return nil
+}
+
+func filterProcessDeploymentPods(appPods []corev1.Pod, deployment, process string) []corev1.Pod {
+	var pods []corev1.Pod
+Loop:
+	for _, pod := range appPods {
+		match := 0
+		desired := 2
+		for label, value := range pod.GetLabels() {
+			if label == ketchDeploymentVersionLabel {
+				if value != deployment {
+					continue Loop
+				}
+				match++
+			}
+			if label == ketchProcessNameLabel {
+				if value != process {
+					continue Loop
+				}
+				match++
+			}
+
+			if match == desired {
+				pods = append(pods, pod)
+				continue Loop
+			}
+		}
+	}
+	return pods
 }
