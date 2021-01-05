@@ -4,8 +4,12 @@ apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
   name: {{ $.Values.app.name }}-ingressroute
+  annotations:
+    {{- if .Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
+    {{- end }}
     {{- if .Values.ingressController.clusterIssuer }}
-        cert-manager.io/cluster-issuer: {{ .Values.ingressController.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingressController.clusterIssuer }}
     {{- end }}
   labels:
     theketch.io/app-name: {{ $.Values.app.name }}
