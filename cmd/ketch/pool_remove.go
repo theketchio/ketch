@@ -115,7 +115,7 @@ func removeNamespace(ctx context.Context, cfg config, pool *ketchv1.Pool) error 
 	var ns corev1.Namespace
 
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: pool.Spec.NamespaceName}, &ns); err != nil {
-		return fmt.Errorf("failed to get namespace: %s", err)
+		return fmt.Errorf("failed to get namespace: %w", err)
 	}
 
 	if err := cfg.Client().Delete(ctx, &ns); err != nil {
