@@ -312,6 +312,8 @@ apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
   name: dashboard-ingressroute
+  annotations:
+    kubernetes.io/ingress.class: gke
   labels:
     theketch.io/app-name: dashboard
 spec:
