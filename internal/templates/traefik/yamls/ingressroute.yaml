@@ -39,8 +39,8 @@ spec:
       {{- end }}   
   {{- end }}   
 {{- if  .Values.app.ingress.https }}
-  {{- range $_, $cname := .Values.app.ingress.https }}
-  - match: Host("{{ $cname }}")
+  {{- range $_, $https := .Values.app.ingress.https }}
+  - match: Host("{{ $https.cname }}")
     kind: Rule
     services:
     {{- range $_, $deployment := $.Values.app.deployments }}
