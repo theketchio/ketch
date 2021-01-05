@@ -50,7 +50,7 @@ func poolRemove(ctx context.Context, cfg config, options poolRemoveOptions, out 
 	}
 
 	if userWantsToRemoveNamespace(pool.Spec.NamespaceName, out) {
-		if err := namespaceHasAdditionalResources(ctx, cfg, &pool); err != nil {
+		if err := checkNamespaceAdditionalPools(ctx, cfg, &pool); err != nil {
 			printNsRemovalErr(out, err)
 		} else {
 			if err := removeNamespace(ctx, cfg, &pool); err != nil {
@@ -93,7 +93,7 @@ func handleNamespaceRemovalResponse(response, ns string, out io.Writer) bool {
 	return true
 }
 
-func namespaceHasAdditionalResources(ctx context.Context, cfg config, targetPool *ketchv1.Pool) error {
+func checkNamespaceAdditionalPools(ctx context.Context, cfg config, targetPool *ketchv1.Pool) error {
 	var pools ketchv1.PoolList
 
 	if err := cfg.Client().List(ctx, &pools); err != nil {
