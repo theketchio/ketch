@@ -53,6 +53,12 @@ spec:
       {{- end }}   
       {{- end }}   
       {{- end }}   
-  {{- end }}   
+  {{- end }}  
+{{- if  .Values.app.ingress.https }}
+  tls:
+  {{- range $_, $https := .Values.app.ingress.https }} 
+    secretName: {{ $https.secretName }}
+  {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
