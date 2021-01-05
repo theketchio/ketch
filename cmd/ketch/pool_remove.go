@@ -19,10 +19,6 @@ Remove an existing pool.
 	skipNsRemovalMsg = "Skipping namespace removal..."
 )
 
-var (
-	printNsRemovalErr = func(out io.Writer, err error) { fmt.Fprintf(out, "%s\n%s", err, skipNsRemovalMsg) }
-)
-
 func newPoolRemoveCmd(cfg config, out io.Writer) *cobra.Command {
 	options := poolRemoveOptions{}
 	cmd := &cobra.Command{
@@ -109,6 +105,10 @@ func checkNamespaceAdditionalPools(ctx context.Context, cfg config, targetPool *
 	}
 
 	return nil
+}
+
+func printNsRemovalErr(out io.Writer, err error) {
+	fmt.Fprintf(out, "%s\n%s", err, skipNsRemovalMsg)
 }
 
 func removeNamespace(ctx context.Context, cfg config, pool *ketchv1.Pool) error {
