@@ -178,12 +178,13 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		stepInt, _ := time.ParseDuration(options.stepTimeInterval)
 
 		app.Spec.Canary = ketchv1.CanarySpec{
-			Steps:           options.steps,
-			StepWeight:      options.stepWeight,
-			StepTimeInteval: stepInt,
+			Steps:             options.steps,
+			StepWeight:        options.stepWeight,
+			StepTimeInteval:   stepInt,
+			NextScheduledTime: time.Now().Add(stepInt),
 		}
 
-		app.Status.CurrentCanaryStep = 0
+		app.Status.CurrentCanaryStep = 1
 
 		// set weight for canary deployment
 		deploymentSpec.RoutingSettings.Weight = options.stepWeight
