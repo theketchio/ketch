@@ -200,6 +200,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 
 				// check if the canary weight is exceeding 100% of traffic
 				if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 {
+					// set primary deployment traffic to 0%
 					app.Spec.Deployments[0].RoutingSettings.Weight = 0
 					app.Status.IsActiveCanary = false
 				}
