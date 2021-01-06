@@ -189,6 +189,9 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 					app.Status.IsActiveCanary = false
 					app.Status.CurrentCanaryStep = app.Spec.Canary.Steps
 				}
+
+				// update next scheduled time
+				app.Spec.Canary.NextScheduledTime = metav1.NewTime(app.Spec.Canary.NextScheduledTime.Add(app.Spec.Canary.StepTimeInteval))
 			}
 		}
 	}
