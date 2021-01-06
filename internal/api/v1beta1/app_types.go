@@ -174,7 +174,7 @@ type CanarySpec struct {
 	Steps             int           `json:"steps"`
 	StepWeight        int           `json:"step_weight"`
 	StepTimeInteval   time.Duration `json:"step_time_interval"`
-	NextScheduledTime time.Time     `json:"next_schedule,omitempty"`
+	NextScheduledTime metav1.Time   `json:"next_schedule,omitempty"`
 }
 
 // AppSpec defines the desired state of App.
