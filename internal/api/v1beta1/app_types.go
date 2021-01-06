@@ -166,7 +166,7 @@ type AppStatus struct {
 
 	// CurrentCanaryStep is the count for current step for a canary deployment
 	CurrentCanaryStep int       `json:"current_canary_step,omitempty"`
-	NextScheduledTime time.Time `json:"next_schedule"`
+	NextScheduledTime time.Time `json:"next_schedule,omitempty"`
 }
 
 // CanarySpec represents configuration for a canary deployment
