@@ -47,6 +47,9 @@ spec:
               description: Canary contains a configuration which will be rquired for
                 canary deployments.
               properties:
+                next_schedule:
+                  format: date-time
+                  type: string
                 step_time_interval:
                   description: A Duration represents the elapsed time between two
                     instants as an int64 nanosecond count. The representation limits
@@ -507,6 +510,8 @@ spec:
               description: CurrentCanaryStep is the count for current step for a canary
                 deployment
               type: integer
+            is_active_canary:
+              type: boolean
             pool:
               description: 'ObjectReference contains enough information to let you
                 inspect or modify the referred object. --- New uses of this type are
@@ -565,6 +570,8 @@ spec:
                   description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                   type: string
               type: object
+          required:
+          - is_active_canary
           type: object
       type: object
   version: v1beta1
