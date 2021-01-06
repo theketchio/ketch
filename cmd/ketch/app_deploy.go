@@ -12,6 +12,7 @@ import (
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
@@ -181,7 +182,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 			Steps:             options.steps,
 			StepWeight:        options.stepWeight,
 			StepTimeInteval:   stepInt,
-			NextScheduledTime: time.Now().Add(stepInt),
+			NextScheduledTime: metav1.NewTime(time.Now().Add(stepInt)),
 		}
 
 		app.Status.CurrentCanaryStep = 1
