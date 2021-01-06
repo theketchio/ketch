@@ -514,7 +514,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 					Steps:             5,
 					StepWeight:        10,
 					StepTimeInteval:   testStepInt,
-					NextScheduledTime: testNextScheduledTime,
+					NextScheduledTime: &testNextScheduledTime,
 				},
 				DeploymentsCount: 2,
 				Pool:             "pool-1",
@@ -614,7 +614,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 			assert.Nil(t, err)
 
 			if tt.wantPrimaryDeployment {
-				gotApp.Spec.Canary.NextScheduledTime = testNextScheduledTime
+				gotApp.Spec.Canary.NextScheduledTime = &testNextScheduledTime
 			}
 
 			if diff := cmp.Diff(gotApp.Spec, tt.wantAppSpec); diff != "" {

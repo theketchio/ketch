@@ -177,12 +177,12 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 
 		// parses step interval string to time.Duration
 		stepInt, _ := time.ParseDuration(options.stepTimeInterval)
-
+		nextSch := metav1.NewTime(time.Now().Add(stepInt))
 		app.Spec.Canary = ketchv1.CanarySpec{
 			Steps:             options.steps,
 			StepWeight:        options.stepWeight,
 			StepTimeInteval:   stepInt,
-			NextScheduledTime: metav1.NewTime(time.Now().Add(stepInt)),
+			NextScheduledTime: &nextSch,
 		}
 
 		app.Status.CurrentCanaryStep = 1
