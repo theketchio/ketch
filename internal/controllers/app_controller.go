@@ -176,7 +176,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	// check for canary deployment
 	if app.Status.IsActiveCanary {
 		if app.Status.CurrentCanaryStep != app.Spec.Canary.Steps {
-			if app.Spec.Canary.NextScheduledTime == time.Now() {
+			if app.Spec.Canary.NextScheduledTime == metav1.Now() {
 				// update traffic weight distributions across deployments
 				app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
 				app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
