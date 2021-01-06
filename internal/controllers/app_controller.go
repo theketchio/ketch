@@ -197,6 +197,12 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 				// update traffic weight distributions across deployments
 				app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
 				app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
+
+				// check if the canary weight is exceeding 100% of traffic
+				if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 {
+					app.Spec.Deployments[0].RoutingSettings.Weight = 0
+					app.Status.IsActiveCanary = false
+				}
 			}
 		}
 	}
