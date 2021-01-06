@@ -185,6 +185,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		}
 
 		app.Status.CurrentCanaryStep = 1
+		app.Status.IsActiveCanary = true
 
 		// set weight for canary deployment
 		deploymentSpec.RoutingSettings.Weight = options.stepWeight
