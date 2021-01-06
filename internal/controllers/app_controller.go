@@ -238,6 +238,10 @@ func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {
 }
 
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// set up a real clock, since we're not in a test
+	if r.Clock == nil {
+		r.Clock = realClock{}
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ketchv1.App{}).
 		Complete(r)
