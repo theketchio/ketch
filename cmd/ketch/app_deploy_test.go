@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"bou.ke/monkey"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -430,7 +431,13 @@ func Test_appDeploy(t *testing.T) {
 }
 
 func Test_canaryAppDeploy(t *testing.T) {
+	// safely patch time.Now for tests
+	patch := monkey.Patch(metav1.Now, func() metav1.Time { return metav1.Date(2020, 12, 11, 20, 34, 58, 651387237, time.UTC) })
+	defer patch.Unpatch()
+
 	testStepInt, _ := time.ParseDuration("1h")
+	testNextScheduledTime := metav1.NewTime(time.Now().Add(testStepInt))
+
 	app1 := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "app-1",
@@ -504,9 +511,10 @@ func Test_canaryAppDeploy(t *testing.T) {
 					},
 				},
 				Canary: ketchv1.CanarySpec{
-					Steps:           5,
-					StepWeight:      10,
-					StepTimeInteval: testStepInt,
+					Steps:             5,
+					StepWeight:        10,
+					StepTimeInteval:   testStepInt,
+					NextScheduledTime: testNextScheduledTime,
 				},
 				DeploymentsCount: 2,
 				Pool:             "pool-1",
@@ -604,6 +612,11 @@ func Test_canaryAppDeploy(t *testing.T) {
 			gotApp := ketchv1.App{}
 			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: "app-1"}, &gotApp)
 			assert.Nil(t, err)
+
+			if tt.wantPrimaryDeployment {
+				gotApp.Spec.Canary.NextScheduledTime = testNextScheduledTime
+			}
+
 			if diff := cmp.Diff(gotApp.Spec, tt.wantAppSpec); diff != "" {
 				t.Errorf("AppSpec mismatch (-want +got):\n%s", diff)
 			}
