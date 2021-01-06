@@ -38,6 +38,17 @@ import (
 	"github.com/shipa-corp/ketch/internal/templates"
 )
 
+// realclock
+type realClock struct{}
+
+func (_ realClock) Now() time.Time { return time.Now() }
+
+// clock knows how to get the current time.
+// It can be used to fake out timing for testing.
+type Clock interface {
+	Now() time.Time
+}
+
 // AppReconciler reconciles a App object.
 type AppReconciler struct {
 	client.Client
@@ -45,6 +56,7 @@ type AppReconciler struct {
 	Scheme         *runtime.Scheme
 	TemplateReader templates.Reader
 	HelmFactoryFn  helmFactoryFn
+	Clock
 }
 
 type helmFactoryFn func(namespace string) (Helm, error)
