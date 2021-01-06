@@ -203,6 +203,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 					// set primary deployment traffic to 0%
 					app.Spec.Deployments[0].RoutingSettings.Weight = 0
 					app.Status.IsActiveCanary = false
+					app.Status.CurrentCanaryStep = app.Spec.Canary.Steps
 				}
 			}
 		}
