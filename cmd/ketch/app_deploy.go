@@ -38,7 +38,7 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
-			return appDeploy(cmd.Context(), cfg, getImageConfigFile, options, out)
+			return appDeploy(cmd.Context(), time.Now, cfg, getImageConfigFile, options, out)
 		},
 	}
 
@@ -93,7 +93,10 @@ func (opts appDeployOptions) isCanarySet() bool {
 
 type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
 
-func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, out io.Writer) error {
+// pass timeNowFn to appDeploy(). Useful for testing canary deployments.
+type timeNowFn func() time.Time
+
+func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
@@ -177,7 +180,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 
 		// parses step interval string to time.Duration
 		stepInt, _ := time.ParseDuration(options.stepTimeInterval)
-		nextSch := metav1.NewTime(time.Now().Add(stepInt))
+		nextSch := metav1.NewTime(timeNow().Add(stepInt))
 		app.Spec.Canary = ketchv1.CanarySpec{
 			Steps:             options.steps,
 			StepWeight:        options.stepWeight,
