@@ -513,3 +513,26 @@ func (s AppStatus) Condition(t AppConditionType) *AppCondition {
 	}
 	return nil
 }
+
+// DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
+// based on the canary parameters provided by the users. Use it in app controller.
+func (app *App) DoCanary() {
+	if app.Status.CurrentCanaryStep != app.Spec.Canary.Steps {
+		if *app.Spec.Canary.NextScheduledTime == metav1.Now() {
+			// update traffic weight distributions across deployments
+			app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
+			app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
+
+			// check if the canary weight is exceeding 100% of traffic
+			if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 {
+				// set primary deployment traffic to 0%
+				app.Spec.Deployments[0].RoutingSettings.Weight = 0
+				app.Status.IsActiveCanary = false
+				app.Status.CurrentCanaryStep = app.Spec.Canary.Steps
+			}
+
+			// update next scheduled time
+			*app.Spec.Canary.NextScheduledTime = metav1.NewTime(app.Spec.Canary.NextScheduledTime.Add(app.Spec.Canary.StepTimeInteval))
+		}
+	}
+}
