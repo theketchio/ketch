@@ -47,22 +47,22 @@ spec:
               description: Canary contains a configuration which will be rquired for
                 canary deployments.
               properties:
-                next_schedule:
+                nextSchedule:
                   format: date-time
                   type: string
-                step_time_interval:
+                stepTimeInterval:
                   description: A Duration represents the elapsed time between two
                     instants as an int64 nanosecond count. The representation limits
                     the largest representable duration to approximately 290 years.
                   format: int64
                   type: integer
-                step_weight:
+                stepWeight:
                   type: integer
                 steps:
                   type: integer
               required:
-              - step_time_interval
-              - step_weight
+              - stepTimeInterval
+              - stepWeight
               - steps
               type: object
             deployments:
@@ -506,11 +506,11 @@ spec:
                 - type
                 type: object
               type: array
-            current_canary_step:
+            currentCanaryStep:
               description: CurrentCanaryStep is the count for current step for a canary
                 deployment
               type: integer
-            is_active_canary:
+            isActiveCanary:
               type: boolean
             pool:
               description: 'ObjectReference contains enough information to let you
@@ -571,7 +571,7 @@ spec:
                   type: string
               type: object
           required:
-          - is_active_canary
+          - isActiveCanary
           type: object
       type: object
   version: v1beta1
