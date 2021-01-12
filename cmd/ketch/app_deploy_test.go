@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -408,7 +407,7 @@ func Test_appDeploy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
+			err := appDeploy(context.Background(), metav1.Now, tt.cfg, tt.imageConfigFn, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
 			if (err != nil) != wantErr {
 				t.Errorf("appDeploy() error = %v, wantErr %v", err, tt.wantErr)
@@ -431,12 +430,10 @@ func Test_appDeploy(t *testing.T) {
 }
 
 func Test_canaryAppDeploy(t *testing.T) {
-	// safely patch time.Now for tests
-	patch := monkey.Patch(metav1.Now, func() metav1.Time { return metav1.Date(2020, 12, 11, 20, 34, 58, 651387237, time.UTC) })
-	defer patch.Unpatch()
-
+	// set custom time func for tests
+	testTimeNowFn := func() metav1.Time { return metav1.Date(2020, 12, 11, 20, 34, 58, 651387237, time.UTC) }
 	testStepInt, _ := time.ParseDuration("1h")
-	testNextScheduledTime := metav1.NewTime(time.Now().Add(testStepInt))
+	testNextScheduledTime := metav1.NewTime(testTimeNowFn().Add(testStepInt))
 
 	app1 := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
@@ -583,21 +580,21 @@ func Test_canaryAppDeploy(t *testing.T) {
 					appName: "app-1",
 					image:   "ketch:v1",
 				}
-				err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, primOpts, &bytes.Buffer{})
+				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, primOpts, &bytes.Buffer{})
 				if err != nil {
 					t.Errorf("appDeploy() error = %v", err)
 				}
 			}
 
 			if tt.wantExtraCanaryDeployment {
-				err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, &bytes.Buffer{})
+				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.options, &bytes.Buffer{})
 				if err != nil {
 					t.Errorf("appDeploy() error = %v", err)
 				}
 			}
 
 			out := &bytes.Buffer{}
-			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
+			err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
 			if (err != nil) != wantErr {
 				t.Errorf("appDeploy() error = %v, wantErr %v", err, tt.wantErr)

@@ -38,7 +38,7 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
-			return appDeploy(cmd.Context(), time.Now, cfg, getImageConfigFile, options, out)
+			return appDeploy(cmd.Context(), metav1.Now, cfg, getImageConfigFile, options, out)
 		},
 	}
 
@@ -94,7 +94,7 @@ func (opts appDeployOptions) isCanarySet() bool {
 type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
 
 // pass timeNowFn to appDeploy(). Useful for testing canary deployments.
-type timeNowFn func() time.Time
+type timeNowFn func() metav1.Time
 
 func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
