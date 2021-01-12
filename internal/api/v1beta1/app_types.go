@@ -165,16 +165,16 @@ type AppStatus struct {
 	Pool *v1.ObjectReference `json:"pool,omitempty"`
 
 	// CurrentCanaryStep is the count for current step for a canary deployment
-	CurrentCanaryStep int  `json:"current_canary_step,omitempty"`
-	IsActiveCanary    bool `json:"is_active_canary"`
+	CurrentCanaryStep int  `json:"currentCanaryStep,omitempty"`
+	IsActiveCanary    bool `json:"isActiveCanary"`
 }
 
 // CanarySpec represents configuration for a canary deployment
 type CanarySpec struct {
 	Steps             int           `json:"steps"`
-	StepWeight        int           `json:"step_weight"`
-	StepTimeInteval   time.Duration `json:"step_time_interval"`
-	NextScheduledTime *metav1.Time  `json:"next_schedule,omitempty"`
+	StepWeight        int           `json:"stepWeight"`
+	StepTimeInteval   time.Duration `json:"stepTimeInterval"`
+	NextScheduledTime *metav1.Time  `json:"nextSchedule,omitempty"`
 }
 
 // AppSpec defines the desired state of App.
