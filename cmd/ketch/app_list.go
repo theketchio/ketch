@@ -64,7 +64,7 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 
 func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.PodList, error) {
 	if len(apps) == 0 {
-		return nil, nil
+		return &corev1.PodList{}, nil
 	}
 	selector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
