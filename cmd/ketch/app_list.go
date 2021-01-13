@@ -66,10 +66,6 @@ func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.P
 	if len(apps) == 0 {
 		return nil, nil
 	}
-	var appNames []string
-	for _, a := range apps {
-		appNames = append(appNames, a.Name)
-	}
 	selector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
@@ -93,7 +89,6 @@ func filterAppPods(appName string, pods []corev1.Pod) []corev1.Pod {
 	for _, pod := range pods {
 		if pod.Labels[ketchAppNameLabel] == appName {
 			appPods = append(appPods, pod)
-			continue
 		}
 	}
 	return appPods
