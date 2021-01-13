@@ -129,30 +129,13 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	return nil
 }
 
-func filterProcessDeploymentPods(appPods []corev1.Pod, deployment, process string) []corev1.Pod {
+func filterProcessDeploymentPods(appPods []corev1.Pod, version, process string) []corev1.Pod {
 	var pods []corev1.Pod
-Loop:
 	for _, pod := range appPods {
-		match := 0
-		desired := 2
-		for label, value := range pod.GetLabels() {
-			if label == ketchDeploymentVersionLabel {
-				if value != deployment {
-					continue Loop
-				}
-				match++
-			}
-			if label == ketchProcessNameLabel {
-				if value != process {
-					continue Loop
-				}
-				match++
-			}
-
-			if match == desired {
-				pods = append(pods, pod)
-				continue Loop
-			}
+		deploymentVersion := pod.Labels[ketchDeploymentVersionLabel]
+		processName := pod.Labels[ketchProcessNameLabel]
+		if deploymentVersion == version && processName == process {
+			pods = append(pods, pod)
 		}
 	}
 	return pods

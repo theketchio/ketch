@@ -63,19 +63,18 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 }
 
 func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.PodList, error) {
+	if len(apps) == 0 {
+		return nil, nil
+	}
 	var appNames []string
 	for _, a := range apps {
 		appNames = append(appNames, a.Name)
-	}
-	if len(appNames) == 0 {
-		return nil, nil
 	}
 	selector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
 				Key:      ketchAppNameLabel,
-				Operator: "In",
-				Values:   appNames,
+				Operator: "Exists",
 			},
 		},
 	}
@@ -91,13 +90,10 @@ func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.P
 
 func filterAppPods(appName string, pods []corev1.Pod) []corev1.Pod {
 	var appPods []corev1.Pod
-Loop:
 	for _, pod := range pods {
-		for label, value := range pod.GetLabels() {
-			if label == ketchAppNameLabel && value == appName {
-				appPods = append(appPods, pod)
-				continue Loop
-			}
+		if pod.Labels[ketchAppNameLabel] == appName {
+			appPods = append(appPods, pod)
+			continue
 		}
 	}
 	return appPods
