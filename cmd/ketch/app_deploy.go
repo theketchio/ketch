@@ -67,7 +67,7 @@ type appDeployOptions struct {
 }
 
 func (opts *appDeployOptions) validateCanaryOpts() error {
-	if opts.steps <= 1 {
+	if opts.steps < 1 {
 		opts.steps = 1
 	}
 
