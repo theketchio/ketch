@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -16,22 +15,26 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/validation"
 )
 
-const appLogHelp = `
+const (
+	appLogHelp = `
 Show logs of an application
 `
+	streamLogReconnectDelay = 500 * time.Millisecond
+)
 
-type appLogFn func(context.Context, config, appLogOptions, io.Writer) error
+type appLogFn func(context.Context, config, appLogOptions, io.Writer, watchLogsFn) error
 
 func newAppLogCmd(cfg config, out io.Writer, appLog appLogFn) *cobra.Command {
 	options := appLogOptions{}
 	cmd := &cobra.Command{
 		Use:   "log APPNAME",
-		Short: appLogHelp,
+		Short: "Show logs of an application",
 		Args:  cobra.ExactValidArgs(1),
 		Long:  appLogHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -39,11 +42,11 @@ func newAppLogCmd(cfg config, out io.Writer, appLog appLogFn) *cobra.Command {
 			if !validation.ValidateName(options.appName) {
 				return ErrInvalidAppName
 			}
-			return appLog(cmd.Context(), cfg, options, out)
+			return appLog(cmd.Context(), cfg, options, out, watchLogs)
 		},
 	}
-	cmd.Flags().StringVarP(&options.processName, "process", "p", "", "Process name.")
-	cmd.Flags().IntVarP(&options.deploymentVersion, "version", "v", 0, "Deployment version.")
+	cmd.Flags().StringVarP(&options.processName, "process", "p", "", "Process name")
+	cmd.Flags().IntVarP(&options.deploymentVersion, "version", "v", 0, "Deployment version")
 	cmd.Flags().BoolVarP(&options.follow, "follow", "f", false, "Specify if the logs should be streamed")
 	cmd.Flags().BoolVar(&options.ignoreErrors, "ignore-errors", false, "if watching / following pod logs, allow for any errors that occur to be non-fatal")
 	cmd.Flags().BoolVar(&options.prefix, "prefix", false, "Prefix each log line with the log source (pod name and container name)")
@@ -62,7 +65,9 @@ type appLogOptions struct {
 	prefix            bool
 }
 
-func appLog(ctx context.Context, cfg config, options appLogOptions, out io.Writer) error {
+type watchLogsFn func(client kubernetes.Interface, options watchOptions, readLogs readLogsFn, streamLogs streamLogsFn) error
+
+func appLog(ctx context.Context, cfg config, options appLogOptions, out io.Writer, watchLogs watchLogsFn) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
@@ -97,31 +102,56 @@ type watchOptions struct {
 	namespace    string
 	selector     labels.Selector
 	follow       bool
-
-	// FIXME: not implemented
 	ignoreErrors bool
 	timestamps   bool
 	prefix       bool
 	out          io.Writer
 }
 
-type readLogsFn func(client kubernetes.Interface, pod corev1.Pod) chan message
-type streamLogsFn func(client kubernetes.Interface, pod corev1.Pod, lastTime time.Time, msgCh chan message) chan struct{}
+// ketchContainerName returns a name of an application container.
+// A pod can have several containers, one of them is defined and created by ketch, it's an application container.
+// The others can be injected by istio, vault, etc.
+func ketchContainerName(pod corev1.Pod) (*string, error) {
+	// this is an application pod.
+	// it has one app container, we don't care about the other containers.
+	for _, c := range pod.Spec.Containers {
+		if strings.HasPrefix(pod.Name, c.Name) {
+			return &c.Name, nil
+		}
+	}
+	return nil, fmt.Errorf("pod %s doesn't have an app container", pod.Name)
+}
 
-func watchLogs(client kubernetes.Interface, options watchOptions, readLogs readLogsFn, streamLogs streamLogsFn) error {
-	pods, err := client.CoreV1().Pods(options.namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: options.selector.String()})
+func isContainerRunning(pod corev1.Pod, containerName string) bool {
+	for _, container := range pod.Status.ContainerStatuses {
+		if container.Name == containerName {
+			return container.State.Running != nil
+		}
+	}
+	return false
+}
+
+type readLogsFn func(getLogs getLogsFn, pod corev1.Pod, containerName string, out io.Writer) chan logMessage
+type streamLogsFn func(getLogs getLogsFn, pod corev1.Pod, containerName string, out io.Writer, lastTime time.Time, msgCh chan logMessage) chan struct{}
+
+func watchLogs(cli kubernetes.Interface, options watchOptions, readLogs readLogsFn, streamLogs streamLogsFn) error {
+	pods, err := cli.CoreV1().Pods(options.namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: options.selector.String()})
 	if err != nil {
 		return err
 	}
 	// we are going to read logs from all running pods, just read without streaming
-	msgChs := make(map[types.UID]chan message, len(pods.Items))
+	msgChs := make(map[types.UID]chan logMessage, len(pods.Items))
 	for _, pod := range pods.Items {
-		msgChs[pod.UID] = readLogs(client, pod)
+		containerName, err := ketchContainerName(pod)
+		if err != nil {
+			return err
+		}
+		msgChs[pod.UID] = readLogs(cli.CoreV1().Pods(pod.Namespace).GetLogs, pod, *containerName, options.out)
 	}
 
 	// we want to show the logs sorted by timestamp.
 	// lets store one message per pod and then in a loop below we will select one message with minimal time on each iteration.
-	messages := make(map[types.UID]message, len(msgChs))
+	messages := make(map[types.UID]logMessage, len(msgChs))
 	for podUID, msg := range msgChs {
 		if m, ok := <-msg; ok {
 			messages[podUID] = m
@@ -166,12 +196,12 @@ func watchLogs(client kubernetes.Interface, options watchOptions, readLogs readL
 		Watch:         true,
 		LabelSelector: options.selector.String(),
 	}
-	watcher, err := client.CoreV1().Pods(options.namespace).Watch(context.TODO(), opts)
+	watcher, err := cli.CoreV1().Pods(options.namespace).Watch(context.TODO(), opts)
 	if err != nil {
 		return err
 	}
 
-	msgCh := make(chan message)
+	msgCh := make(chan logMessage)
 	doneChannels := make(map[types.UID]chan struct{})
 
 	for {
@@ -187,7 +217,19 @@ func watchLogs(client kubernetes.Interface, options watchOptions, readLogs readL
 				if _, ok := doneChannels[pod.UID]; ok {
 					continue
 				}
-				doneChannels[pod.UID] = streamLogs(client, *pod, timeOfLastMessage[pod.UID], msgCh)
+				containerName, err := ketchContainerName(*pod)
+				if err != nil {
+					if !options.ignoreErrors {
+						return err
+					}
+					continue
+				}
+				if !isContainerRunning(*pod, *containerName) {
+					continue
+				}
+				logs := cli.CoreV1().Pods(pod.Namespace).GetLogs
+				doneChannels[pod.UID] = streamLogs(logs, *pod, *containerName, options.out, timeOfLastMessage[pod.UID], msgCh)
+
 			case watch.Deleted:
 				if doneCh, ok := doneChannels[pod.UID]; ok {
 					doneCh <- struct{}{}
@@ -200,17 +242,18 @@ func watchLogs(client kubernetes.Interface, options watchOptions, readLogs readL
 	}
 }
 
-type message struct {
-	time time.Time
-	msg  string
-	pod  *corev1.Pod
+type logMessage struct {
+	time          time.Time
+	msg           string
+	pod           *corev1.Pod
+	containerName string
 }
 
-func (m message) Format(prefix bool, timestamps bool) string {
+// Format returns a string representation of the logMessage.
+func (m logMessage) Format(prefix bool, timestamps bool) string {
 	var parts []string
 	if prefix {
-		// todo: containers
-		parts = append(parts, fmt.Sprintf("[pod/%s]", m.pod.Name))
+		parts = append(parts, fmt.Sprintf("[%s/%s]", m.pod.Name, m.containerName))
 	}
 	if timestamps {
 		parts = append(parts, fmt.Sprintf("%v", m.time))
@@ -219,60 +262,47 @@ func (m message) Format(prefix bool, timestamps bool) string {
 	return strings.Join(parts, " ")
 }
 
-func readString(reader *bufio.Reader, pod *corev1.Pod) (*message, error) {
+func readString(reader *bufio.Reader, pod *corev1.Pod, containerName string) (*logMessage, error) {
 	line, err := reader.ReadString('\n')
-	if err == io.EOF {
-		return nil, err
+	if len(line) > 0 {
+		parts := strings.Split(line, " ")
+		timestamp := parts[0]
+		msg := line[len(timestamp)+1:]
+		messageTime, err := time.Parse(time.RFC3339Nano, timestamp)
+		if err != nil {
+			return nil, ErrLogUnknownTimeFormat
+		}
+		return &logMessage{msg: msg, time: messageTime, pod: pod, containerName: containerName}, nil
 	}
-	parts := strings.Split(line, " ")
-	timestamp := parts[0]
-	msg := line[len(timestamp):]
-	messageTime, err := time.Parse(time.RFC3339Nano, timestamp)
-	if err != nil {
-		return nil, err
-	}
-	return &message{msg: msg, time: messageTime, pod: pod}, nil
+	return nil, err
 }
 
-func ketchContainerName(pod corev1.Pod) (*string, error) {
-	for _, c := range pod.Spec.Containers {
-		// that's an application pod, it contains one ketch container.
-		// we don't care about the other containers.
-		if strings.HasPrefix(pod.Name, c.Name) {
-			return &c.Name, nil
-		}
-	}
-	return nil, errors.New("no ketch container")
-}
+type getLogsFn func(name string, opts *corev1.PodLogOptions) *restclient.Request
 
 // readLogs runs a goroutine that reads logs of the given pod. readLogs returns a message channel to receive logs.
 // Once there are no more logs, readLogs closes the message channel.
-func readLogs(client kubernetes.Interface, pod corev1.Pod) chan message {
-	msgCh := make(chan message)
+func readLogs(getLogs getLogsFn, pod corev1.Pod, containerName string, out io.Writer) chan logMessage {
+	msgCh := make(chan logMessage)
 	go func() {
 		defer func() {
 			close(msgCh)
 		}()
-		containerName, err := ketchContainerName(pod)
-		if err != nil {
-			// FIXME: handle
-			return
-		}
-		req := client.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &corev1.PodLogOptions{Timestamps: true, Container: *containerName})
+		req := getLogs(pod.Name, &corev1.PodLogOptions{Timestamps: true, Container: containerName})
 		stream, err := req.Stream(context.TODO())
 		if err != nil {
+			fmt.Fprintf(out, "failed to read logs from pod %v: %v\n", pod.Name, unwrappedError(err).Error())
 			return
 		}
 		reader := bufio.NewReader(stream)
 		defer stream.Close()
 
 		for {
-			msg, err := readString(reader, &pod)
+			msg, err := readString(reader, &pod, containerName)
 			if err == io.EOF {
 				return
 			}
 			if err != nil {
-				fmt.Printf("failed to read logs from pod %v: %v\n", pod.Name, err)
+				fmt.Fprintf(out, "failed to read logs from pod %v: %v\n", pod.Name, err)
 				return
 			}
 			msgCh <- *msg
@@ -281,37 +311,33 @@ func readLogs(client kubernetes.Interface, pod corev1.Pod) chan message {
 	return msgCh
 }
 
-// streamLogs runs a goroutine that streams logs of the given pod to the given message channel. streamLogs returns a channel used to stop the goroutine.
-func streamLogs(client kubernetes.Interface, pod corev1.Pod, lastTime time.Time, msgCh chan message) chan struct{} {
+// streamLogs runs a goroutine that streams logs of the desired container of the given pod and to the given message channel.
+// streamLogs returns a channel used to stop the goroutine.
+func streamLogs(getLogs getLogsFn, pod corev1.Pod, containerName string, out io.Writer, lastTime time.Time, msgCh chan logMessage) chan struct{} {
 	doneCh := make(chan struct{})
 	go func() {
 		for {
 			errCh := make(chan error)
 			go func() {
 				sinceTime := metav1.NewTime(lastTime)
-				containerName, err := ketchContainerName(pod)
-				if err != nil {
-					// FIXME: handle
-					return
-				}
 				options := &corev1.PodLogOptions{
 					Follow:     true,
 					Timestamps: true,
 					SinceTime:  &sinceTime,
-					Container:  *containerName,
+					Container:  containerName,
 				}
-				req := client.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, options)
+				req := getLogs(pod.Name, options)
 				stream, err := req.Stream(context.TODO())
 				if err != nil {
-					time.Sleep(500 * time.Millisecond)
-					errCh <- err
+					time.Sleep(streamLogReconnectDelay)
+					errCh <- unwrappedError(err)
 					return
 				}
 				reader := bufio.NewReader(stream)
 				defer stream.Close()
 
 				for {
-					msg, err := readString(reader, &pod)
+					msg, err := readString(reader, &pod, containerName)
 					if err != nil {
 						errCh <- err
 						return
@@ -320,17 +346,16 @@ func streamLogs(client kubernetes.Interface, pod corev1.Pod, lastTime time.Time,
 						continue
 					}
 					lastTime = msg.time
-
 					msgCh <- *msg
 				}
 			}()
 
 			select {
-			case _ = <-doneCh:
+			case <-doneCh:
 				return
 			case err := <-errCh:
 				if err != io.EOF {
-					fmt.Printf("failed to read logs from pod %v: %v\n", pod.Name, err)
+					fmt.Fprintf(out, "failed to read logs from pod %v: %v\n", pod.Name, err)
 				}
 			}
 		}
