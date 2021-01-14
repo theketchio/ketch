@@ -10,6 +10,8 @@ import (
 	"text/template"
 
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -85,24 +87,29 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, pool); err != nil {
 		return fmt.Errorf("failed to get pool: %w", err)
 	}
+
 	buf := bytes.Buffer{}
 	t := template.Must(template.New("app-info").Parse(appInfoTemplate))
 	table := &bytes.Buffer{}
 	w := tabwriter.NewWriter(table, 0, 4, 4, ' ', 0)
-	fmt.Fprintln(w, "DEPLOYMENT VERSION\tIMAGE\tPROCESS NAME\t#UNITS\tCMD")
+	appPods, err := cfg.KubernetesClient().CoreV1().Pods(app.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf(`%s=%s`, ketchAppNameLabel, app.Name),
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(w, "DEPLOYMENT VERSION\tIMAGE\tPROCESS NAME\tSTATE\tCMD")
 	noProcesses := true
 	for _, deployment := range app.Spec.Deployments {
 		for _, process := range deployment.Processes {
 			noProcesses = false
-			units := fmt.Sprintf("%d", ketchv1.DefaultNumberOfUnits)
-			if process.Units != nil {
-				units = fmt.Sprintf("%d", *process.Units)
-			}
+			state := appState(filterProcessDeploymentPods(appPods.Items, deployment.Version.String(), process.Name))
+
 			line := []string{
 				deployment.Version.String(),
 				deployment.Image,
 				process.Name,
-				units,
+				state,
 				strings.Join(process.Cmd, " "),
 			}
 			fmt.Fprintln(w, strings.Join(line, "\t"))
@@ -120,4 +127,16 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	}
 	fmt.Fprintf(out, "%v", buf.String())
 	return nil
+}
+
+func filterProcessDeploymentPods(appPods []corev1.Pod, version, process string) []corev1.Pod {
+	var pods []corev1.Pod
+	for _, pod := range appPods {
+		deploymentVersion := pod.Labels[ketchDeploymentVersionLabel]
+		processName := pod.Labels[ketchProcessNameLabel]
+		if deploymentVersion == version && processName == process {
+			pods = append(pods, pod)
+		}
+	}
+	return pods
 }

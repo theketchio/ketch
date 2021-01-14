@@ -500,3 +500,18 @@ func (s AppStatus) Condition(t AppConditionType) *AppCondition {
 	}
 	return nil
 }
+
+// PodState describes the simplified state of a pod in the cluster
+type PodState string
+
+const (
+	// PodRunning means that pod running on the cluster
+	PodRunning PodState = "running"
+	// PodDeploying means that pod is creating on the cluster, it is not in running or error state
+	PodDeploying PodState = "deploying"
+	// PodError means that the pod is not in a healthy state, and action from the user may be needed
+	PodError PodState = "error"
+	// PodSucceeded means that all containers in the pod have voluntarily terminated
+	// with a container exit code of 0, and the system is not going to restart any of these containers.
+	PodSucceeded PodState = "succeeded"
+)
