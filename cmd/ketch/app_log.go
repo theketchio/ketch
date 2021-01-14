@@ -139,7 +139,7 @@ func watchLogs(cli kubernetes.Interface, options watchOptions, readLogs readLogs
 	if err != nil {
 		return err
 	}
-	// we are going to read logs from all running pods, just read without streaming
+	// we are going to read logs from all running pods, just read without streaming.
 	msgChs := make(map[types.UID]chan logMessage, len(pods.Items))
 	for _, pod := range pods.Items {
 		containerName, err := ketchContainerName(pod)
@@ -162,6 +162,7 @@ func watchLogs(cli kubernetes.Interface, options watchOptions, readLogs readLogs
 	}
 
 	// we need a timestamp of the last message of each pod, so later we will stream logs from this time.
+	// we avoid using sort.Sort because downloading all logs and keeping them in memory can be resource-consuming operation.
 	timeOfLastMessage := make(map[types.UID]time.Time)
 	for {
 		// on each iteration we are looking for a message with minimal time
