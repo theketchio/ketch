@@ -74,7 +74,7 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 	}
 
 	if opts.stepWeight <= 0 {
-		opts.stepWeight = 100
+		opts.stepWeight = defaultTrafficWeight
 	}
 
 	if opts.stepTimeInterval == "" {
