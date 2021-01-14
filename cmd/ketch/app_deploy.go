@@ -27,6 +27,8 @@ Roll out a new version of an application with an image.
 `
 	// default weight used to route incoming traffic to a deployment
 	defaultTrafficWeight = 100
+	// default step TimeInterval for canary deployements
+	defaultStepTimeInterval = "1h"
 )
 
 func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
@@ -76,7 +78,7 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 	}
 
 	if opts.stepTimeInterval == "" {
-		opts.stepTimeInterval = "1h"
+		opts.stepTimeInterval = defaultStepTimeInterval
 	}
 
 	_, err := time.ParseDuration(opts.stepTimeInterval)
