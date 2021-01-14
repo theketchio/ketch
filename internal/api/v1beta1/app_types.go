@@ -62,7 +62,7 @@ type CnameList []string
 // If an application has two deployments with corresponding weights of 30 and 70,
 // then 3 of 10 incoming requests will be sent to the first deployment (approximately).
 type RoutingSettings struct {
-	Weight int `json:"weight"`
+	Weight uint8 `json:"weight"`
 }
 
 // ProcessSpec is a specification of the desired behavior of a process.
@@ -172,7 +172,7 @@ type AppStatus struct {
 // CanarySpec represents configuration for a canary deployment
 type CanarySpec struct {
 	Steps             int           `json:"steps"`
-	StepWeight        int           `json:"stepWeight"`
+	StepWeight        uint8         `json:"stepWeight"`
 	StepTimeInteval   time.Duration `json:"stepTimeInterval"`
 	NextScheduledTime *metav1.Time  `json:"nextSchedule,omitempty"`
 }

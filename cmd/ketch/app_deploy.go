@@ -47,7 +47,7 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.ketchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
 	cmd.Flags().BoolVar(&options.strictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
 	cmd.Flags().IntVar(&options.steps, "steps", 1, "number of steps to roll out the new deployment")
-	cmd.Flags().IntVar(&options.stepWeight, "step-weight", 1, "canary Traffic weight percentage between 0 and 100")
+	cmd.Flags().Uint8Var(&options.stepWeight, "step-weight", 1, "canary Traffic weight percentage between 0 and 100")
 	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "0", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
 
 	cmd.MarkFlagRequired("image")
@@ -62,7 +62,7 @@ type appDeployOptions struct {
 	procfileFileName        string
 	strictKetchYamlDecoding bool
 	steps                   int
-	stepWeight              int
+	stepWeight              uint8
 	stepTimeInterval        string
 }
 
