@@ -48,7 +48,7 @@ func newAppLogCmd(cfg config, out io.Writer, appLog appLogFn) *cobra.Command {
 	cmd.Flags().StringVarP(&options.processName, "process", "p", "", "Process name")
 	cmd.Flags().IntVarP(&options.deploymentVersion, "version", "v", 0, "Deployment version")
 	cmd.Flags().BoolVarP(&options.follow, "follow", "f", false, "Specify if the logs should be streamed")
-	cmd.Flags().BoolVar(&options.ignoreErrors, "ignore-errors", false, "if watching / following pod logs, allow for any errors that occur to be non-fatal")
+	cmd.Flags().BoolVar(&options.ignoreErrors, "ignore-errors", false, "If watching / following pod logs, allow for any errors that occur to be non-fatal")
 	cmd.Flags().BoolVar(&options.prefix, "prefix", false, "Prefix each log line with the log source (pod name and container name)")
 	cmd.Flags().BoolVar(&options.timestamps, "timestamps", false, "Include timestamps on each line in the log output")
 
