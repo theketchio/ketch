@@ -205,6 +205,9 @@ type AppSpec struct {
 
 	// DockerRegistry contains docker registry configuration of the application.
 	DockerRegistry DockerRegistrySpec `json:"dockerRegisty,omitempty"`
+
+	// Platform is the name of the platform that is used to build source code.
+	Platform string `json:"platform,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -514,6 +517,7 @@ func (s AppStatus) Condition(t AppConditionType) *AppCondition {
 	return nil
 }
 
+
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
 func (app *App) DoCanary() {
@@ -537,3 +541,19 @@ func (app *App) DoCanary() {
 		}
 	}
 }
+
+// PodState describes the simplified state of a pod in the cluster
+type PodState string
+
+const (
+	// PodRunning means that pod running on the cluster
+	PodRunning PodState = "running"
+	// PodDeploying means that pod is creating on the cluster, it is not in running or error state
+	PodDeploying PodState = "deploying"
+	// PodError means that the pod is not in a healthy state, and action from the user may be needed
+	PodError PodState = "error"
+	// PodSucceeded means that all containers in the pod have voluntarily terminated
+	// with a container exit code of 0, and the system is not going to restart any of these containers.
+	PodSucceeded PodState = "succeeded"
+)
+

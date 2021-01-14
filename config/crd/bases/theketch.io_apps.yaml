@@ -466,6 +466,10 @@ spec:
               required:
               - generateDefaultCname
               type: object
+            platform:
+              description: Platform is the name of the platform that is used to build
+                source code.
+              type: string
             pool:
               description: Pool is a name of a pool used to run the application.
               minLength: 1

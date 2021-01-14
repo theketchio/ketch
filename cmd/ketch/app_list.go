@@ -8,6 +8,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
@@ -42,14 +44,52 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 	for _, pool := range pools.Items {
 		poolsByName[pool.Name] = pool
 	}
+	allPods, err := allAppsPods(ctx, cfg, apps.Items)
+	if err != nil {
+		return fmt.Errorf("failed to list apps pods: %w", err)
+	}
 	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
-	fmt.Fprintln(w, "NAME\tPOOL\tUNITS\tADDRESSES\tDESCRIPTION")
+	fmt.Fprintln(w, "NAME\tPOOL\tSTATE\tADDRESSES\tPLATFORM\tDESCRIPTION")
 	for _, item := range apps.Items {
+		pods := filterAppPods(item.Name, allPods.Items)
+
 		pool := poolsByName[item.Spec.Pool]
 		urls := strings.Join(item.CNames(&pool), " ")
-		line := []string{item.Name, item.Spec.Pool, fmt.Sprintf("%d", item.Units()), urls, item.Spec.Description}
+		line := []string{item.Name, item.Spec.Pool, appState(pods), urls, item.Spec.Platform, item.Spec.Description}
 		fmt.Fprintln(w, strings.Join(line, "\t"))
 	}
 	w.Flush()
 	return nil
+}
+
+func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.PodList, error) {
+	if len(apps) == 0 {
+		return &corev1.PodList{}, nil
+	}
+	selector := &metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      ketchAppNameLabel,
+				Operator: "Exists",
+			},
+		},
+	}
+	s, err := metav1.LabelSelectorAsSelector(selector)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg.KubernetesClient().CoreV1().Pods(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
+		LabelSelector: s.String(),
+	})
+}
+
+func filterAppPods(appName string, pods []corev1.Pod) []corev1.Pod {
+	var appPods []corev1.Pod
+	for _, pod := range pods {
+		if pod.Labels[ketchAppNameLabel] == appName {
+			appPods = append(appPods, pod)
+		}
+	}
+	return appPods
 }

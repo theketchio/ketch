@@ -15,9 +15,6 @@ import (
 	"github.com/shipa-corp/ketch/internal/mocks"
 )
 
-func intRef(i int) *int {
-	return &i
-}
 func Test_appInfo(t *testing.T) {
 	dashboard := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
@@ -45,9 +42,8 @@ func Test_appInfo(t *testing.T) {
 							Cmd:  []string{"docker-entrypoint.sh", "npm", "start"},
 						},
 						{
-							Name:  "worker",
-							Cmd:   []string{"docker-entrypoint.sh", "npm", "worker"},
-							Units: intRef(5),
+							Name: "worker",
+							Cmd:  []string{"docker-entrypoint.sh", "npm", "worker"},
 						},
 					},
 				},
@@ -180,7 +176,7 @@ func Test_appInfo(t *testing.T) {
 			}
 			wantOut, err := ioutil.ReadFile(tt.wantOutputFilename)
 			require.Nil(t, err)
-			require.Equal(t, strings.TrimSpace(out.String()), strings.TrimSpace(string(wantOut)))
+			require.Equal(t, strings.TrimSpace(string(wantOut)), strings.TrimSpace(out.String()))
 		})
 	}
 }
