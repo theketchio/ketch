@@ -518,7 +518,8 @@ func (s AppStatus) Condition(t AppConditionType) *AppCondition {
 // based on the canary parameters provided by the users. Use it in app controller.
 func (app *App) DoCanary() {
 	if app.Status.CurrentCanaryStep != app.Spec.Canary.Steps {
-		if *app.Spec.Canary.NextScheduledTime == metav1.Now() {
+		now := metav1.Now()
+		if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
 			// update traffic weight distributions across deployments
 			app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
 			app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
