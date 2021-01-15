@@ -24,6 +24,7 @@ func newAppCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.AddCommand(newAppDeployCmd(cfg, out))
 	cmd.AddCommand(newAppUpdateCmd(cfg, out))
 	cmd.AddCommand(newAppListCmd(cfg, out))
+	cmd.AddCommand(newAppLogCmd(cfg, out, appLog))
 	cmd.AddCommand(newAppRemoveCmd(cfg, out, appRemove))
 	cmd.AddCommand(newAppInfoCmd(cfg, out))
 	cmd.AddCommand(newAppStartCmd(cfg, out, appStart))
