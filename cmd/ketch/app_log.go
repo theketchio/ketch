@@ -253,11 +253,11 @@ type logMessage struct {
 // Format returns a string representation of the logMessage.
 func (m logMessage) Format(prefix bool, timestamps bool) string {
 	var parts []string
+	if timestamps {
+		parts = append(parts, fmt.Sprintf("%v", m.time.Format(time.RFC3339Nano)))
+	}
 	if prefix {
 		parts = append(parts, fmt.Sprintf("[%s/%s]", m.pod.Name, m.containerName))
-	}
-	if timestamps {
-		parts = append(parts, fmt.Sprintf("%v", m.time))
 	}
 	parts = append(parts, m.msg)
 	return strings.Join(parts, " ")

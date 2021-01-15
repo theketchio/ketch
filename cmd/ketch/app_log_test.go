@@ -34,10 +34,10 @@ import (
 )
 
 func Test_watchLogs(t *testing.T) {
-	startDate := time.Date(2021, 1, 13, 16, 49, 0, 0, time.UTC)
+	startDate := time.Date(2021, 1, 13, 16, 49, 0, 1, time.UTC)
 	readLogsLocal := func(_ getLogsFn, pod corev1.Pod, contName string, _ io.Writer) chan logMessage {
 		ch := make(chan logMessage)
-		startDate, err := time.Parse(time.RFC3339, pod.Labels["TIME"])
+		startDate, err := time.Parse(time.RFC3339Nano, pod.Labels["TIME"])
 		require.Nil(t, err)
 		go func() {
 			defer func() {
@@ -84,7 +84,7 @@ func Test_watchLogs(t *testing.T) {
 				Namespace: namespace,
 				UID:       types.UID(name),
 				Labels: map[string]string{
-					"TIME":                      logsStartTime.Format(time.RFC3339),
+					"TIME":                      logsStartTime.Format(time.RFC3339Nano),
 					ketchAppNameLabel:           appName,
 					ketchProcessNameLabel:       processName,
 					ketchDeploymentVersionLabel: version,
