@@ -1,0 +1,35 @@
+{{- if .Values.app.isAccessible }}
+{{- if .Values.app.ingress.http }}
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  annotations:
+    {{- if .Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
+    {{- end }}
+  labels:
+    theketch.io/app-name: {{ $.Values.app.name }}
+  name: {{ $.Values.app.name }}-http
+spec:
+    hosts: 
+    {{- range $_, $cname := .Values.app.ingress.http }}
+    - {{ $cname }}
+    {{- end }}
+    gateways: 
+    - {{ $.Values.app.name }}-http-gateway
+    http:
+    - route:
+      {{- range $_, $deployment := $.Values.app.deployments }}
+        {{- range $_, $process := $deployment.processes }}
+        {{- if $process.routable }}
+        - destination:
+            host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+          weight: {{ $process.publicServicePort }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+    {{- end }}
+  {{- end }}
+
+
+
