@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -77,7 +78,6 @@ type Helm interface {
 func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	_ = r.Log.WithValues("app", req.NamespacedName)
-
 	app := ketchv1.App{}
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -95,12 +95,12 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if scheduleResult.status == v1.ConditionFalse {
 		// we have to return an error to run reconcile again.
 		err = fmt.Errorf(scheduleResult.message)
-		r.Recorder.Event(&app, v1.EventTypeWarning, "App reconcile error",
-			fmt.Sprintf("app name: %s\n error: %v", req.Name, err))
+		reason := AppReconcileReason{Name: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+		r.Recorder.Event(&app, v1.EventTypeWarning, reason.String(), err.Error())
 	} else {
 		app.Status.Pool = scheduleResult.pool
-		r.Recorder.Event(&app, v1.EventTypeNormal, "App reconcile success",
-			fmt.Sprintf("app name: %s", req.Name))
+		reason := AppReconcileReason{Name: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+		r.Recorder.Event(&app, v1.EventTypeNormal, reason.String(), "success")
 	}
 	app.SetCondition(ketchv1.AppScheduled, scheduleResult.status, scheduleResult.message, metav1.NewTime(time.Now()))
 	if err := r.Status().Update(context.Background(), &app); err != nil {
@@ -231,4 +231,26 @@ func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ketchv1.App{}).
 		Complete(r)
+}
+
+// Handle information about app reconcile
+type AppReconcileReason struct {
+	fmt.Stringer
+	DeploymentCount int
+	Name            string
+}
+
+// Stringer interface implementation
+func (r *AppReconcileReason) String() string {
+	return fmt.Sprintf(`app %s %d reconcile`, r.Name, r.DeploymentCount)
+}
+
+// Makes AppReconcileReason from the incoming event reason string
+func ParseAppReconcileMessage(in string) (*AppReconcileReason, error) {
+	rm := AppReconcileReason{}
+	_, err := fmt.Sscanf(in, `app %s %d reconcile`, &rm.Name, &rm.DeploymentCount)
+	if err != nil {
+		return nil, errors.Wrap(err, `unable to parse reconcile reason`)
+	}
+	return &rm, nil
 }

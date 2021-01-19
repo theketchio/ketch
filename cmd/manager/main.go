@@ -54,6 +54,7 @@ func init() {
 
 func main() {
 	var metricsAddr string
+	var kubeConfigPath string
 	var enableLeaderElection bool
 	var disableWebhooks bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -61,6 +62,7 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&disableWebhooks, "disable-webhooks", false, "Disable webhooks.")
+	flag.StringVar(&kubeConfigPath, "kube-config", "", "Path of kubectl config path, used for development")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -95,7 +97,7 @@ func main() {
 	}
 
 	// Setup event recorder
-	kubeCfg, err := clientcmd.BuildConfigFromFlags("", "")
+	kubeCfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	if err != nil {
 		setupLog.Error(err, "error creating rest config")
 		os.Exit(1)

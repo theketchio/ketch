@@ -11,6 +11,7 @@ import (
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/fake"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,6 +23,23 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/mocks"
 )
+
+func successEventForApp(client kubernetes.Interface, deplomentCount int, name string) error {
+	ctx := context.Background()
+	reason := controllers.AppReconcileReason{Name: name, DeploymentCount: deplomentCount}
+	evt := v1.Event{
+		InvolvedObject: v1.ObjectReference{
+			Kind:       "App",
+			Name:       name,
+			APIVersion: v1betaPrefix,
+		},
+		Reason:  reason.String(),
+		Type:    v1.EventTypeNormal,
+		Message: "success",
+	}
+	_, err := client.CoreV1().Events("").Create(ctx, &evt, metav1.CreateOptions{})
+	return err
+}
 
 func Test_appDeployOptions_KetchYaml(t *testing.T) {
 	tests := []struct {
@@ -407,6 +425,8 @@ func Test_appDeploy(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
 			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
+			err = successEventForApp(tt.cfg.KubernetesClient(), 1, tt.options.appName)
+			assert.Nil(t, err)
 			wantErr := len(tt.wantErr) > 0
 			if (err != nil) != wantErr {
 				t.Errorf("appDeploy() error = %v, wantErr %v", err, tt.wantErr)

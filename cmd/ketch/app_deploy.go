@@ -5,12 +5,19 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	errors "github.com/pkg/errors"
+	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
@@ -125,11 +132,58 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		deploymentSpec,
 	}
 	app.Spec.DeploymentsCount += 1
+
+	// Watch over k8s events
+	reason := controllers.AppReconcileReason{Name: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+	selector := fields.Set(map[string]string{
+		"involvedObject.apiVersion": v1betaPrefix,
+		"involvedObject.kind":       "App",
+		"involvedObject.name":       app.Name,
+		"reason":                    reason.String(),
+	}).AsSelector()
+	watcher, err := cfg.KubernetesClient().CoreV1().
+		Events(app.Namespace).Watch(ctx, metav1.ListOptions{FieldSelector: selector.String()})
+	if err != nil {
+		// Shouldn't happen
+		return err
+	}
+	defer watcher.Stop()
+
 	if err = cfg.Client().Update(ctx, &app); err != nil {
 		return fmt.Errorf("failed to update the app: %v", err)
 	}
-	fmt.Fprintln(out, "Successfully deployed!")
-	return nil
+
+	// Await for reconcile result
+	maxExecTime := time.NewTimer(time.Second * 20)
+	evtCh := watcher.ResultChan()
+	for {
+		select {
+		case evt, ok := <-evtCh:
+			if !ok {
+				err := errors.New("events channel unexpectedly closed")
+				return err
+			}
+			e, ok := evt.Object.(*corev1.Event)
+			if ok {
+				reason, err := controllers.ParseAppReconcileMessage(e.Reason)
+				if err != nil {
+					return err
+				}
+				if reason.DeploymentCount == app.Spec.DeploymentsCount {
+					switch e.Type {
+					case v1.EventTypeNormal:
+						fmt.Fprintln(out, "successfully deployed!")
+						return nil
+					case v1.EventTypeWarning:
+						return errors.New(e.Message)
+					}
+				}
+			}
+		case <-maxExecTime.C:
+			err := fmt.Errorf("maximum execution time exceeded")
+			return err
+		}
+	}
 }
 
 func (opts appDeployOptions) Procfile() (*chart.Procfile, error) {

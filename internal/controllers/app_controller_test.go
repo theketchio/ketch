@@ -191,3 +191,47 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 	}
 	assert.Equal(t, []string{"app-running"}, helmMock.deleteChartCalled)
 }
+
+func TestParseReconcileReason(t *testing.T) {
+	tests := []struct {
+		msg            string
+		expectedErr    string
+		expectedString string
+	}{
+		{
+			"app test 1 reconcile",
+			"",
+			"app test 1 reconcile",
+		},
+		{
+			"sdfsdf",
+			"unable to parse reconcile reason: input does not match format",
+			"",
+		},
+		{
+			"",
+			"unable to parse reconcile reason: unexpected EOF",
+			"",
+		},
+		{
+			"app test 1 reconcile asdfadfasfasdf 34rt w",
+			"",
+			"app test 1 reconcile",
+		},
+		{
+			"app zdf dsf reconcile ",
+			"unable to parse reconcile reason: expected integer",
+			"",
+		},
+	}
+
+	for _, test := range tests {
+		got, err := ParseAppReconcileMessage(test.msg)
+		if len(test.expectedErr) > 0 {
+			assert.Equal(t, test.expectedErr, err.Error())
+		} else {
+			assert.Nil(t, err)
+			assert.Equal(t, test.expectedString, got.String())
+		}
+	}
+}
