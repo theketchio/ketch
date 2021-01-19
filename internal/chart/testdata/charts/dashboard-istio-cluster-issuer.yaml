@@ -184,12 +184,8 @@ spec:
       protocol: HTTP
     hosts:
     - dashboard.10.10.10.10.shipa.cloud 
-    - theketch.io 
-    - app.theketch.io
-    tls:
-      httpsRedirect: true 
   - port:
-      number: 9090
+      number: 443
       name: https-3-theketch.io
       protocol: HTTPS
     tls:
@@ -198,7 +194,7 @@ spec:
     hosts:
     - theketch.io 
   - port:
-      number: 9090
+      number: 443
       name: https-3-app.theketch.io
       protocol: HTTPS
     tls:
