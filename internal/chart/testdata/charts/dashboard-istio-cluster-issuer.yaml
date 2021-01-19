@@ -178,12 +178,34 @@ spec:
   selector: 
     istio: ingressgateway
   servers:
-      - port:
-          number: 9090
-          name: http-3
-          protocol: HTTP
-        hosts:
-        - dashboard.10.10.10.10.shipa.cloud
+  - port:
+      number: 9090
+      name: http-3
+      protocol: HTTP
+    hosts:
+    - dashboard.10.10.10.10.shipa.cloud 
+    - theketch.io 
+    - app.theketch.io
+    tls:
+      httpsRedirect: true 
+  - port:
+      number: 9090
+      name: https-3-theketch.io
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: dashboard-cname-7698da46d42bea3603f2
+    hosts:
+    - theketch.io 
+  - port:
+      number: 9090
+      name: https-3-app.theketch.io
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: dashboard-cname-1aacb41a573151295624
+    hosts:
+    - app.theketch.io
 ---
 # Source: dashboard/templates/virtualService.yaml
 apiVersion: networking.istio.io/v1alpha3
@@ -197,6 +219,8 @@ metadata:
 spec:
     hosts:
     - dashboard.10.10.10.10.shipa.cloud
+    - theketch.io
+    - app.theketch.io
     gateways: 
     - dashboard-http-gateway
     http:

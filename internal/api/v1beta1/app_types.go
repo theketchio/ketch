@@ -517,7 +517,6 @@ func (s AppStatus) Condition(t AppConditionType) *AppCondition {
 	return nil
 }
 
-
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
 func (app *App) DoCanary() {
@@ -556,4 +555,3 @@ const (
 	// with a container exit code of 0, and the system is not going to restart any of these containers.
 	PodSucceeded PodState = "succeeded"
 )
-

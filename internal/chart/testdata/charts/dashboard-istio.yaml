@@ -150,14 +150,14 @@ spec:
   selector: 
     istio: ingressgateway
   servers:
-      - port:
-          number: 9090
-          name: http-3
-          protocol: HTTP
-        hosts:
-        - theketch.io
-        - app.theketch.io
-        - dashboard.20.20.20.20.shipa.cloud
+  - port:
+      number: 9090
+      name: http-3
+      protocol: HTTP
+    hosts:
+    - theketch.io
+    - app.theketch.io
+    - dashboard.20.20.20.20.shipa.cloud
 ---
 # Source: dashboard/templates/virtualService.yaml
 apiVersion: networking.istio.io/v1alpha3
