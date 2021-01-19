@@ -23,17 +23,10 @@ spec:
     - {{ $cname }}
       {{- end }}
         {{- end }}
-      {{- if  $.Values.app.ingress.https }}
-     {{- range $_, $https := $.Values.app.ingress.https }} 
-    - {{ $https.cname }}
-    {{- end }}
-    tls:
-      httpsRedirect: true 
-        {{- end }}
     {{- if  $.Values.app.ingress.https }}
     {{- range $_, $https := $.Values.app.ingress.https }} 
   - port:
-      number: {{ $process.publicServicePort }}
+      number: 443
       name: https-{{ $deployment.version }}-{{ $https.cname }}
       protocol: HTTPS
     tls:
