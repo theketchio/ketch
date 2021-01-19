@@ -1,5 +1,5 @@
 {{- if .Values.app.isAccessible }}
-{{- if .Values.app.ingress.http }}
+{{- if or .Values.app.ingress.http .Values.app.ingress.https }}
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
@@ -13,16 +13,38 @@ spec:
     {{- range $_, $deployment := $.Values.app.deployments }}
       {{- range $_, $process := $deployment.processes }}
       {{- if $process.routable }}
-      - port:
-          number: {{ $process.publicServicePort }}
-          name: http-{{ $deployment.version }}
-          protocol: HTTP
-        hosts:
-          {{- range $_, $cname := $.Values.app.ingress.http }}
-        - {{ $cname }}
-          {{- end }}
-          {{- end }}
+       {{- if  $.Values.app.ingress.http }}
+  - port:
+      number: {{ $process.publicServicePort }}
+      name: http-{{ $deployment.version }}
+      protocol: HTTP
+    hosts:
+      {{- range $_, $cname := $.Values.app.ingress.http }}
+    - {{ $cname }}
+      {{- end }}
         {{- end }}
-        {{- end }}
+      {{- if  $.Values.app.ingress.https }}
+     {{- range $_, $https := $.Values.app.ingress.https }} 
+    - {{ $https.cname }}
     {{- end }}
-  {{- end }}
+    tls:
+      httpsRedirect: true 
+        {{- end }}
+    {{- if  $.Values.app.ingress.https }}
+    {{- range $_, $https := $.Values.app.ingress.https }} 
+  - port:
+      number: {{ $process.publicServicePort }}
+      name: https-{{ $deployment.version }}-{{ $https.cname }}
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: {{ $https.secretName }}
+    hosts:
+    - {{ $https.cname }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
