@@ -1,5 +1,5 @@
 {{- if .Values.app.isAccessible }}
-{{- if .Values.app.ingress.http }}
+{{- if or .Values.app.ingress.http .Values.app.ingress.https }}
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
@@ -12,8 +12,15 @@ metadata:
   name: {{ $.Values.app.name }}-http
 spec:
     hosts: 
+    {{- if  $.Values.app.ingress.http }}
     {{- range $_, $cname := .Values.app.ingress.http }}
     - {{ $cname }}
+    {{- end }}
+    {{- end }}
+    {{- if  $.Values.app.ingress.https }}
+    {{- range $_, $https := .Values.app.ingress.https }}
+    - {{ $https.cname }}
+    {{- end }}
     {{- end }}
     gateways: 
     - {{ $.Values.app.name }}-http-gateway
