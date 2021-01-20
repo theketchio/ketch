@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/docker/distribution/reference"
-	"github.com/moby/buildkit/client/llb"
+	"github.com/shipa-corp/ketch/internal/docker"
 	"io"
 	"io/ioutil"
 	"os"
@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/archive"
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
@@ -34,17 +35,18 @@ type resourceGetter interface {
 	Get(ctx context.Context, name types.NamespacedName, object runtime.Object) error
 }
 
-type solver interface {
-	Solve(ctx context.Context, def *llb.Definition, opt client.SolveOpt, statusChan chan *client.SolveStatus) (*client.SolveResponse, error)
+type builder interface {
+	Build(ctx context.Context, request *docker.BuildRequest) (*docker.BuildResponse, error)
 }
 
 type CreateImageFromSourceRequest struct {
-	ImageURI string
+	Image      string
+	Repository string
 	// source code paths, defaults to the current working directory
-	sourcePaths  []string
+	sourcePaths []string
 	// AppName is the name of the application we will deploy to.  It maps to a CRD that contains information
 	// pertaining to our build.
-	AppName      string
+	AppName string
 	// defaults to current working directory, use WithWorkingDirectory to override
 	workingDir string
 	// defaults to stdout, override use WithOutput
@@ -80,8 +82,8 @@ func WithSourcePaths(paths ...string) Option {
 	}
 }
 
-func GetSourceHandler(buildClient solver, k8sClient resourceGetter) func(context.Context, *CreateImageFromSourceRequest, ...Option)(*CreateImageFromSourceResponse,error) {
-	return func(ctx context.Context, req *CreateImageFromSourceRequest, opts ...Option)(*CreateImageFromSourceResponse,error) {
+func GetSourceHandler(dockerCli builder, k8sClient resourceGetter) func(context.Context, *CreateImageFromSourceRequest, ...Option) (*CreateImageFromSourceResponse, error) {
+	return func(ctx context.Context, req *CreateImageFromSourceRequest, opts ...Option) (*CreateImageFromSourceResponse, error) {
 		// default to current working directory
 		wd, err := os.Getwd()
 		if err != nil {
@@ -96,11 +98,6 @@ func GetSourceHandler(buildClient solver, k8sClient resourceGetter) func(context
 
 		for _, opt := range opts {
 			opt(req)
-		}
-
-		normalizedResultImageURI, err := normalizeImage(req.ImageURI)
-		if err != nil {
-			return nil, err
 		}
 
 		// get the application CRD containing platform and other stuff we need to build
@@ -121,32 +118,32 @@ func GetSourceHandler(buildClient solver, k8sClient resourceGetter) func(context
 		}
 		defer buildCtx.close()
 
-		// Set up the build artifacts in a temp file and return the path to the dockerfile we will use for build
-		dockerFile, err := buildCtx.getDockerfile(platformImageURI, req.workingDir, req.sourcePaths)
+		// prepare the build directory with an archive containing sources and a docker file
+		if err := buildCtx.prepare(platformImageURI, req.workingDir, req.sourcePaths); err != nil {
+			return nil, err
+		}
 
-
-
-		// call out to buildkit to perform the build and push the result image to a registry
-		if err := build(ctx, buildClient, &solveOpts, req.out); err != nil {
-			return nil, errors.Wrap(err, "build failed")
+		resp, err := dockerCli.Build(
+			ctx,
+			&docker.BuildRequest{
+				Image:          req.Image,
+				Repository:     req.Repository,
+				BuildDirectory: buildCtx.BuildDir(),
+				Out:            req.out,
+			},
+		)
+		if err != nil {
+			return nil, err
 		}
 
 		response := &CreateImageFromSourceResponse{
-			ImageURI: normalizedResultImageURI,
+			ImageURI: resp.ImageURI,
 		}
 		return response, nil
 	}
 }
 
 
-
-func normalizeImage(imageURI string)(string,error){
-	named, err := reference.ParseNormalizedNamed(imageURI)
-	if err != nil {
-		return "", errors.Wrap(err, "could not parse image url %q", imageURI)
-	}
-	return reference.TagNameOnly(named).String(), nil
-}
 
 // Retrieve a normalized platform image URI associated with the App.
 func getPlatformImageURI(ctx context.Context, platformName string, client resourceGetter) (string, error) {
@@ -155,7 +152,7 @@ func getPlatformImageURI(ctx context.Context, platformName string, client resour
 		return "", errors.Wrap(err, "could not get platform crd %q", platformName)
 	}
 
-	return normalizeImage(platform.Spec.Image)
+	return docker.NormalizeImage(platform.Spec.Image)
 }
 
 type buildContext struct {
@@ -177,12 +174,13 @@ func (bc *buildContext) close() {
 	_ = os.RemoveAll(bc.ephemeralBuildDir)
 }
 
-func(bc *buildContext) BuildDir() string {
+func (bc *buildContext) BuildDir() string {
 	return bc.ephemeralBuildDir
 }
 
-func (bc *buildContext) getDockerfile(platformImage string, workingDir string, sourcePaths []string) (string, error) {
+func (bc *buildContext) prepare(platformImage string, workingDir string, sourcePaths []string) error {
 	const sourceDockerfileTemplate = `FROM {{ .PlatformImage }}
+USER root
 COPY . /home/application
 WORKDIR /home/application/current
 RUN /var/lib/shipa/deploy archive file://{{ .ArchivePath }}
@@ -190,12 +188,17 @@ RUN /var/lib/shipa/deploy archive file://{{ .ArchivePath }}
 RUN /bin/sh -lc "{{ . }}"
 {{- end }}`
 	archivePath := path.Join(bc.ephemeralBuildDir, archiveFileName)
-	if err := createArchive(archivePath, withWorkingDirectory(workingDir), includeDirs(sourcePaths...)); err != nil {
-		return "", err
+	err := archive.Create(
+		archivePath,
+		archive.WithWorkingDirectory(workingDir),
+		archive.IncludeDirs(sourcePaths...),
+	)
+	if err != nil {
+		return errors.Wrap(err, "could not create archive %q", archivePath)
 	}
 	hooks, err := getHooks(workingDir, sourcePaths)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get hooks")
+		return errors.Wrap(err, "failed to get hooks")
 	}
 	templateParams := struct {
 		PlatformImage string
@@ -205,16 +208,16 @@ RUN /bin/sh -lc "{{ . }}"
 
 	tmpl, err := template.New("").Parse(sourceDockerfileTemplate)
 	if err != nil {
-		return "", err
+		return errors.Wrap(err, "could not generate dockerfile")
 	}
 	var buff bytes.Buffer
 	if err = tmpl.Execute(&buff, &templateParams); err != nil {
-		return "", err
+		return errors.Wrap(err, "could not generate dockerfile")
 	}
 
 	dockerFilePath := path.Join(bc.ephemeralBuildDir, "Dockerfile")
 	if err = ioutil.WriteFile(dockerFilePath, buff.Bytes(), 0644); err != nil {
-		return "", err
+		return errors.Wrap(err, "could not write docker file to %q", dockerFilePath)
 	}
-	return dockerFilePath, nil
+	return nil
 }

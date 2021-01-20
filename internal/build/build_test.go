@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/shipa-corp/ketch/internal/docker"
 	"testing"
 
-	"github.com/moby/buildkit/client"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,12 +32,13 @@ func TestBuildContext(t *testing.T) {
 
 	bc, err := newBuildContext()
 	require.Nil(t, err)
-	dockerFile, err := bc.getDockerfile("shipasoftware/go:v1.2",
+	err = bc.prepare("shipasoftware/go:v1.2",
 		"/home/jam/go/src/github.com/shipa-corp/go-sample",
 		[]string{"."},
 	)
 	require.Nil(t, err)
-	t.Log(dockerFile)
+	t.Logf(bc.BuildDir())
+
 
 }
 
@@ -55,15 +56,23 @@ func (mb *mockBuildResourceGetter) Get(ctx context.Context, name types.Namespace
 	return fmt.Errorf("unknown object %s %v", name.String(), object)
 }
 
+type mockBuilder struct {}
+
+func(mb *mockBuilder) Build(ctx context.Context, req *docker.BuildRequest )(*docker.BuildResponse, error) {
+	return &docker.BuildResponse{
+	ImageURI: "someimage",
+	}, nil
+}
+
 func TestGetSourceHandler(t *testing.T) {
 	ctx := context.Background()
-	cli, err := client.New(ctx, "")
-	require.Nil(t, err)
+	//cli, err := client.New(ctx, "")
+	//require.Nil(t, err)
 	var req CreateImageFromSourceRequest
-	req.ImageURI = "murphybytes/zippy:v0.1"
+	req.Image = "murphybytes/zippy:v0.1"
 	req.AppName = "myapp"
 
-	res, err := GetSourceHandler(cli, &mockBuildResourceGetter{})(
+	res, err := GetSourceHandler(&mockBuilder{}, &mockBuildResourceGetter{})(
 		ctx,
 		&req,
 		WithWorkingDirectory("/home/jam/go/src/github.com/shipa-corp/go-sample"),

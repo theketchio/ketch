@@ -11,7 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_createArchive(t *testing.T) {
+const archiveFileName = "archive.tar.gz"
+
+func TestCreate(t *testing.T) {
 	root := tree{
 		dir: "dir",
 		files: []file{
@@ -31,7 +33,7 @@ func Test_createArchive(t *testing.T) {
 	err := setupDirectoryStructure(testPath, root)
 	require.Nil(t, err)
 	archiveFile := path.Join(testPath, archiveFileName)
-	err = createArchive(archiveFileName, includeDirs("dir"), withWorkingDirectory(testPath))
+	err = Create(archiveFileName, IncludeDirs("dir"), WithWorkingDirectory(testPath))
 	require.Nil(t, err)
 	_, err = os.Stat(archiveFile)
 	require.Nil(t, err)
@@ -48,7 +50,7 @@ func Test_createArchive(t *testing.T) {
 	require.Nil(t, err, "unexpected error %v", err)
 }
 
-func Test_createArchiveWithIgnoredFiles(t *testing.T) {
+func TestCreateWithIgnoredFiles(t *testing.T) {
 	root := tree{
 		files: []file{
 			{shipaIgnoreFile, "*.foo"},
@@ -78,7 +80,7 @@ func Test_createArchiveWithIgnoredFiles(t *testing.T) {
 	}
 	workingDir := t.TempDir()
 	require.Nil(t, setupDirectoryStructure(workingDir, root))
-	require.Nil(t, createArchive(archiveFileName, withWorkingDirectory(workingDir)))
+	require.Nil(t, Create(archiveFileName, WithWorkingDirectory(workingDir)))
 	require.Nil(t, os.Chdir(workingDir))
 	require.Nil(t, os.RemoveAll(shipaIgnoreFile))
 	require.Nil(t, os.RemoveAll("dir"))
@@ -86,7 +88,7 @@ func Test_createArchiveWithIgnoredFiles(t *testing.T) {
 	require.Nil(t, evaluateResults(workingDir, expected))
 }
 
-func Test_createArchiveWithIncludedFiles(t *testing.T) {
+func TestCreateWithIncludedFiles(t *testing.T) {
 	root := tree{
 		files: []file{
 			{shipaIgnoreFile, "*.foo"},
@@ -129,10 +131,10 @@ func Test_createArchiveWithIncludedFiles(t *testing.T) {
 	}
 	workingDir := t.TempDir()
 	require.Nil(t, setupDirectoryStructure(workingDir, root))
-	require.Nil(t, createArchive(
+	require.Nil(t, Create(
 		archiveFileName,
-		withWorkingDirectory(workingDir),
-		includeFiles("dir0/file.foo", "dir0/dir1/file1.txt")),
+		WithWorkingDirectory(workingDir),
+		IncludeFiles("dir0/file.foo", "dir0/dir1/file1.txt")),
 	)
 	require.Nil(t, os.Chdir(workingDir))
 	require.Nil(t, os.RemoveAll(shipaIgnoreFile))

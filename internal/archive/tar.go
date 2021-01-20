@@ -71,11 +71,6 @@ func WithWorkingDirectory(path string) Option {
 	}
 }
 
-// WithCompression if provided the archive will be gzipped
-func WithCompression() Option {
-
-}
-
 // Create a tar file named archiveFile. Use includeFiles and includeDirs to define the files to
 // be incorporated into the archive file. If no files or directories are specified the archive will be built
 // rooted at the current directory. withWorkingDirectory is used to set working directory and defaults
