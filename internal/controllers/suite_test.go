@@ -22,9 +22,16 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -62,6 +69,18 @@ func setup(reader templates.Reader, helm Helm, objects []runtime.Object) (*testi
 	if err != nil {
 		return nil, err
 	}
+	// Setup event recorder
+	kubeCfg, err := clientcmd.BuildConfigFromFlags("", "")
+	if err != nil {
+		return nil, err
+	}
+	kubeClient, err := kubernetes.NewForConfig(kubeCfg)
+	if err != nil {
+		return nil, err
+	}
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	err = (&AppReconciler{
 		Client:         k8sManager.GetClient(),
 		Log:            ctrl.Log.WithName("controllers").WithName("App"),
@@ -69,6 +88,7 @@ func setup(reader templates.Reader, helm Helm, objects []runtime.Object) (*testi
 		HelmFactoryFn: func(namespace string) (Helm, error) {
 			return helm, nil
 		},
+		Recorder: eventBroadcaster.NewRecorder(k8scheme.Scheme, corev1.EventSource{Component: "App"}),
 	}).SetupWithManager(k8sManager)
 	if err != nil {
 		return nil, err
