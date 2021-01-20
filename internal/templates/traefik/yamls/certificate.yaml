@@ -3,7 +3,6 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: {{ $https.secretName }}
-  namespace:  default
 spec:
   secretName: {{ $https.secretName }}
   dnsNames:
