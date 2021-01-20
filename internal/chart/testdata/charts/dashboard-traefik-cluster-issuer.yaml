@@ -143,7 +143,7 @@ spec:
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
-  name: dashboard-ingressroute
+  name: dashboard-http-ingressroute
   annotations:
     kubernetes.io/ingress.class: ingress-class
     cert-manager.io/cluster-issuer: letsencrypt-production
@@ -152,7 +152,6 @@ metadata:
 spec:
   entryPoints:
     - web
-    - websecure
   routes:
   - match: Host("dashboard.10.10.10.10.shipa.cloud")
     kind: Rule
@@ -160,6 +159,21 @@ spec:
     - name: dashboard-web-3
       port: 9090
       weight: 100
+---
+# Source: dashboard/templates/ingressroute.yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dashboard-https-ingressroute
+  annotations:
+    kubernetes.io/ingress.class: ingress-class
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  labels:
+    theketch.io/app-name: dashboard
+spec:
+  entryPoints:
+    - websecure
+  routes:
   - match: Host("theketch.io")
     kind: Rule
     services:
@@ -171,7 +185,7 @@ spec:
     services:
     - name: dashboard-web-3
       port: 9090
-      weight: 100
+      weight: 100  
   tls: 
     secretName: dashboard-cname-7698da46d42bea3603f2 
     secretName: dashboard-cname-1aacb41a573151295624
