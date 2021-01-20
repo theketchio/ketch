@@ -223,6 +223,7 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 		if err != nil {
 			return err
 		}
+		defer watcher.Stop()
 	}
 
 	if err = cfg.Client().Update(ctx, &app); err != nil {
@@ -343,7 +344,6 @@ func watchAppReconcileEvent(ctx context.Context, kubeClient kubernetes.Interface
 		// Shouldn't happen
 		return nil, err
 	}
-	defer watcher.Stop()
 	return watcher, nil
 }
 

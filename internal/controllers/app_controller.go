@@ -263,19 +263,19 @@ func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// Handle information about app reconcile
+// AppReconcileReason handle information about app reconcile
 type AppReconcileReason struct {
 	fmt.Stringer
 	DeploymentCount int
 	Name            string
 }
 
-// Stringer interface implementation
+// String is a Stringer interface implementation
 func (r *AppReconcileReason) String() string {
 	return fmt.Sprintf(`app %s %d reconcile`, r.Name, r.DeploymentCount)
 }
 
-// Makes AppReconcileReason from the incoming event reason string
+// ParseAppReconcileMessage makes AppReconcileReason from the incoming event reason string
 func ParseAppReconcileMessage(in string) (*AppReconcileReason, error) {
 	rm := AppReconcileReason{}
 	_, err := fmt.Sscanf(in, `app %s %d reconcile`, &rm.Name, &rm.DeploymentCount)

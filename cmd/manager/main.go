@@ -105,7 +105,7 @@ func main() {
 	}
 	kubeClient, err := kubernetes.NewForConfig(kubeCfg)
 	if err != nil {
-		setupLog.Error(err, "error creating internal group client")
+		setupLog.Error(err, "error creating kubernetes client")
 		os.Exit(1)
 	}
 	eventBroadcaster := record.NewBroadcaster()
