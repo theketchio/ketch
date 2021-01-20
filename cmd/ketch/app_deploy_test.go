@@ -5,41 +5,25 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/fake"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/controllers"
+	"github.com/shipa-corp/ketch/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
-
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/mocks"
 )
-
-func successEventForApp(client kubernetes.Interface, deplomentCount int, name string) error {
-	ctx := context.Background()
-	reason := controllers.AppReconcileReason{Name: name, DeploymentCount: deplomentCount}
-	evt := v1.Event{
-		InvolvedObject: v1.ObjectReference{
-			Kind:       "App",
-			Name:       name,
-			APIVersion: v1betaPrefix,
-		},
-		Reason:  reason.String(),
-		Type:    v1.EventTypeNormal,
-		Message: "success",
-	}
-	_, err := client.CoreV1().Events("").Create(ctx, &evt, metav1.CreateOptions{})
-	return err
-}
 
 func Test_appDeployOptions_KetchYaml(t *testing.T) {
 	tests := []struct {
@@ -257,6 +241,7 @@ func Test_appDeploy(t *testing.T) {
 		cfg           config
 		options       appDeployOptions
 		imageConfigFn getImageConfigFileFn
+		watchEventFn  watchReconcileEventFn
 
 		wantAppSpec ketchv1.AppSpec
 		wantOut     string
@@ -287,7 +272,7 @@ func Test_appDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantOut: "Successfully deployed!\n",
+			wantOut: "successfully deployed!\n",
 		},
 		{
 			name: "app deploy with entrypoint and cmd + ketch.yaml",
@@ -318,7 +303,7 @@ func Test_appDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantOut: "Successfully deployed!\n",
+			wantOut: "successfully deployed!\n",
 			wantErr: "",
 		},
 		{
@@ -354,7 +339,65 @@ func Test_appDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantOut: "Successfully deployed!\n",
+			wantOut: "successfully deployed!\n",
+		},
+		{
+			name: "app deploy with entrypoint and cmd with wait flag",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName: "app-1",
+				image:   "ketch:v1",
+				wait:    true,
+			},
+			imageConfigFn: validExtractFn.get,
+			watchEventFn:  fakeAppReconcileFn(1, time.Millisecond*100, "app-1", v1.EventTypeNormal, ""),
+			wantAppSpec: ketchv1.AppSpec{
+				Deployments: []ketchv1.AppDeploymentSpec{
+					{
+						Image:           "ketch:v1",
+						Version:         1,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 100},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+				},
+				DeploymentsCount: 1,
+				Pool:             "pool-1",
+			},
+			wantOut: "successfully deployed!\n",
+		},
+		{
+			name: "error - reconcile failed",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName: "app-1",
+				image:   "ketch:v1",
+				wait:    true,
+			},
+			imageConfigFn: validExtractFn.get,
+			watchEventFn:  fakeAppReconcileFn(1, time.Millisecond*100, "app-1", v1.EventTypeWarning, "error on reconcile"),
+			wantAppSpec: ketchv1.AppSpec{
+				Deployments: []ketchv1.AppDeploymentSpec{
+					{
+						Image:           "ketch:v1",
+						Version:         1,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 100},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+				},
+				DeploymentsCount: 1,
+				Pool:             "pool-1",
+			},
+			wantErr: "error on reconcile",
 		},
 		{
 			name: "error - no pool",
@@ -424,9 +467,7 @@ func Test_appDeploy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
-			err = successEventForApp(tt.cfg.KubernetesClient(), 1, tt.options.appName)
-			assert.Nil(t, err)
+			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.watchEventFn, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
 			if (err != nil) != wantErr {
 				t.Errorf("appDeploy() error = %v, wantErr %v", err, tt.wantErr)
@@ -445,5 +486,52 @@ func Test_appDeploy(t *testing.T) {
 				t.Errorf("AppSpec mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+type fakeAppReconcileWatcher struct {
+	watch.Interface
+	ch chan watch.Event
+}
+
+func NewFakeAppReconcileWatcher() fakeAppReconcileWatcher {
+	return fakeAppReconcileWatcher{
+		ch: make(chan watch.Event),
+	}
+}
+
+func (f *fakeAppReconcileWatcher) ResultChan() <-chan watch.Event {
+	return f.ch
+}
+
+func (f *fakeAppReconcileWatcher) Stop() {
+	close(f.ch)
+}
+
+func (f *fakeAppReconcileWatcher) Push(deplomentCount int, name, eventType, msg string) {
+	reason := controllers.AppReconcileReason{Name: name, DeploymentCount: deplomentCount}
+	evt := v1.Event{
+		InvolvedObject: v1.ObjectReference{
+			Kind:       "App",
+			Name:       name,
+			APIVersion: v1betaPrefix,
+		},
+		Reason:  reason.String(),
+		Type:    eventType,
+		Message: msg,
+	}
+
+	f.ch <- watch.Event{
+		Type:   watch.Added,
+		Object: &evt,
+	}
+}
+
+func fakeAppReconcileFn(deplomentCount int, timeout time.Duration, name, eventType, msg string) watchReconcileEventFn {
+	return func(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
+		watcher := NewFakeAppReconcileWatcher()
+		time.Sleep(timeout)
+		go watcher.Push(deplomentCount, name, eventType, msg)
+		return &watcher, nil
 	}
 }

@@ -204,6 +204,16 @@ func TestParseReconcileReason(t *testing.T) {
 			"app test 1 reconcile",
 		},
 		{
+			"app test34s 1 reconcile",
+			"",
+			"app test34s 1 reconcile",
+		},
+		{
+			"app test-3 1 reconcile",
+			"",
+			"app test-3 1 reconcile",
+		},
+		{
 			"sdfsdf",
 			"unable to parse reconcile reason: input does not match format",
 			"",
