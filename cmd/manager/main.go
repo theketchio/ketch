@@ -21,7 +21,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -29,7 +28,6 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,7 +53,6 @@ func init() {
 
 func main() {
 	var metricsAddr string
-	var kubeConfigPath string
 	var enableLeaderElection bool
 	var disableWebhooks bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -63,7 +60,6 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&disableWebhooks, "disable-webhooks", false, "Disable webhooks.")
-	flag.StringVar(&kubeConfigPath, "kube-config", "", "Path of kubectl config path, used for development")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -98,18 +94,14 @@ func main() {
 	}
 
 	// Setup event recorder
-	kubeCfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
-	if err != nil {
-		setupLog.Error(err, "error creating rest config")
-		os.Exit(1)
-	}
-	kubeClient, err := kubernetes.NewForConfig(kubeCfg)
+	kubeClient, err := kubernetes.NewForConfig(ctrl.GetConfigOrDie())
 	if err != nil {
 		setupLog.Error(err, "error creating kubernetes client")
 		os.Exit(1)
 	}
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	logger := zap.New(zap.UseDevMode(true))
+	eventBroadcaster.StartLogging(logger.Info)
 	eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 
 	if err = (&controllers.AppReconciler{

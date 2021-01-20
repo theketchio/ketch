@@ -274,7 +274,7 @@ func Test_appDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantOut: "successfully deployed!\n",
+			wantOut: "app crd updated successfully, check the app’s events to understand results of the deployment\n",
 		},
 		{
 			name: "app deploy with entrypoint and cmd + ketch.yaml",
@@ -305,7 +305,7 @@ func Test_appDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantOut: "successfully deployed!\n",
+			wantOut: "app crd updated successfully, check the app’s events to understand results of the deployment\n",
 			wantErr: "",
 		},
 		{
@@ -341,7 +341,7 @@ func Test_appDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantOut: "successfully deployed!\n",
+			wantOut: "app crd updated successfully, check the app’s events to understand results of the deployment\n",
 		},
 		{
 			name: "app deploy with entrypoint and cmd with wait flag",

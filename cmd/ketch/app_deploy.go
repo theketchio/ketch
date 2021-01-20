@@ -263,7 +263,7 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 			}
 		}
 	}
-	fmt.Fprintln(out, "successfully deployed!")
+	fmt.Fprintln(out, "app crd updated successfully, check the app’s events to understand results of the deployment")
 	return nil
 }
 
