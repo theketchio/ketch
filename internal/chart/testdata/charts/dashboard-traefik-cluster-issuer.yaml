@@ -144,7 +144,6 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: dashboard-cname-7698da46d42bea3603f2
-  namespace:  default
 spec:
   secretName: dashboard-cname-7698da46d42bea3603f2
   dnsNames:
@@ -158,7 +157,6 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: dashboard-cname-1aacb41a573151295624
-  namespace:  default
 spec:
   secretName: dashboard-cname-1aacb41a573151295624
   dnsNames:
