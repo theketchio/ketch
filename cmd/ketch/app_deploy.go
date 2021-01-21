@@ -338,13 +338,8 @@ func watchAppReconcileEvent(ctx context.Context, kubeClient kubernetes.Interface
 		"involvedObject.name":       app.Name,
 		"reason":                    reason.String(),
 	}).AsSelector()
-	watcher, err := kubeClient.CoreV1().
+	return kubeClient.CoreV1().
 		Events(app.Namespace).Watch(ctx, metav1.ListOptions{FieldSelector: selector.String()})
-	if err != nil {
-		// Shouldn't happen
-		return nil, err
-	}
-	return watcher, nil
 }
 
 func createProcfile(configFile registryv1.ConfigFile) (*chart.Procfile, error) {
