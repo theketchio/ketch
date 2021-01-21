@@ -170,11 +170,6 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		chart.WithTemplates(*tpls),
 	}
 
-	// check for canary deployment
-	if app.Spec.Canary.IsActiveCanary {
-		app.DoCanary()
-	}
-
 	appChrt, err := chart.New(app, &pool, options...)
 	if err != nil {
 		return reconcileResult{
@@ -200,6 +195,11 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 			status:  v1.ConditionFalse,
 			message: err.Error(),
 		}
+	}
+
+	// check for canary deployment
+	if app.Spec.Canary.IsActiveCanary {
+		app.DoCanary(metav1.NewTime(r.Now()))
 	}
 
 	_, err = helmClient.UpdateChart(*appChrt, chart.NewChartConfig(*app))
