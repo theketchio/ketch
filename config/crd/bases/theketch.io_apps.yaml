@@ -47,6 +47,12 @@ spec:
               description: Canary contains a configuration which will be rquired for
                 canary deployments.
               properties:
+                currentCanaryStep:
+                  description: CurrentCanaryStep is the count for current step for
+                    a canary deployment
+                  type: integer
+                isActiveCanary:
+                  type: boolean
                 nextSchedule:
                   format: date-time
                   type: string
@@ -61,6 +67,7 @@ spec:
                 steps:
                   type: integer
               required:
+              - isActiveCanary
               - stepTimeInterval
               - stepWeight
               - steps
@@ -510,12 +517,6 @@ spec:
                 - type
                 type: object
               type: array
-            currentCanaryStep:
-              description: CurrentCanaryStep is the count for current step for a canary
-                deployment
-              type: integer
-            isActiveCanary:
-              type: boolean
             pool:
               description: 'ObjectReference contains enough information to let you
                 inspect or modify the referred object. --- New uses of this type are
@@ -574,8 +575,6 @@ spec:
                   description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                   type: string
               type: object
-          required:
-          - isActiveCanary
           type: object
       type: object
   version: v1beta1
