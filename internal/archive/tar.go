@@ -6,11 +6,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	ignore "github.com/sabhiram/go-gitignore"
 	"io"
 	"os"
 	"path/filepath"
 
-	ignore "github.com/sabhiram/go-gitignore"
+	"github.com/shipa-corp/ketch/internal/errors"
 )
 
 const (
@@ -82,7 +83,7 @@ func Create(archiveFile string, inputs ...Option) error {
 	var options tarOptions
 	var err error
 	if options.workingDir, err = os.Getwd(); err != nil {
-		return err
+		return errors.Wrap(err, "get working dir failed")
 	}
 	for _, input := range inputs {
 		input(&options)
@@ -95,7 +96,7 @@ func Create(archiveFile string, inputs ...Option) error {
 	// change to working directory
 	currentWd, err := os.Getwd()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "get working dir failed")
 	}
 	if err = os.Chdir(options.workingDir); err != nil {
 		return err
@@ -111,7 +112,7 @@ func Create(archiveFile string, inputs ...Option) error {
 	tarWriter := tar.NewWriter(&tarData)
 	defer tarWriter.Close()
 	for _, path := range options.dirs {
-		if err = writeDir(path, ign, tarWriter ); err != nil {
+		if err = writeDir(path, ign, tarWriter); err != nil {
 			return err
 		}
 	}
@@ -126,14 +127,14 @@ func Create(archiveFile string, inputs ...Option) error {
 		return err
 	}
 	// gzip tarball and write to file
-	outF, err := os.OpenFile(archiveFile, os.O_CREATE|os.O_RDWR, 0644 )
+	outF, err := os.OpenFile(archiveFile, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return err
 	}
 	defer outF.Close()
 	gzipWtr := gzip.NewWriter(outF)
 	defer gzipWtr.Close()
-	if _, err := io.Copy(gzipWtr, &tarData ); err != nil {
+	if _, err := io.Copy(gzipWtr, &tarData); err != nil {
 		return err
 	}
 

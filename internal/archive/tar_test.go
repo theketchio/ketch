@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/user"
 	"path"
 	"testing"
 
@@ -80,12 +81,25 @@ func TestCreateWithIgnoredFiles(t *testing.T) {
 	}
 	workingDir := t.TempDir()
 	require.Nil(t, setupDirectoryStructure(workingDir, root))
-	require.Nil(t, Create(archiveFileName, WithWorkingDirectory(workingDir)))
+	require.Nil(t, setHomeToWd())
+	err := Create(archiveFileName, WithWorkingDirectory(workingDir))
+	require.Nil(t, err)
 	require.Nil(t, os.Chdir(workingDir))
 	require.Nil(t, os.RemoveAll(shipaIgnoreFile))
 	require.Nil(t, os.RemoveAll("dir"))
 	require.Nil(t, exec.Command("tar", "-xzf", archiveFileName).Run())
 	require.Nil(t, evaluateResults(workingDir, expected))
+}
+
+// this is a dirty hack to set the working directory to a directory that we know exists.
+// otherwise os.Getwd fails unpredictably on some tests
+func setHomeToWd() error {
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+	os.Chdir(u.HomeDir)
+	return nil
 }
 
 func TestCreateWithIncludedFiles(t *testing.T) {
@@ -131,6 +145,7 @@ func TestCreateWithIncludedFiles(t *testing.T) {
 	}
 	workingDir := t.TempDir()
 	require.Nil(t, setupDirectoryStructure(workingDir, root))
+	require.Nil(t, setHomeToWd())
 	require.Nil(t, Create(
 		archiveFileName,
 		WithWorkingDirectory(workingDir),

@@ -5,14 +5,19 @@ import (
 	"context"
 	"encoding/base64"
 	"io"
-	"k8s.io/apimachinery/pkg/util/json"
+	"os/user"
+	"path"
 
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
+	"k8s.io/apimachinery/pkg/util/json"
+
 	"github.com/shipa-corp/ketch/internal/errors"
 )
+
+const dockerDir = ".docker"
 
 type imageManager interface {
 	ImageBuild(ctx context.Context, buildContext io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
@@ -20,33 +25,42 @@ type imageManager interface {
 	Close() error
 }
 
+// Client maintains state for Docker API.
 type Client struct {
-	manager imageManager
-	authEncodeFn func(br *BuildRequest)(string,error)
+	manager      imageManager
+	authEncodeFn func(br *BuildRequest) (string, error)
 }
 
 // BuildRequest contains parameters for the Build command
 type BuildRequest struct {
 	// Tagged image name such as myrepo/myimage:v0.1
 	Image string
-	// Repository i.e. gcr.io
-	//Repository string
 	// BuildDirectory root directory containing Dockerfile and source file archive
 	BuildDirectory string
-	// Out
+	// Out streams messages sent back from docker daemon.
 	Out io.Writer
-	// DockerConfigDir is the path to where the docker configuration is located.
-	DockerConfigDir string
 	// AuthConfig optional auth config that could be from a k8s secret or supplied on the
-	// command line
+	// command line if you don't want to use your local docker credentials.
 	AuthConfig *types.AuthConfig
 	// Insecure true if the repository doesn't use TLS
 	Insecure bool
 }
 
+// BuildResponse is returned from successful invocation of Build. It contains the fully qualified
+// ImageURI that we pushed to the destination registry.
+type BuildResponse struct {
+	ImageURI string
+}
 
+func dockerConfigDirectory() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(usr.HomeDir, dockerDir), nil
+}
 
-func Domain(img string) (string, error) {
+func domain(img string) (string, error) {
 	named, err := reference.ParseNormalizedNamed(img)
 	if err != nil {
 		return "", err
@@ -54,6 +68,7 @@ func Domain(img string) (string, error) {
 	return reference.Domain(named), nil
 }
 
+// NormalizeImage will convert an image into a fully qualified form with the registry host and a tag.
 func NormalizeImage(imageURI string) (string, error) {
 	named, err := reference.ParseNormalizedNamed(imageURI)
 	if err != nil {
@@ -62,10 +77,7 @@ func NormalizeImage(imageURI string) (string, error) {
 	return reference.TagNameOnly(named).String(), nil
 }
 
-type BuildResponse struct {
-	ImageURI string
-}
-
+// New creates a docker client.
 func New() (*Client, error) {
 	var resp Client
 	cli, err := client.NewClientWithOpts(client.FromEnv)
@@ -74,7 +86,12 @@ func New() (*Client, error) {
 	}
 	resp.manager = cli
 
-	resp.authEncodeFn = func(req *BuildRequest)(string, error) {
+	dockerConfig, err := dockerConfigDirectory()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not fetch docker config directory")
+	}
+
+	resp.authEncodeFn = func(req *BuildRequest) (string, error) {
 		if req.AuthConfig != nil {
 			jsonAuth, err := json.Marshal(req.AuthConfig)
 			if err != nil {
@@ -83,11 +100,11 @@ func New() (*Client, error) {
 			return base64.URLEncoding.EncodeToString(jsonAuth), nil
 		}
 
-		repo, err := Domain(req.Image)
+		repo, err := domain(req.Image)
 		if err != nil {
 			return "", err
 		}
-		encodedAuth, err := getEncodedRegistryAuth(req.DockerConfigDir, repo, req.Insecure )
+		encodedAuth, err := getEncodedRegistryAuth(dockerConfig, repo, req.Insecure)
 		if err != nil {
 			return "", err
 		}
@@ -97,15 +114,20 @@ func New() (*Client, error) {
 	return &resp, nil
 }
 
+// Close frees up the connection to the docker daemon and should always be called when we're done with the Client.
 func (c *Client) Close() error {
 	return c.manager.Close()
 }
 
+// Build will create a docker image and push it to a remote repository. It will use the docker credentials
+// of the local user.
 func (c *Client) Build(ctx context.Context, req *BuildRequest) (*BuildResponse, error) {
 	buildCtx, err := archive.TarWithOptions(req.BuildDirectory, &archive.TarOptions{})
 	if err != nil {
 		return nil, err
 	}
+	// ImageBuild doesn't return an error if there is a problem with the build, we need to
+	// capture that in the out stream of the build, see print.
 	resp, err := c.manager.ImageBuild(
 		ctx,
 		buildCtx,

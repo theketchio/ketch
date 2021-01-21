@@ -12,6 +12,7 @@ import (
 
 	"github.com/shipa-corp/ketch/internal/errors"
 )
+
 const officialHost = "docker"
 
 func getEncodedRegistryAuth(configPath string, regHost string, insecure bool) (string, error) {
@@ -19,7 +20,7 @@ func getEncodedRegistryAuth(configPath string, regHost string, insecure bool) (s
 	if err != nil {
 		return "", errors.Wrap(err, "could not load docker config")
 	}
-	info := &regTypes.IndexInfo{Name:regHost, Secure: !insecure, Official: official(regHost)}
+	info := &regTypes.IndexInfo{Name: regHost, Secure: !insecure, Official: official(regHost)}
 	auth := registry.ResolveAuthConfig(convert(cfg.AuthConfigs), info)
 	jsonAuth, err := json.Marshal(auth)
 	if err != nil {

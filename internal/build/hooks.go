@@ -20,9 +20,7 @@ type Hooks struct {
 	Build []string `json:"build,omitempty"`
 }
 
-
-
-func getHooks(workingDir string, shipaFileSearchPaths []string)([]string,error){
+func getHooks(workingDir string, shipaFileSearchPaths []string) ([]string, error) {
 	for _, searchPath := range shipaFileSearchPaths {
 		fullPath := path.Join(workingDir, searchPath)
 		for _, base := range []string{"shipa.yaml", "shipa.yml"} {
@@ -38,7 +36,7 @@ func getHooks(workingDir string, shipaFileSearchPaths []string)([]string,error){
 	return nil, nil
 }
 
-func decodeHooks(candidate string)([]string, error){
+func decodeHooks(candidate string) ([]string, error) {
 	_, err := os.Stat(candidate)
 	if os.IsNotExist(err) {
 		return nil, nil

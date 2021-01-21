@@ -11,9 +11,13 @@ import (
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
+// ResponseLine represents the json status messages streamed from docker operations.  We decode these message
+// and turn them into log lines to be viewed by user.
 type ResponseLine struct {
-	Status         *string         `json:"status,omitempty"`
-	Stream         *string         `json:"stream,omitempty"`
+	Status *string `json:"status,omitempty"`
+	Stream *string `json:"stream,omitempty"`
+	// Error if this is populated some aspect of the operation, say a build, failed. In these cases ImageBuild will
+	// not return an error because the docker code worked, but our docker file was hosed for example.
 	Error          *string         `json:"error,omitempty"`
 	Progress       *string         `json:"progress,omitempty"`
 	Aux            *Aux            `json:"aux,omitempty"`
@@ -25,7 +29,7 @@ type ResponseLine struct {
 type Aux struct {
 	Tag    *string `json:"Tag,omitempty"`
 	Digest *string `json:"Digest,omitempty"`
-	Size   *int `json:"Size,omitempty"`
+	Size   *int    `json:"Size,omitempty"`
 	ID     *string `json:"ID,omitempty"`
 }
 
@@ -115,6 +119,7 @@ func print(rdr io.ReadCloser, wtr io.Writer) error {
 	return nil
 }
 
+// String converts the ResponseLine into a textual representation for human consumption.
 func (rl ResponseLine) String() string {
 	if rl.Stream != nil {
 		return alf(*rl.Stream)

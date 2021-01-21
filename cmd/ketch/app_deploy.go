@@ -7,9 +7,6 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/buildpacks/pack"
-	packConfig "github.com/buildpacks/pack/config"
-	"github.com/buildpacks/pack/logging"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -27,7 +24,9 @@ import (
 	"sigs.k8s.io/yaml"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/chart"
+	"github.com/shipa-corp/ketch/internal/docker"
 )
 
 const (
@@ -131,46 +130,26 @@ type timeNowFn func() metav1.Time
 
 func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, logWriter io.Writer) error {
 	if options.appPath != "" {
-		// If appPath is defined we build and publish and image from source, then use published image to deploy the
-		// application.
-		buildLogger := logging.New(logWriter)
-		buildLogger.Infof("building from source %q", options.appPath)
-		builder, err := pack.NewClient(pack.WithLogger(buildLogger))
+		dockerSvc, err := docker.New()
 		if err != nil {
-			return fmt.Errorf("could not create builder: %w", err)
+			return err
 		}
-		if err := buildImageFromSource(ctx, options, builder); err != nil {
-			return fmt.Errorf("could not build image from source: %w", err)
+		defer dockerSvc.Close()
+
+		_, err = build.GetSourceHandler(dockerSvc, cfg.Client())(
+			ctx,
+			&build.CreateImageFromSourceRequest{
+				Image:   options.image,
+				AppName: options.appName,
+			},
+			build.WithOutput(logWriter),
+			build.WithWorkingDirectory(options.appPath),
+		)
+		if err != nil {
+			return err
 		}
 	}
 	return appDeployImage(ctx, timeNow, cfg, getImageConfigFile, watchReconcileEvent , options, logWriter)
-}
-
-type sourceBuilder interface {
-	Build(ctx context.Context, bo pack.BuildOptions) error
-}
-
-func buildImageFromSource(ctx context.Context, options appDeployOptions, builder sourceBuilder) error {
-	buildOptions := pack.BuildOptions{
-		Image:              options.image,
-		Builder:            options.builder,
-		Registry:           "",
-		AppPath:            options.appPath,
-		RunImage:           "",
-		AdditionalMirrors:  nil,
-		Env:                nil,
-		Publish:            true,
-		ClearCache:         false,
-		TrustBuilder:       true,
-		Buildpacks:         options.buildPacks,
-		ProxyConfig:        nil,
-		ContainerConfig:    pack.ContainerConfig{},
-		DefaultProcessType: defaultProcessType,
-		FileFilter:         nil,
-		PullPolicy:         packConfig.PullIfNotPresent,
-	}
-
-	return builder.Build(ctx, buildOptions)
 }
 
 func appDeployImage(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn,watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {

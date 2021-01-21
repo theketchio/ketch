@@ -4,8 +4,6 @@ package build
 import (
 	"bytes"
 	"context"
-	"github.com/docker/distribution/reference"
-	"github.com/shipa-corp/ketch/internal/docker"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,19 +15,15 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/archive"
+	"github.com/shipa-corp/ketch/internal/docker"
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
 const (
-	archiveFileName         = "archive.tar.gz"
-	archiveFileLocation     = "/home/application/" + archiveFileName
-	defaultWorkingDirectory = "/home/application/current"
-	tempArchiveDirPrefix    = "ketch-build-*"
+	archiveFileName      = "archive.tar.gz"
+	archiveFileLocation  = "/home/application/" + archiveFileName
+	tempArchiveDirPrefix = "ketch-build-*"
 )
-
-//type imageService interface {
-//	GetCredentials(image string) (*image.Credentials, error)
-//}
 
 type resourceGetter interface {
 	Get(ctx context.Context, name types.NamespacedName, object runtime.Object) error
@@ -39,20 +33,25 @@ type builder interface {
 	Build(ctx context.Context, request *docker.BuildRequest) (*docker.BuildResponse, error)
 }
 
+// CreateImageFromSource request contains fields used to build an image from source code.
 type CreateImageFromSourceRequest struct {
-	Image      string
-	Repository string
-	// source code paths, defaults to the current working directory
-	sourcePaths []string
 	// AppName is the name of the application we will deploy to.  It maps to a CRD that contains information
 	// pertaining to our build.
 	AppName string
-	// defaults to current working directory, use WithWorkingDirectory to override
+	// Image is the name of the image that will be built from source code
+	Image string
+
+	// source code paths, relative to the working directory. Use WithSourcePaths to override.
+	sourcePaths []string
+	// defaults to current working directory, use WithWorkingDirectory to override. Typically the
+	// working directory would be the root of the source code that will be built
 	workingDir string
 	// defaults to stdout, override use WithOutput
 	out io.Writer
 }
 
+// CreateImageFromSourceResponse is returned from the build handler function and contains the
+// fully qualified image name that was built.
 type CreateImageFromSourceResponse struct {
 	ImageURI string
 }
@@ -82,6 +81,7 @@ func WithSourcePaths(paths ...string) Option {
 	}
 }
 
+// GetSourceHandler returns a build function. It takes a docker client, and a k8s client as arguments.
 func GetSourceHandler(dockerCli builder, k8sClient resourceGetter) func(context.Context, *CreateImageFromSourceRequest, ...Option) (*CreateImageFromSourceResponse, error) {
 	return func(ctx context.Context, req *CreateImageFromSourceRequest, opts ...Option) (*CreateImageFromSourceResponse, error) {
 		// default to current working directory
@@ -89,6 +89,7 @@ func GetSourceHandler(dockerCli builder, k8sClient resourceGetter) func(context.
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get working directory")
 		}
+
 		req.workingDir = wd
 		// build output default to stdout
 		req.out = os.Stdout
@@ -123,11 +124,11 @@ func GetSourceHandler(dockerCli builder, k8sClient resourceGetter) func(context.
 			return nil, err
 		}
 
+		// create an image that contains our built source and push image to target registry
 		resp, err := dockerCli.Build(
 			ctx,
 			&docker.BuildRequest{
 				Image:          req.Image,
-				Repository:     req.Repository,
 				BuildDirectory: buildCtx.BuildDir(),
 				Out:            req.out,
 			},
@@ -142,8 +143,6 @@ func GetSourceHandler(dockerCli builder, k8sClient resourceGetter) func(context.
 		return response, nil
 	}
 }
-
-
 
 // Retrieve a normalized platform image URI associated with the App.
 func getPlatformImageURI(ctx context.Context, platformName string, client resourceGetter) (string, error) {
@@ -174,10 +173,12 @@ func (bc *buildContext) close() {
 	_ = os.RemoveAll(bc.ephemeralBuildDir)
 }
 
+// BuildDir contains directory where generated Dockerfile and source archive is located
 func (bc *buildContext) BuildDir() string {
 	return bc.ephemeralBuildDir
 }
 
+// Prepare the build. Create a temp directory containing a docker file, and an archive containing source codes.
 func (bc *buildContext) prepare(platformImage string, workingDir string, sourcePaths []string) error {
 	const sourceDockerfileTemplate = `FROM {{ .PlatformImage }}
 USER root

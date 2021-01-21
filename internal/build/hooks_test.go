@@ -6,7 +6,7 @@ import (
 	"path"
 	"testing"
 
-		"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_getHooks(t *testing.T) {
@@ -22,14 +22,14 @@ func Test_getHooks(t *testing.T) {
 `
 
 	tt := []struct {
-		name string
-		setupfn func(wd string)(searchPaths []string)
-		hooks []string
+		name    string
+		setupfn func(wd string) (searchPaths []string)
+		hooks   []string
 		wantErr bool
 	}{
 		{
 			name: "yaml happy path",
-			setupfn: func(td string)(searchPaths []string){
+			setupfn: func(td string) (searchPaths []string) {
 				sp := path.Join(td, "path1")
 				err := os.Mkdir(sp, 0755)
 				require.Nil(t, err)
@@ -46,7 +46,7 @@ func Test_getHooks(t *testing.T) {
 		},
 		{
 			name: "yml happy path",
-			setupfn: func(td string)(searchPaths []string){
+			setupfn: func(td string) (searchPaths []string) {
 				sp := path.Join(td, "path1")
 				err := os.Mkdir(sp, 0755)
 				require.Nil(t, err)
@@ -63,7 +63,7 @@ func Test_getHooks(t *testing.T) {
 		},
 		{
 			name: "yml multiple paths",
-			setupfn: func(td string)(searchPaths []string){
+			setupfn: func(td string) (searchPaths []string) {
 				sp := path.Join(td, "path1")
 				err := os.Mkdir(sp, 0755)
 				require.Nil(t, err)
@@ -82,7 +82,7 @@ func Test_getHooks(t *testing.T) {
 		},
 		{
 			name: "no yaml exists",
-			setupfn: func(td string)(searchPaths []string){
+			setupfn: func(td string) (searchPaths []string) {
 				sp := path.Join(td, "path1")
 				err := os.Mkdir(sp, 0755)
 				require.Nil(t, err)
@@ -94,7 +94,7 @@ func Test_getHooks(t *testing.T) {
 		},
 		{
 			name: "yaml sad permissions",
-			setupfn: func(td string)(searchPaths []string){
+			setupfn: func(td string) (searchPaths []string) {
 				sp := path.Join(td, "path1")
 				err := os.Mkdir(sp, 0755)
 				require.Nil(t, err)
@@ -108,7 +108,7 @@ func Test_getHooks(t *testing.T) {
 		},
 		{
 			name: "format of woe",
-			setupfn: func(td string)(searchPaths []string){
+			setupfn: func(td string) (searchPaths []string) {
 				sp := path.Join(td, "path1")
 				err := os.Mkdir(sp, 0755)
 				require.Nil(t, err)
@@ -123,7 +123,7 @@ func Test_getHooks(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T){
+		t.Run(tc.name, func(t *testing.T) {
 			td := t.TempDir()
 			hooks, err := getHooks(td, tc.setupfn(td))
 			if tc.wantErr {
@@ -131,7 +131,7 @@ func Test_getHooks(t *testing.T) {
 				return
 			}
 			require.Nil(t, err)
-			require.ElementsMatch(t, hooks, tc.hooks )
+			require.ElementsMatch(t, hooks, tc.hooks)
 		})
 	}
 }
