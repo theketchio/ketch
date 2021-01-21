@@ -21,14 +21,9 @@ import (
 	"os"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -93,17 +88,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup event recorder
-	kubeClient, err := kubernetes.NewForConfig(ctrl.GetConfigOrDie())
-	if err != nil {
-		setupLog.Error(err, "error creating kubernetes client")
-		os.Exit(1)
-	}
-	eventBroadcaster := record.NewBroadcaster()
-	logger := zap.New(zap.UseDevMode(true))
-	eventBroadcaster.StartLogging(logger.Info)
-	eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
-
 	if err = (&controllers.AppReconciler{
 		TemplateReader: storage,
 		Client:         mgr.GetClient(),
@@ -113,7 +97,7 @@ func main() {
 			return chart.NewHelmClient(namespace)
 		},
 		Now:      time.Now,
-		Recorder: eventBroadcaster.NewRecorder(k8scheme.Scheme, corev1.EventSource{Component: "App"}),
+		Recorder: mgr.GetEventRecorderFor("App"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "App")
 		os.Exit(1)
