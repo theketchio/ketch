@@ -512,6 +512,8 @@ func Test_canaryAppDeploy(t *testing.T) {
 					StepWeight:        10,
 					StepTimeInteval:   testStepInt,
 					NextScheduledTime: &testNextScheduledTime,
+					CurrentCanaryStep: 1,
+					IsActiveCanary:    true,
 				},
 				DeploymentsCount: 2,
 				Pool:             "pool-1",
