@@ -527,7 +527,7 @@ func (app *App) DoCanary(now metav1.Time) {
 			app.Spec.Canary.CurrentCanaryStep++
 
 			// check if the canary weight is exceeding 100% of traffic
-			if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 {
+			if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 || app.Spec.Canary.CurrentCanaryStep == app.Spec.Canary.Steps {
 				// set primary deployment traffic to 0%
 				app.Spec.Deployments[0].RoutingSettings.Weight = 0
 				app.Spec.Canary.IsActiveCanary = false
