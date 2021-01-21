@@ -163,10 +163,6 @@ type AppStatus struct {
 	Conditions []AppCondition `json:"conditions,omitempty"`
 
 	Pool *v1.ObjectReference `json:"pool,omitempty"`
-
-	// CurrentCanaryStep is the count for current step for a canary deployment
-	CurrentCanaryStep int  `json:"currentCanaryStep,omitempty"`
-	IsActiveCanary    bool `json:"isActiveCanary"`
 }
 
 // CanarySpec represents configuration for a canary deployment
@@ -175,6 +171,9 @@ type CanarySpec struct {
 	StepWeight        uint8         `json:"stepWeight"`
 	StepTimeInteval   time.Duration `json:"stepTimeInterval"`
 	NextScheduledTime *metav1.Time  `json:"nextSchedule,omitempty"`
+	// CurrentCanaryStep is the count for current step for a canary deployment
+	CurrentCanaryStep int  `json:"currentCanaryStep,omitempty"`
+	IsActiveCanary    bool `json:"isActiveCanary"`
 }
 
 // AppSpec defines the desired state of App.
@@ -520,7 +519,7 @@ func (s AppStatus) Condition(t AppConditionType) *AppCondition {
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
 func (app *App) DoCanary() {
-	if app.Status.CurrentCanaryStep != app.Spec.Canary.Steps {
+	if app.Spec.Canary.CurrentCanaryStep != app.Spec.Canary.Steps {
 		now := metav1.Now()
 		if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
 			// update traffic weight distributions across deployments
@@ -531,8 +530,8 @@ func (app *App) DoCanary() {
 			if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 {
 				// set primary deployment traffic to 0%
 				app.Spec.Deployments[0].RoutingSettings.Weight = 0
-				app.Status.IsActiveCanary = false
-				app.Status.CurrentCanaryStep = app.Spec.Canary.Steps
+				app.Spec.Canary.IsActiveCanary = false
+				app.Spec.Canary.CurrentCanaryStep = app.Spec.Canary.Steps
 			}
 
 			// update next scheduled time
