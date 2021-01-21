@@ -50,7 +50,7 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().BoolVar(&options.strictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
 	cmd.Flags().IntVar(&options.steps, "steps", 1, "number of steps to roll out the new deployment")
 	cmd.Flags().Uint8Var(&options.stepWeight, "step-weight", 1, "canary Traffic weight percentage between 0 and 100")
-	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "0", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
+	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "1h", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
 
 	cmd.MarkFlagRequired("image")
 
@@ -189,10 +189,9 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 			StepWeight:        options.stepWeight,
 			StepTimeInteval:   stepInt,
 			NextScheduledTime: &nextScheduledTime,
+			CurrentCanaryStep: 1,
+			IsActiveCanary:    true,
 		}
-
-		app.Status.CurrentCanaryStep = 1
-		app.Status.IsActiveCanary = true
 
 		// set weight for canary deployment
 		deploymentSpec.RoutingSettings.Weight = options.stepWeight
