@@ -55,6 +55,12 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 		Short: "Deploy an app",
 		Long:  appDeployHelp,
 		Args:  cobra.RangeArgs(1, 2),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if options.image == "" {
+				return errors.New("missing required image name")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
 			if len(args) == 2 {
