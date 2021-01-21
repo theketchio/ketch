@@ -6,17 +6,24 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	ignore "github.com/sabhiram/go-gitignore"
 	"io"
 	"os"
 	"path/filepath"
+
+	ignore "github.com/sabhiram/go-gitignore"
 
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
 const (
-	shipaIgnoreFile = ".shipaignore"
+	ignoreFile = ".ketchignore"
+	currentDir = "."
 )
+
+// DefaultSourcePaths is a single element array containing current directory
+func DefaultSourcePaths() []string {
+	return []string{currentDir}
+}
 
 type fileIgnoreList struct {
 	ign *ignore.GitIgnore
@@ -81,29 +88,29 @@ func WithWorkingDirectory(path string) Option {
 // are added to the archive.
 func Create(archiveFile string, inputs ...Option) error {
 	var options tarOptions
-	var err error
-	if options.workingDir, err = os.Getwd(); err != nil {
-		return errors.Wrap(err, "get working dir failed")
+
+	currentWorkingDir, err := os.Getwd()
+	if err != nil {
+		return errors.Wrap(err, "could not get working directory")
 	}
+	// set default working dir
+	options.workingDir = currentWorkingDir
+
 	for _, input := range inputs {
 		input(&options)
 	}
 	// if no directories or files are specified, default to current directory
 	if len(options.dirs) == 0 && len(options.files) == 0 {
-		options.dirs = []string{"."}
+		options.dirs = DefaultSourcePaths()
 	}
 
-	// change to working directory
-	currentWd, err := os.Getwd()
-	if err != nil {
-		return errors.Wrap(err, "get working dir failed")
-	}
+	// change to working directory, return to original directory when we're done.
 	if err = os.Chdir(options.workingDir); err != nil {
 		return err
 	}
-	defer os.Chdir(currentWd)
+	defer os.Chdir(currentWorkingDir)
 
-	ign, err := createFileIgnoreList(shipaIgnoreFile)
+	ign, err := createFileIgnoreList(ignoreFile)
 	if err != nil {
 		return err
 	}

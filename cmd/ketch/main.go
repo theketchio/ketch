@@ -18,12 +18,10 @@ var (
 )
 
 func main() {
-	logOut := os.Stdout
-
 	// Remove any flags that were added by libraries automatically.
 	pflag.CommandLine = pflag.NewFlagSet("ketch", pflag.ExitOnError)
 
-	cmd := newRootCmd(&configuration.Configuration{}, logOut)
+	cmd := newRootCmd(&configuration.Configuration{}, os.Stdout)
 	if err := cmd.Execute(); err != nil {
 		fmt.Printf("%v\n", err)
 		os.Exit(1)

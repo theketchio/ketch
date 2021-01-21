@@ -48,6 +48,8 @@ type CreateImageFromSourceRequest struct {
 	workingDir string
 	// defaults to stdout, override use WithOutput
 	out io.Writer
+	// optional build hooks from ketch.yaml
+	hooks []string
 }
 
 // CreateImageFromSourceResponse is returned from the build handler function and contains the
@@ -56,6 +58,7 @@ type CreateImageFromSourceResponse struct {
 	ImageURI string
 }
 
+// Option is the signature of options used in GetSourceHandler
 type Option func(o *CreateImageFromSourceRequest)
 
 // WithWorkingDirectory override the current working directory as the root directory for source files.
@@ -81,6 +84,19 @@ func WithSourcePaths(paths ...string) Option {
 	}
 }
 
+// MaybeWithBuildHooks sets build hooks if they are read from ketch.yaml
+func MaybeWithBuildHooks(v *ketchv1.KetchYamlData) Option {
+	var hooks []string
+	if v != nil {
+		if v.Hooks != nil {
+			hooks = v.Hooks.Build
+		}
+	}
+	return func(o *CreateImageFromSourceRequest) {
+		o.hooks = hooks
+	}
+}
+
 // GetSourceHandler returns a build function. It takes a docker client, and a k8s client as arguments.
 func GetSourceHandler(dockerCli builder, k8sClient resourceGetter) func(context.Context, *CreateImageFromSourceRequest, ...Option) (*CreateImageFromSourceResponse, error) {
 	return func(ctx context.Context, req *CreateImageFromSourceRequest, opts ...Option) (*CreateImageFromSourceResponse, error) {
@@ -94,8 +110,7 @@ func GetSourceHandler(dockerCli builder, k8sClient resourceGetter) func(context.
 		// build output default to stdout
 		req.out = os.Stdout
 
-		// source code default directory is current dir
-		req.sourcePaths = []string{"."}
+		req.sourcePaths = archive.DefaultSourcePaths()
 
 		for _, opt := range opts {
 			opt(req)
@@ -120,7 +135,7 @@ func GetSourceHandler(dockerCli builder, k8sClient resourceGetter) func(context.
 		defer buildCtx.close()
 
 		// prepare the build directory with an archive containing sources and a docker file
-		if err := buildCtx.prepare(platformImageURI, req.workingDir, req.sourcePaths); err != nil {
+		if err := buildCtx.prepare(platformImageURI, req.workingDir, req.sourcePaths, req.hooks); err != nil {
 			return nil, err
 		}
 
@@ -179,9 +194,10 @@ func (bc *buildContext) BuildDir() string {
 }
 
 // Prepare the build. Create a temp directory containing a docker file, and an archive containing source codes.
-func (bc *buildContext) prepare(platformImage string, workingDir string, sourcePaths []string) error {
+func (bc *buildContext) prepare(platformImage string, workingDir string, sourcePaths, hooks []string) error {
+	// TODO: Replace with go:embed feature once Go 1.16 is released.
 	const sourceDockerfileTemplate = `FROM {{ .PlatformImage }}
-USER root
+USER ubuntu
 COPY . /home/application
 WORKDIR /home/application/current
 RUN /var/lib/shipa/deploy archive file://{{ .ArchivePath }}
@@ -197,10 +213,7 @@ RUN /bin/sh -lc "{{ . }}"
 	if err != nil {
 		return errors.Wrap(err, "could not create archive %q", archivePath)
 	}
-	hooks, err := getHooks(workingDir, sourcePaths)
-	if err != nil {
-		return errors.Wrap(err, "failed to get hooks")
-	}
+
 	templateParams := struct {
 		PlatformImage string
 		ArchivePath   string

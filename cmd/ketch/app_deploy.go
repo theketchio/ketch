@@ -27,13 +27,15 @@ import (
 	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/docker"
+	"github.com/shipa-corp/ketch/internal/errors"
 )
 
 const (
 	appDeployHelp = `
 Roll out a new version of an application with an image.
 
-Deploy from source code, <source> is path to source code or a zip formatted file :
+Deploy from source code. <source> is path to source code. The image in this case is required
+and will be built using the selected source code and platform and will be used to deploy the app. 
   ketch app deploy <app name> <source> -i myregistry/myimage:latest 
 
 Deploy from an image:
@@ -45,8 +47,6 @@ Deploy from an image:
 	// default step TimeInterval for canary deployments
 	defaultStepTimeInterval = "1h"
 )
-
-const defaultProcessType = "web"
 
 func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	options := appDeployOptions{}
@@ -75,6 +75,8 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().Uint8Var(&options.timeout, "timeout", 20, "timeout for await of reconcile (seconds)")
 	cmd.Flags().StringSliceVar(&options.buildPacks, "build-packs", nil, "a list of build packs")
 	cmd.Flags().StringVar(&options.builder, "builder", "heroku/buildpacks:18", "builder to use")
+	cmd.Flags().StringVarP(&options.appPath, "source-path", "f", "", "the path to source code that will be built into the image")
+	cmd.Flags().StringSliceVarP(&options.subPaths, "include-dirs", "d", []string{"."}, "optionally include additional source paths. additional paths must be relative to source-path")
 	cmd.MarkFlagRequired("image")
 
 	return cmd
@@ -94,6 +96,7 @@ type appDeployOptions struct {
 	timeout                 uint8
 	buildPacks              []string
 	builder                 string
+	subPaths                []string
 }
 
 func (opts *appDeployOptions) validateCanaryOpts() error {
@@ -136,6 +139,11 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 		}
 		defer dockerSvc.Close()
 
+		ketchYaml, err := options.KetchYaml()
+		if err != nil {
+			return errors.Wrap(err, "ketch.yaml could not be processed")
+		}
+
 		_, err = build.GetSourceHandler(dockerSvc, cfg.Client())(
 			ctx,
 			&build.CreateImageFromSourceRequest{
@@ -144,6 +152,8 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 			},
 			build.WithOutput(logWriter),
 			build.WithWorkingDirectory(options.appPath),
+			build.WithSourcePaths(options.subPaths...),
+			build.MaybeWithBuildHooks(ketchYaml),
 		)
 		if err != nil {
 			return err

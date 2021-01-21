@@ -54,7 +54,7 @@ func TestCreate(t *testing.T) {
 func TestCreateWithIgnoredFiles(t *testing.T) {
 	root := tree{
 		files: []file{
-			{shipaIgnoreFile, "*.foo"},
+			{ignoreFile, "*.foo"},
 		},
 		subs: []tree{
 			{
@@ -68,7 +68,7 @@ func TestCreateWithIgnoredFiles(t *testing.T) {
 	}
 	expected := tree{
 		files: []file{
-			{shipaIgnoreFile, "*.foo"},
+			{ignoreFile, "*.foo"},
 		},
 		subs: []tree{
 			{
@@ -85,7 +85,7 @@ func TestCreateWithIgnoredFiles(t *testing.T) {
 	err := Create(archiveFileName, WithWorkingDirectory(workingDir))
 	require.Nil(t, err)
 	require.Nil(t, os.Chdir(workingDir))
-	require.Nil(t, os.RemoveAll(shipaIgnoreFile))
+	require.Nil(t, os.RemoveAll(ignoreFile))
 	require.Nil(t, os.RemoveAll("dir"))
 	require.Nil(t, exec.Command("tar", "-xzf", archiveFileName).Run())
 	require.Nil(t, evaluateResults(workingDir, expected))
@@ -105,7 +105,7 @@ func setHomeToWd() error {
 func TestCreateWithIncludedFiles(t *testing.T) {
 	root := tree{
 		files: []file{
-			{shipaIgnoreFile, "*.foo"},
+			{ignoreFile, "*.foo"},
 		},
 		subs: []tree{
 			{
@@ -152,7 +152,7 @@ func TestCreateWithIncludedFiles(t *testing.T) {
 		IncludeFiles("dir0/file.foo", "dir0/dir1/file1.txt")),
 	)
 	require.Nil(t, os.Chdir(workingDir))
-	require.Nil(t, os.RemoveAll(shipaIgnoreFile))
+	require.Nil(t, os.RemoveAll(ignoreFile))
 	require.Nil(t, os.RemoveAll("dir0"))
 	require.Nil(t, exec.Command("tar", "-xzf", archiveFileName).Run())
 	require.Nil(t, evaluateResults(workingDir, expected))
