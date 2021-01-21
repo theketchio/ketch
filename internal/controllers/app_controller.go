@@ -200,6 +200,12 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	// check for canary deployment
 	if app.Spec.Canary.IsActiveCanary {
 		app.DoCanary(metav1.NewTime(r.Now()))
+		if err := r.Update(ctx, app); err != nil {
+			return reconcileResult{
+				status:  v1.ConditionFalse,
+				message: fmt.Sprintf("canary upgrade failed: %v", err),
+			}
+		}
 	}
 
 	_, err = helmClient.UpdateChart(*appChrt, chart.NewChartConfig(*app))
