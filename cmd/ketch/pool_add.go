@@ -24,7 +24,10 @@ const (
 	istio
 )
 
-const defaultIstioIngressClassName = "istio"
+const (
+	defaultIstioIngressClassName   = "istio"
+	defaultTraefikIngressClassName = "traefik"
+)
 
 var ingressTypeIds = map[ingressType][]string{
 	traefik: {ketchv1.TraefikIngressControllerType.String()},
@@ -104,6 +107,11 @@ func (o poolAddOptions) IngressClassName() string {
 	if !o.ingressClassNameSet && o.ingressType.ingressControllerType() == ketchv1.IstioIngressControllerType {
 		return defaultIstioIngressClassName
 	}
+
+	if !o.ingressClassNameSet && o.ingressType.ingressControllerType() == ketchv1.TraefikIngressControllerType {
+		return defaultTraefikIngressClassName
+	}
+
 	return o.ingressClassName
 }
 

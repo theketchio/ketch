@@ -5,6 +5,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -406,7 +409,7 @@ func Test_appDeploy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.options, out)
+			err := appDeploy(context.Background(), metav1.Now, tt.cfg, tt.imageConfigFn, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
 			if (err != nil) != wantErr {
 				t.Errorf("appDeploy() error = %v, wantErr %v", err, tt.wantErr)
@@ -424,6 +427,192 @@ func Test_appDeploy(t *testing.T) {
 			if diff := cmp.Diff(gotApp.Spec, tt.wantAppSpec); diff != "" {
 				t.Errorf("AppSpec mismatch (-want +got):\n%s", diff)
 			}
+		})
+	}
+}
+
+func Test_canaryAppDeploy(t *testing.T) {
+	// set custom time func for tests
+	testTimeNowFn := func() metav1.Time { return metav1.Date(2020, 12, 11, 20, 34, 58, 651387237, time.UTC) }
+	testStepInt, _ := time.ParseDuration("1h")
+	testNextScheduledTime := metav1.NewTime(testTimeNowFn().Add(testStepInt))
+
+	app1 := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "app-1",
+		},
+		Spec: ketchv1.AppSpec{
+			Pool: "pool-1",
+		},
+	}
+	pool1 := &ketchv1.Pool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "pool-1",
+		},
+		Spec: ketchv1.PoolSpec{
+			NamespaceName: "pool-1-namespace",
+		},
+	}
+	validExtractFn := mockGetImageConfig{
+		returnConfigFile: &registryv1.ConfigFile{
+			Config: registryv1.Config{
+				Cmd: []string{"cmd"},
+				ExposedPorts: map[string]struct{}{
+					"999/tcp": {},
+				},
+			},
+		},
+	}
+	tests := []struct {
+		name          string
+		cfg           config
+		options       appDeployOptions
+		imageConfigFn getImageConfigFileFn
+
+		wantAppSpec               ketchv1.AppSpec
+		wantPrimaryDeployment     bool
+		wantExtraCanaryDeployment bool
+		wantOut                   string
+		wantErr                   string
+	}{
+		{
+			name: "app deploy for canary deployment with primary deployment",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName:          "app-1",
+				image:            "ketch:v2",
+				steps:            5,
+				stepWeight:       10,
+				stepTimeInterval: "1h",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantAppSpec: ketchv1.AppSpec{
+				Deployments: []ketchv1.AppDeploymentSpec{
+					{
+						Image:           "ketch:v1",
+						Version:         1,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 90},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+					{
+						Image:           "ketch:v2",
+						Version:         2,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 10},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+				},
+				Canary: ketchv1.CanarySpec{
+					Steps:             5,
+					StepWeight:        10,
+					StepTimeInteval:   testStepInt,
+					NextScheduledTime: &testNextScheduledTime,
+					CurrentCanaryStep: 1,
+					IsActiveCanary:    true,
+				},
+				DeploymentsCount: 2,
+				Pool:             "pool-1",
+			},
+			wantPrimaryDeployment: true,
+			wantOut:               "Successfully deployed!\n",
+		},
+		{
+			name: "app deploy for canary deployment without primary deployment",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName:          "app-1",
+				image:            "ketch:v1",
+				steps:            5,
+				stepWeight:       10,
+				stepTimeInterval: "1h",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantAppSpec: ketchv1.AppSpec{
+				Deployments: []ketchv1.AppDeploymentSpec{
+					{
+						Image:           "ketch:v1",
+						Version:         1,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 10},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+				},
+				Canary: ketchv1.CanarySpec{
+					Steps:           5,
+					StepWeight:      10,
+					StepTimeInteval: testStepInt,
+				},
+				DeploymentsCount: 1,
+				Pool:             "pool-1",
+			},
+			wantErr:               "canary deployment failed. No primary deployment found for the app",
+			wantPrimaryDeployment: false,
+		},
+		{
+			name: "app deploy for canary deployment with primary deployment",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName:          "app-1",
+				image:            "ketch:v2",
+				steps:            5,
+				stepWeight:       10,
+				stepTimeInterval: "1h",
+			},
+			imageConfigFn:             validExtractFn.get,
+			wantErr:                   "canary deployment failed. Maximum number of two deployments are currently supported",
+			wantPrimaryDeployment:     true,
+			wantExtraCanaryDeployment: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantPrimaryDeployment {
+				primOpts := appDeployOptions{
+					appName: "app-1",
+					image:   "ketch:v1",
+				}
+				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, primOpts, &bytes.Buffer{})
+				require.Nil(t, err)
+			}
+
+			if tt.wantExtraCanaryDeployment {
+				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.options, &bytes.Buffer{})
+				require.Nil(t, err)
+			}
+
+			out := &bytes.Buffer{}
+			err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.options, out)
+
+			wantErr := len(tt.wantErr) > 0
+			if wantErr {
+				require.Equal(t, tt.wantErr, err.Error())
+				return
+			}
+			require.Nil(t, err)
+			require.Equal(t, tt.wantOut, out.String())
+
+			gotApp := ketchv1.App{}
+			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: "app-1"}, &gotApp)
+			require.Nil(t, err)
+
+			if tt.wantPrimaryDeployment {
+				gotApp.Spec.Canary.NextScheduledTime = &testNextScheduledTime
+			}
+
+			require.Equal(t, tt.wantAppSpec, gotApp.Spec)
 		})
 	}
 }

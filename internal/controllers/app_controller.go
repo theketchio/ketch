@@ -45,7 +45,12 @@ type AppReconciler struct {
 	Scheme         *runtime.Scheme
 	TemplateReader templates.Reader
 	HelmFactoryFn  helmFactoryFn
+	Now            timeNowFn
 }
+
+// timeNowFn knows how to get the current time.
+// Useful for canary deployments using App Reconclier.
+type timeNowFn func() time.Time
 
 type helmFactoryFn func(namespace string) (Helm, error)
 
@@ -71,6 +76,12 @@ type Helm interface {
 // +kubebuilder:rbac:groups="cert-manager.io",resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="extensions",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="extensions",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="traefik.containo.us",resources=ingressroutes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="traefik.containo.us",resources=ingressroutes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="traefik.containo.us",resources=traefikservices,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="traefik.containo.us",resources=traefikservices/status,verbs=get;update;patch
 
 func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -100,6 +111,11 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err := r.Status().Update(context.Background(), &app); err != nil {
 		return result, err
 	}
+
+	if app.Spec.Canary.IsActiveCanary {
+		result = ctrl.Result{RequeueAfter: app.Spec.Canary.NextScheduledTime.Sub(r.Now())}
+	}
+
 	return result, err
 }
 
@@ -147,6 +163,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		chart.WithExposedPorts(app.ExposedPorts()),
 		chart.WithTemplates(*tpls),
 	}
+
 	appChrt, err := chart.New(app, &pool, options...)
 	if err != nil {
 		return reconcileResult{
@@ -173,6 +190,18 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 			message: err.Error(),
 		}
 	}
+
+	// check for canary deployment
+	if app.Spec.Canary.IsActiveCanary {
+		app.DoCanary(metav1.NewTime(r.Now()))
+		if err := r.Update(ctx, app); err != nil {
+			return reconcileResult{
+				status:  v1.ConditionFalse,
+				message: fmt.Sprintf("canary upgrade failed: %v", err),
+			}
+		}
+	}
+
 	_, err = helmClient.UpdateChart(*appChrt, chart.NewChartConfig(*app))
 	if err != nil {
 		return reconcileResult{

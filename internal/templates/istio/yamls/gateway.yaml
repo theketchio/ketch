@@ -1,0 +1,43 @@
+{{- if .Values.app.isAccessible }}
+{{- if or .Values.app.ingress.http .Values.app.ingress.https }}
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  labels:
+    theketch.io/app-name: {{ $.Values.app.name }}
+  name: {{ $.Values.app.name }}-http-gateway
+spec:
+  selector: 
+    istio: ingressgateway
+  servers:
+    {{- range $_, $deployment := $.Values.app.deployments }}
+      {{- range $_, $process := $deployment.processes }}
+      {{- if $process.routable }}
+       {{- if  $.Values.app.ingress.http }}
+  - port:
+      number: {{ $process.publicServicePort }}
+      name: http-{{ $deployment.version }}
+      protocol: HTTP
+    hosts:
+      {{- range $_, $cname := $.Values.app.ingress.http }}
+    - {{ $cname }}
+      {{- end }}
+        {{- end }}
+    {{- if  $.Values.app.ingress.https }}
+    {{- range $_, $https := $.Values.app.ingress.https }} 
+  - port:
+      number: 443
+      name: https-{{ $deployment.version }}-{{ $https.cname }}
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: {{ $https.secretName }}
+    hosts:
+    - {{ $https.cname }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
