@@ -139,34 +139,34 @@ spec:
           ports:
           - containerPort: 9090
 ---
-# Source: dashboard/templates/ingress.yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
+# Source: dashboard/templates/ingressroute.yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
 metadata:
+  name: dashboard-http-ingressroute
   annotations:
     kubernetes.io/ingress.class: gke
-    traefik.ingress.kubernetes.io/frontend-entry-points: http
-    traefik.ingress.kubernetes.io/router.entrypoints: web
   labels:
     theketch.io/app-name: dashboard
-  name: dashboard-http
 spec:
-  rules:
-    - host: theketch.io
-      http:
-        paths:
-            - backend:
-                serviceName: dashboard-web-3
-                servicePort: 9090
-    - host: app.theketch.io
-      http:
-        paths:
-            - backend:
-                serviceName: dashboard-web-3
-                servicePort: 9090
-    - host: dashboard.20.20.20.20.shipa.cloud
-      http:
-        paths:
-            - backend:
-                serviceName: dashboard-web-3
-                servicePort: 9090
+  entryPoints:
+    - web
+  routes:
+  - match: Host("theketch.io")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 100
+  - match: Host("app.theketch.io")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 100
+  - match: Host("dashboard.20.20.20.20.shipa.cloud")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 100

@@ -33,3 +33,4 @@ internal/chart/testdata/charts/*-output.yaml
 
 # yamls_result.go is generated 
 internal/templates/yamls_result.go
+.vscode

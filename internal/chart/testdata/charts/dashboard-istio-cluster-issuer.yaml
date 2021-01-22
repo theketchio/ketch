@@ -139,55 +139,6 @@ spec:
           ports:
           - containerPort: 9090
 ---
-# Source: dashboard/templates/ingress.yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  annotations:
-    kubernetes.io/ingress.class: ingress-class
-  labels:
-    theketch.io/app-name: dashboard
-  name: dashboard-https
-spec:
-  tls:
-    - hosts:
-      - theketch.io
-      secretName: dashboard-cname-7698da46d42bea3603f2
-    - hosts:
-      - app.theketch.io
-      secretName: dashboard-cname-1aacb41a573151295624
-  rules:
-    - host: theketch.io
-      http:
-        paths:
-          - backend:
-              serviceName: dashboard-web-3
-              servicePort: 9090
-    - host: app.theketch.io
-      http:
-        paths:
-          - backend:
-              serviceName: dashboard-web-3
-              servicePort: 9090
----
-# Source: dashboard/templates/ingress.yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  annotations:
-    kubernetes.io/ingress.class: ingress-class
-  labels:
-    theketch.io/app-name: dashboard
-  name: dashboard-http
-spec:
-  rules:
-    - host: dashboard.10.10.10.10.shipa.cloud
-      http:
-        paths:
-            - backend:
-                serviceName: dashboard-web-3
-                servicePort: 9090
----
 # Source: dashboard/templates/certificate.yaml
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
@@ -215,3 +166,61 @@ spec:
   issuerRef:
     name: letsencrypt-production
     kind: ClusterIssuer
+---
+# Source: dashboard/templates/gateway.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  labels:
+    theketch.io/app-name: dashboard
+  name: dashboard-http-gateway
+spec:
+  selector: 
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 9090
+      name: http-3
+      protocol: HTTP
+    hosts:
+    - dashboard.10.10.10.10.shipa.cloud 
+  - port:
+      number: 443
+      name: https-3-theketch.io
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: dashboard-cname-7698da46d42bea3603f2
+    hosts:
+    - theketch.io 
+  - port:
+      number: 443
+      name: https-3-app.theketch.io
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: dashboard-cname-1aacb41a573151295624
+    hosts:
+    - app.theketch.io
+---
+# Source: dashboard/templates/virtualService.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: ingress-class
+  labels:
+    theketch.io/app-name: dashboard
+  name: dashboard-http
+spec:
+    hosts:
+    - dashboard.10.10.10.10.shipa.cloud
+    - theketch.io
+    - app.theketch.io
+    gateways: 
+    - dashboard-http-gateway
+    http:
+    - route:
+        - destination:
+            host: dashboard-web-3
+          weight: 100

@@ -139,57 +139,79 @@ spec:
           ports:
           - containerPort: 9090
 ---
-# Source: dashboard/templates/ingress.yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
+# Source: dashboard/templates/certificate.yaml
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
 metadata:
+  name: dashboard-cname-7698da46d42bea3603f2
+spec:
+  secretName: dashboard-cname-7698da46d42bea3603f2
+  dnsNames:
+    - theketch.io
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+---
+# Source: dashboard/templates/certificate.yaml
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: dashboard-cname-1aacb41a573151295624
+spec:
+  secretName: dashboard-cname-1aacb41a573151295624
+  dnsNames:
+    - app.theketch.io
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+---
+# Source: dashboard/templates/ingressroute.yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dashboard-http-ingressroute
   annotations:
     kubernetes.io/ingress.class: ingress-class
     cert-manager.io/cluster-issuer: letsencrypt-production
-    traefik.ingress.kubernetes.io/frontend-entry-points: https
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
   labels:
     theketch.io/app-name: dashboard
-  name: dashboard-https
 spec:
-  tls:
-    - hosts:
-        - theketch.io
-      secretName: dashboard-cname-7698da46d42bea3603f2
-    - hosts:
-        - app.theketch.io
-      secretName: dashboard-cname-1aacb41a573151295624
-  rules:
-    - host: theketch.io
-      http:
-        paths:
-          - backend:
-              serviceName: dashboard-web-3
-              servicePort: 9090
-    - host: app.theketch.io
-      http:
-        paths:
-          - backend:
-              serviceName: dashboard-web-3
-              servicePort: 9090
+  entryPoints:
+    - web
+  routes:
+  - match: Host("dashboard.10.10.10.10.shipa.cloud")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 100
 ---
-# Source: dashboard/templates/ingress.yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
+# Source: dashboard/templates/ingressroute.yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
 metadata:
+  name: dashboard-https-ingressroute
   annotations:
     kubernetes.io/ingress.class: ingress-class
-    traefik.ingress.kubernetes.io/frontend-entry-points: http
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+    cert-manager.io/cluster-issuer: letsencrypt-production
   labels:
     theketch.io/app-name: dashboard
-  name: dashboard-http
 spec:
-  rules:
-    - host: dashboard.10.10.10.10.shipa.cloud
-      http:
-        paths:
-            - backend:
-                serviceName: dashboard-web-3
-                servicePort: 9090
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host("theketch.io")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 100
+  - match: Host("app.theketch.io")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 100  
+  tls: 
+    secretName: dashboard-cname-7698da46d42bea3603f2 
+    secretName: dashboard-cname-1aacb41a573151295624
