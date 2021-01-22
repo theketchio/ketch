@@ -44,8 +44,8 @@ spec:
           description: AppSpec defines the desired state of App.
           properties:
             canary:
-              description: Canary contains a configuration which will be rquired for
-                canary deployments.
+              description: Canary contains a configuration which will be required
+                for canary deployments.
               properties:
                 currentCanaryStep:
                   description: CurrentCanaryStep is the count for current step for
