@@ -251,7 +251,6 @@ func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {
 }
 
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Now = time.Now
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ketchv1.App{}).
 		Complete(r)
