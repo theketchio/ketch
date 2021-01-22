@@ -27,7 +27,7 @@ Roll out a new version of an application with an image.
 `
 	// default weight used to route incoming traffic to a deployment
 	defaultTrafficWeight = 100
-	// default step TimeInterval for canary deployements
+	// default step TimeInterval for canary deployments
 	defaultStepTimeInterval = "1h"
 )
 
