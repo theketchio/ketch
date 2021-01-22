@@ -11,9 +11,15 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	errors "github.com/pkg/errors"
+	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
 
@@ -40,7 +46,7 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
-			return appDeploy(cmd.Context(), metav1.Now, cfg, getImageConfigFile, options, out)
+			return appDeploy(cmd.Context(), metav1.Now, cfg, getImageConfigFile, watchAppReconcileEvent, options, out)
 		},
 	}
 
@@ -51,6 +57,8 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().IntVar(&options.steps, "steps", 1, "number of steps to roll out the new deployment")
 	cmd.Flags().Uint8Var(&options.stepWeight, "step-weight", 1, "canary Traffic weight percentage between 0 and 100")
 	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "1h", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
+	cmd.Flags().BoolVar(&options.wait, "wait", false, "await for reconcile event")
+	cmd.Flags().Uint8Var(&options.timeout, "timeout", 20, "timeout for await of reconcile (seconds)")
 
 	cmd.MarkFlagRequired("image")
 
@@ -66,6 +74,8 @@ type appDeployOptions struct {
 	steps                   int
 	stepWeight              uint8
 	stepTimeInterval        string
+	wait                    bool
+	timeout                 uint8
 }
 
 func (opts *appDeployOptions) validateCanaryOpts() error {
@@ -95,10 +105,12 @@ func (opts appDeployOptions) isCanarySet() bool {
 
 type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
 
+type watchReconcileEventFn func(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error)
+
 // pass timeNowFn to appDeploy(). Useful for testing canary deployments.
 type timeNowFn func() metav1.Time
 
-func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, out io.Writer) error {
+func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
@@ -207,10 +219,53 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 
 	app.Spec.DeploymentsCount += 1
 
+	var watcher watch.Interface
+	if options.wait {
+		watcher, err = watchReconcileEvent(ctx, cfg.KubernetesClient(), &app)
+		if err != nil {
+			return err
+		}
+		defer watcher.Stop()
+	}
+
 	if err = cfg.Client().Update(ctx, &app); err != nil {
 		return fmt.Errorf("failed to update the app: %v", err)
 	}
-	fmt.Fprintln(out, "Successfully deployed!")
+
+	// Await for reconcile result
+	if options.wait {
+		maxExecTime := time.NewTimer(time.Second * time.Duration(options.timeout))
+		evtCh := watcher.ResultChan()
+		for {
+			select {
+			case evt, ok := <-evtCh:
+				if !ok {
+					err := errors.New("events channel unexpectedly closed")
+					return err
+				}
+				e, ok := evt.Object.(*corev1.Event)
+				if ok {
+					reason, err := controllers.ParseAppReconcileMessage(e.Reason)
+					if err != nil {
+						return err
+					}
+					if reason.DeploymentCount == app.Spec.DeploymentsCount {
+						switch e.Type {
+						case v1.EventTypeNormal:
+							fmt.Fprintln(out, "successfully deployed!")
+							return nil
+						case v1.EventTypeWarning:
+							return errors.New(e.Message)
+						}
+					}
+				}
+			case <-maxExecTime.C:
+				err := fmt.Errorf("maximum execution time exceeded")
+				return err
+			}
+		}
+	}
+	fmt.Fprintln(out, "app crd updated successfully, check the app’s events to understand results of the deployment")
 	return nil
 }
 
@@ -275,6 +330,18 @@ func getImageConfigFile(ctx context.Context, kubeClient kubernetes.Interface, ar
 		return nil, err
 	}
 	return img.ConfigFile()
+}
+
+func watchAppReconcileEvent(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
+	reason := controllers.AppReconcileReason{Name: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+	selector := fields.Set(map[string]string{
+		"involvedObject.apiVersion": v1betaPrefix,
+		"involvedObject.kind":       "App",
+		"involvedObject.name":       app.Name,
+		"reason":                    reason.String(),
+	}).AsSelector()
+	return kubeClient.CoreV1().
+		Events(app.Namespace).Watch(ctx, metav1.ListOptions{FieldSelector: selector.String()})
 }
 
 func createProcfile(configFile registryv1.ConfigFile) (*chart.Procfile, error) {
