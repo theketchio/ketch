@@ -183,7 +183,7 @@ type AppSpec struct {
 	// +kubebuilder:validation:MaxLength=140
 	Description string `json:"description,omitempty"`
 
-	// Canary contains a configuration which will be rquired for canary deployments.
+	// Canary contains a configuration which will be required for canary deployments.
 	Canary CanarySpec `json:"canary,omitempty"`
 
 	// Deployments is a list of running deployments.
