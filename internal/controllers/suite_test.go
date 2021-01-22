@@ -69,6 +69,7 @@ func setup(reader templates.Reader, helm Helm, objects []runtime.Object) (*testi
 		HelmFactoryFn: func(namespace string) (Helm, error) {
 			return helm, nil
 		},
+		Recorder: k8sManager.GetEventRecorderFor("App"),
 	}).SetupWithManager(k8sManager)
 	if err != nil {
 		return nil, err
