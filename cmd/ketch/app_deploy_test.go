@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -583,42 +585,34 @@ func Test_canaryAppDeploy(t *testing.T) {
 					image:   "ketch:v1",
 				}
 				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, primOpts, &bytes.Buffer{})
-				if err != nil {
-					t.Errorf("appDeploy() error = %v", err)
-				}
+				require.Nil(t, err)
 			}
 
 			if tt.wantExtraCanaryDeployment {
 				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.options, &bytes.Buffer{})
-				if err != nil {
-					t.Errorf("appDeploy() error = %v", err)
-				}
+				require.Nil(t, err)
 			}
 
 			out := &bytes.Buffer{}
 			err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.options, out)
+
 			wantErr := len(tt.wantErr) > 0
-			if (err != nil) != wantErr {
-				t.Errorf("appDeploy() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
 			if wantErr {
-				assert.Equal(t, tt.wantErr, err.Error())
+				require.Equal(t, tt.wantErr, err.Error())
 				return
 			}
-			assert.Equal(t, tt.wantOut, out.String())
+			require.Nil(t, err)
+			require.Equal(t, tt.wantOut, out.String())
 
 			gotApp := ketchv1.App{}
 			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: "app-1"}, &gotApp)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			if tt.wantPrimaryDeployment {
 				gotApp.Spec.Canary.NextScheduledTime = &testNextScheduledTime
 			}
 
-			if diff := cmp.Diff(gotApp.Spec, tt.wantAppSpec); diff != "" {
-				t.Errorf("AppSpec mismatch (-want +got):\n%s", diff)
-			}
+			require.Equal(t, tt.wantAppSpec, gotApp.Spec)
 		})
 	}
 }
