@@ -554,7 +554,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantErr:               "Canary deployment failed. No primary deployment found for the app",
+			wantErr:               "canary deployment failed. No primary deployment found for the app",
 			wantPrimaryDeployment: false,
 		},
 		{
@@ -570,7 +570,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 				stepTimeInterval: "1h",
 			},
 			imageConfigFn:             validExtractFn.get,
-			wantErr:                   "Canary deployment failed. Maximum number of two deployments are currently supported",
+			wantErr:                   "canary deployment failed. Maximum number of two deployments are currently supported",
 			wantPrimaryDeployment:     true,
 			wantExtraCanaryDeployment: true,
 		},

@@ -83,7 +83,7 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 
 	_, err := time.ParseDuration(opts.stepTimeInterval)
 	if err != nil {
-		return fmt.Errorf("Invalid step interval: %w", err)
+		return fmt.Errorf("invalid step interval: %w", err)
 	}
 
 	return nil
@@ -172,12 +172,12 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 			return err
 		}
 
-		// check for old deployements
+		// check for old deployments
 		switch deps := len(app.Spec.Deployments); {
 		case deps == 0:
-			return fmt.Errorf("Canary deployment failed. No primary deployment found for the app")
+			return fmt.Errorf("canary deployment failed. No primary deployment found for the app")
 		case deps >= 2:
-			return fmt.Errorf("Canary deployment failed. Maximum number of two deployments are currently supported")
+			return fmt.Errorf("canary deployment failed. Maximum number of two deployments are currently supported")
 		}
 
 		// parses step interval string to time.Duration
