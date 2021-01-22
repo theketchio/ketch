@@ -58,6 +58,7 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().Uint8Var(&options.stepWeight, "step-weight", 1, "canary Traffic weight percentage between 0 and 100")
 	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "1h", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
 	cmd.Flags().BoolVar(&options.wait, "wait", false, "await for reconcile event")
+	cmd.Flags().Uint8Var(&options.timeout, "timeout", 20, "timeout for await of reconcile (seconds)")
 
 	cmd.MarkFlagRequired("image")
 
@@ -74,6 +75,7 @@ type appDeployOptions struct {
 	stepWeight              uint8
 	stepTimeInterval        string
 	wait                    bool
+	timeout                 uint8
 }
 
 func (opts *appDeployOptions) validateCanaryOpts() error {
@@ -108,7 +110,7 @@ type watchReconcileEventFn func(ctx context.Context, kubeClient kubernetes.Inter
 // pass timeNowFn to appDeploy(). Useful for testing canary deployments.
 type timeNowFn func() metav1.Time
 
-func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, out io.Writer) error {
+func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
@@ -232,7 +234,7 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 
 	// Await for reconcile result
 	if options.wait {
-		maxExecTime := time.NewTimer(time.Second * 20)
+		maxExecTime := time.NewTimer(time.Second * time.Duration(options.timeout))
 		evtCh := watcher.ResultChan()
 		for {
 			select {
