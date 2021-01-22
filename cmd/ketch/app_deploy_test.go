@@ -352,6 +352,7 @@ func Test_appDeploy(t *testing.T) {
 				appName: "app-1",
 				image:   "ketch:v1",
 				wait:    true,
+				timeout: 20,
 			},
 			imageConfigFn: validExtractFn.get,
 			watchEventFn:  fakeAppReconcileFn(1, time.Millisecond*100, "app-1", v1.EventTypeNormal, ""),
@@ -381,6 +382,7 @@ func Test_appDeploy(t *testing.T) {
 				appName: "app-1",
 				image:   "ketch:v1",
 				wait:    true,
+				timeout: 20,
 			},
 			imageConfigFn: validExtractFn.get,
 			watchEventFn:  fakeAppReconcileFn(1, time.Millisecond*100, "app-1", v1.EventTypeWarning, "error on reconcile"),
@@ -528,6 +530,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 		cfg           config
 		options       appDeployOptions
 		imageConfigFn getImageConfigFileFn
+		watchEventFn  watchReconcileEventFn
 
 		wantAppSpec               ketchv1.AppSpec
 		wantPrimaryDeployment     bool
@@ -581,7 +584,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 				Pool:             "pool-1",
 			},
 			wantPrimaryDeployment: true,
-			wantOut:               "Successfully deployed!\n",
+			wantOut:               "app crd updated successfully, check the app’s events to understand results of the deployment\n",
 		},
 		{
 			name: "app deploy for canary deployment without primary deployment",
@@ -644,17 +647,17 @@ func Test_canaryAppDeploy(t *testing.T) {
 					appName: "app-1",
 					image:   "ketch:v1",
 				}
-				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, primOpts, &bytes.Buffer{})
+				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.watchEventFn, primOpts, &bytes.Buffer{})
 				require.Nil(t, err)
 			}
 
 			if tt.wantExtraCanaryDeployment {
-				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.options, &bytes.Buffer{})
+				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.watchEventFn, tt.options, &bytes.Buffer{})
 				require.Nil(t, err)
 			}
 
 			out := &bytes.Buffer{}
-			err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.options, out)
+			err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.watchEventFn, tt.options, out)
 
 			wantErr := len(tt.wantErr) > 0
 			if wantErr {
@@ -723,4 +726,3 @@ func fakeAppReconcileFn(deplomentCount int, timeout time.Duration, name, eventTy
 		return &watcher, nil
 	}
 }
-
