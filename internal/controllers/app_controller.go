@@ -45,18 +45,12 @@ type AppReconciler struct {
 	Scheme         *runtime.Scheme
 	TemplateReader templates.Reader
 	HelmFactoryFn  helmFactoryFn
-	Clock
+	Now            timeNowFn
 }
 
-type realClock struct{}
-
-func (_ realClock) Now() time.Time { return time.Now() }
-
-// clock knows how to get the current time.
-// It can be used to fake out timing for testing.
-type Clock interface {
-	Now() time.Time
-}
+// timeNowFn knows how to get the current time.
+// Useful for canary deployments using App Reconclier.
+type timeNowFn func() time.Time
 
 type helmFactoryFn func(namespace string) (Helm, error)
 
@@ -257,10 +251,7 @@ func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {
 }
 
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// set up a real clock
-	if r.Clock == nil {
-		r.Clock = realClock{}
-	}
+	r.Now = time.Now
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ketchv1.App{}).
 		Complete(r)
