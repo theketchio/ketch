@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
@@ -19,9 +21,15 @@ import (
 	"github.com/shipa-corp/ketch/internal/chart"
 )
 
-const appDeployHelp = `
+const (
+	appDeployHelp = `
 Roll out a new version of an application with an image. 
 `
+	// default weight used to route incoming traffic to a deployment
+	defaultTrafficWeight = 100
+	// default step TimeInterval for canary deployments
+	defaultStepTimeInterval = "1h"
+)
 
 func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	options := appDeployOptions{}
@@ -32,7 +40,7 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
-			return appDeploy(cmd.Context(), cfg, getImageConfigFile, options, out)
+			return appDeploy(cmd.Context(), metav1.Now, cfg, getImageConfigFile, options, out)
 		},
 	}
 
@@ -40,6 +48,10 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.procfileFileName, "procfile", "", "the path to Procfile. If not set, ketch will use entrypoint and cmd from the image")
 	cmd.Flags().StringVar(&options.ketchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
 	cmd.Flags().BoolVar(&options.strictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
+	cmd.Flags().IntVar(&options.steps, "steps", 1, "number of steps to roll out the new deployment")
+	cmd.Flags().Uint8Var(&options.stepWeight, "step-weight", 1, "canary Traffic weight percentage between 0 and 100")
+	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "1h", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
+
 	cmd.MarkFlagRequired("image")
 
 	return cmd
@@ -51,11 +63,42 @@ type appDeployOptions struct {
 	ketchYamlFileName       string
 	procfileFileName        string
 	strictKetchYamlDecoding bool
+	steps                   int
+	stepWeight              uint8
+	stepTimeInterval        string
+}
+
+func (opts *appDeployOptions) validateCanaryOpts() error {
+	if opts.steps < 1 {
+		opts.steps = 1
+	}
+
+	if opts.stepWeight <= 0 {
+		opts.stepWeight = defaultTrafficWeight
+	}
+
+	if opts.stepTimeInterval == "" {
+		opts.stepTimeInterval = defaultStepTimeInterval
+	}
+
+	_, err := time.ParseDuration(opts.stepTimeInterval)
+	if err != nil {
+		return fmt.Errorf("invalid step interval: %w", err)
+	}
+
+	return nil
+}
+
+func (opts appDeployOptions) isCanarySet() bool {
+	return opts.steps > 1
 }
 
 type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
 
-func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, out io.Writer) error {
+// pass timeNowFn to appDeploy(). Useful for testing canary deployments.
+type timeNowFn func() metav1.Time
+
+func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
@@ -111,20 +154,59 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		}
 		exposedPorts = append(exposedPorts, *exposedPort)
 	}
+
+	// default deployment spec for an app
 	deploymentSpec := ketchv1.AppDeploymentSpec{
 		Image:     options.image,
 		Version:   ketchv1.DeploymentVersion(app.Spec.DeploymentsCount + 1),
 		Processes: processes,
 		KetchYaml: ketchYaml,
 		RoutingSettings: ketchv1.RoutingSettings{
-			Weight: 100,
+			Weight: defaultTrafficWeight,
 		},
 		ExposedPorts: exposedPorts,
 	}
-	app.Spec.Deployments = []ketchv1.AppDeploymentSpec{
-		deploymentSpec,
+
+	if options.isCanarySet() {
+		if err := options.validateCanaryOpts(); err != nil {
+			return err
+		}
+
+		// check for old deployments
+		switch deps := len(app.Spec.Deployments); {
+		case deps == 0:
+			return fmt.Errorf("canary deployment failed. No primary deployment found for the app")
+		case deps >= 2:
+			return fmt.Errorf("canary deployment failed. Maximum number of two deployments are currently supported")
+		}
+
+		// parses step interval string to time.Duration
+		stepInt, _ := time.ParseDuration(options.stepTimeInterval)
+		// nextScheduledTime is the time for next canary step
+		nextScheduledTime := metav1.NewTime(timeNow().Add(stepInt))
+		app.Spec.Canary = ketchv1.CanarySpec{
+			Steps:             options.steps,
+			StepWeight:        options.stepWeight,
+			StepTimeInteval:   stepInt,
+			NextScheduledTime: &nextScheduledTime,
+			CurrentCanaryStep: 1,
+			IsActiveCanary:    true,
+		}
+
+		// set weight for canary deployment
+		deploymentSpec.RoutingSettings.Weight = options.stepWeight
+
+		//  update old deployment weight
+		app.Spec.Deployments[0].RoutingSettings.Weight = defaultTrafficWeight - options.stepWeight
+
+		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
+		app.Spec.Deployments = append(app.Spec.Deployments, deploymentSpec)
+	} else {
+		app.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
 	}
+
 	app.Spec.DeploymentsCount += 1
+
 	if err = cfg.Client().Update(ctx, &app); err != nil {
 		return fmt.Errorf("failed to update the app: %v", err)
 	}

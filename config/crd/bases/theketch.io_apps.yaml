@@ -43,6 +43,35 @@ spec:
         spec:
           description: AppSpec defines the desired state of App.
           properties:
+            canary:
+              description: Canary contains a configuration which will be required
+                for canary deployments.
+              properties:
+                currentCanaryStep:
+                  description: CurrentCanaryStep is the count for current step for
+                    a canary deployment
+                  type: integer
+                isActiveCanary:
+                  type: boolean
+                nextSchedule:
+                  format: date-time
+                  type: string
+                stepTimeInterval:
+                  description: A Duration represents the elapsed time between two
+                    instants as an int64 nanosecond count. The representation limits
+                    the largest representable duration to approximately 290 years.
+                  format: int64
+                  type: integer
+                stepWeight:
+                  type: integer
+                steps:
+                  type: integer
+              required:
+              - isActiveCanary
+              - stepTimeInterval
+              - stepWeight
+              - steps
+              type: object
             deployments:
               description: Deployments is a list of running deployments.
               items:

@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -95,6 +96,7 @@ func main() {
 		HelmFactoryFn: func(namespace string) (controllers.Helm, error) {
 			return chart.NewHelmClient(namespace)
 		},
+		Now: time.Now,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "App")
 		os.Exit(1)
