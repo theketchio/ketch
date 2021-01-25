@@ -116,7 +116,7 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 }
 
 func (opts appDeployOptions) isCanarySet() bool {
-	return opts.steps > 1
+	return opts.steps > 1 || opts.stepWeight > 0
 }
 
 type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
