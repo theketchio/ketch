@@ -83,6 +83,14 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 		opts.steps = 1
 	}
 
+	if opts.steps > 1 && opts.stepWeight > 0 {
+		return fmt.Errorf("set either --steps or --step-weight. Both are not supported together")
+	}
+
+	if opts.steps > 1 {
+		opts.stepWeight = uint8(defaultTrafficWeight / opts.steps)
+	}
+
 	if opts.stepWeight <= 0 {
 		opts.stepWeight = defaultTrafficWeight
 	}
