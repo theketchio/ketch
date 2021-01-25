@@ -55,7 +55,6 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.ketchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
 	cmd.Flags().BoolVar(&options.strictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
 	cmd.Flags().IntVar(&options.steps, "steps", 1, "number of steps to roll out the new deployment")
-	cmd.Flags().Uint8Var(&options.stepWeight, "step-weight", 1, "canary Traffic weight percentage between 0 and 100")
 	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "1h", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
 	cmd.Flags().BoolVar(&options.wait, "wait", false, "await for reconcile event")
 	cmd.Flags().Uint8Var(&options.timeout, "timeout", 20, "timeout for await of reconcile (seconds)")
@@ -89,6 +88,15 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 
 	if opts.steps > 1 {
 		opts.stepWeight = uint8(defaultTrafficWeight / opts.steps)
+	}
+
+	if opts.stepWeight > 0 {
+		opts.steps = int(defaultTrafficWeight / opts.stepWeight)
+	}
+
+	// normalize to reach 100% traffic
+	if defaultTrafficWeight%opts.stepWeight != 0 {
+		opts.steps++
 	}
 
 	if opts.stepWeight <= 0 {
