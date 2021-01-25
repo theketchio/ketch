@@ -621,7 +621,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 			wantPrimaryDeployment: false,
 		},
 		{
-			name: "app deploy for canary deployment with primary deployment",
+			name: "app deploy for canary deployment with primary deployment with canary already present",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{app1, pool1},
 			},
@@ -635,6 +635,21 @@ func Test_canaryAppDeploy(t *testing.T) {
 			wantErr:                   "canary deployment failed. Maximum number of two deployments are currently supported",
 			wantPrimaryDeployment:     true,
 			wantExtraCanaryDeployment: true,
+		},
+		{
+			name: "app deploy for canary deployment with invalid options",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName:          "app-1",
+				image:            "ketch:v2",
+				steps:            10,
+				stepWeight:       10,
+				stepTimeInterval: "1h",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantErr:       "set either --steps or --step-weight. Both are not supported together",
 		},
 	}
 	for _, tt := range tests {
