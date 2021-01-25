@@ -628,7 +628,6 @@ func Test_canaryAppDeploy(t *testing.T) {
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v2",
-				steps:            5,
 				stepWeight:       10,
 				stepTimeInterval: "1h",
 			},
