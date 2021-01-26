@@ -160,10 +160,10 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 			return err
 		}
 	}
-	return appDeployImage(ctx, timeNow, cfg, getImageConfigFile, watchReconcileEvent , options, logWriter)
+	return appDeployImage(ctx, timeNow, cfg, getImageConfigFile, watchReconcileEvent, options, logWriter)
 }
 
-func appDeployImage(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn,watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
+func appDeployImage(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
