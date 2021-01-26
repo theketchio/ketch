@@ -114,6 +114,7 @@ func officialPlatforms() func(name string) (string, bool) {
 		"php":     "shipasoftware/php:v1.2",
 		"play":    "shipasoftware/play:v1.2",
 		"pypy":    "shipasoftware/pypy:v1.2",
+		"python":  "shipasoftware/python:v1.2",
 		"ruby":    "shipasoftware/ruby:v1.2",
 		"static":  "shipasoftware/static:v1.2",
 	}
