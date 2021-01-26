@@ -11,8 +11,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	errors "github.com/pkg/errors"
-	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -26,6 +24,7 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/chart"
+	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/shipa-corp/ketch/internal/docker"
 	"github.com/shipa-corp/ketch/internal/errors"
 )
@@ -79,8 +78,6 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "1h", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
 	cmd.Flags().BoolVar(&options.wait, "wait", false, "await for reconcile event")
 	cmd.Flags().Uint8Var(&options.timeout, "timeout", 20, "timeout for await of reconcile (seconds)")
-	cmd.Flags().StringSliceVar(&options.buildPacks, "build-packs", nil, "a list of build packs")
-	cmd.Flags().StringVar(&options.builder, "builder", "heroku/buildpacks:18", "builder to use")
 	cmd.Flags().StringVarP(&options.appPath, "source-path", "f", "", "the path to source code that will be built into the image")
 	cmd.Flags().StringSliceVarP(&options.subPaths, "include-dirs", "d", []string{"."}, "optionally include additional source paths. additional paths must be relative to source-path")
 	cmd.MarkFlagRequired("image")
@@ -100,8 +97,6 @@ type appDeployOptions struct {
 	stepTimeInterval        string
 	wait                    bool
 	timeout                 uint8
-	buildPacks              []string
-	builder                 string
 	subPaths                []string
 }
 
