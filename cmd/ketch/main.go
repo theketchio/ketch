@@ -18,7 +18,6 @@ var (
 )
 
 func main() {
-
 	// Remove any flags that were added by libraries automatically.
 	pflag.CommandLine = pflag.NewFlagSet("ketch", pflag.ExitOnError)
 

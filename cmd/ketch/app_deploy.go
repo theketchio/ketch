@@ -11,8 +11,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	errors "github.com/pkg/errors"
-	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -24,12 +22,24 @@ import (
 	"sigs.k8s.io/yaml"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/chart"
+	"github.com/shipa-corp/ketch/internal/controllers"
+	"github.com/shipa-corp/ketch/internal/docker"
+	"github.com/shipa-corp/ketch/internal/errors"
 )
 
 const (
 	appDeployHelp = `
-Roll out a new version of an application with an image. 
+Roll out a new version of an application with an image.
+
+Deploy from source code. <source> is path to source code. The image in this case is required
+and will be built using the selected source code and platform and will be used to deploy the app. 
+  ketch app deploy <app name> <source> -i myregistry/myimage:latest 
+
+Deploy from an image:
+  ketch app deploy <app name> -i myregistry/myimage:latest
+
 `
 	// default weight used to route incoming traffic to a deployment
 	defaultTrafficWeight = 100
@@ -40,26 +50,35 @@ Roll out a new version of an application with an image.
 func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	options := appDeployOptions{}
 	cmd := &cobra.Command{
-		Use:   "deploy APPNAME",
+		Use:   "deploy APPNAME [SOURCE DIRECTORY]",
 		Short: "Deploy an app",
 		Long:  appDeployHelp,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.RangeArgs(1, 2),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if options.image == "" {
+				return errors.New("missing required image name")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
+			if len(args) == 2 {
+				options.appPath = args[1]
+			}
 			return appDeploy(cmd.Context(), metav1.Now, cfg, getImageConfigFile, watchAppReconcileEvent, options, out)
 		},
 	}
 
 	cmd.Flags().StringVarP(&options.image, "image", "i", "", "the image with the application")
-	cmd.Flags().StringVar(&options.procfileFileName, "procfile", "", "the path to Procfile. If not set, ketch will use entrypoint and cmd from the image")
 	cmd.Flags().StringVar(&options.ketchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
+	cmd.Flags().StringVar(&options.procfileFileName, "procfile", "", "the path to Procfile. If not set, ketch will use entrypoint and cmd from the image")
 	cmd.Flags().BoolVar(&options.strictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
 	cmd.Flags().IntVar(&options.steps, "steps", 1, "number of steps to roll out the new deployment")
 	cmd.Flags().Uint8Var(&options.stepWeight, "step-weight", 1, "canary Traffic weight percentage between 0 and 100")
 	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "1h", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
 	cmd.Flags().BoolVar(&options.wait, "wait", false, "await for reconcile event")
 	cmd.Flags().Uint8Var(&options.timeout, "timeout", 20, "timeout for await of reconcile (seconds)")
-
+	cmd.Flags().StringSliceVar(&options.subPaths, "include-dirs", []string{"."}, "optionally include additional source paths. additional paths must be relative to source-path")
 	cmd.MarkFlagRequired("image")
 
 	return cmd
@@ -76,6 +95,8 @@ type appDeployOptions struct {
 	stepTimeInterval        string
 	wait                    bool
 	timeout                 uint8
+	appPath                 string
+	subPaths                []string
 }
 
 func (opts *appDeployOptions) validateCanaryOpts() error {
@@ -111,6 +132,37 @@ type watchReconcileEventFn func(ctx context.Context, kubeClient kubernetes.Inter
 type timeNowFn func() metav1.Time
 
 func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
+	if options.appPath != "" {
+		dockerSvc, err := docker.New()
+		if err != nil {
+			return err
+		}
+		defer dockerSvc.Close()
+
+		ketchYaml, err := options.KetchYaml()
+		if err != nil {
+			return errors.Wrap(err, "ketch.yaml could not be processed")
+		}
+
+		_, err = build.GetSourceHandler(dockerSvc, cfg.Client())(
+			ctx,
+			&build.CreateImageFromSourceRequest{
+				Image:   options.image,
+				AppName: options.appName,
+			},
+			build.WithOutput(out),
+			build.WithWorkingDirectory(options.appPath),
+			build.WithSourcePaths(options.subPaths...),
+			build.MaybeWithBuildHooks(ketchYaml),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return appDeployImage(ctx, timeNow, cfg, getImageConfigFile, watchReconcileEvent, options, out)
+}
+
+func appDeployImage(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)

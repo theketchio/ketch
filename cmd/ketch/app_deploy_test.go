@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,9 +15,6 @@ import (
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/fake"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/controllers"
-	"github.com/shipa-corp/ketch/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,6 +23,10 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
+
+	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/controllers"
+	"github.com/shipa-corp/ketch/internal/mocks"
 )
 
 func Test_appDeployOptions_KetchYaml(t *testing.T) {
@@ -471,16 +473,13 @@ func Test_appDeploy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := appDeploy(context.Background(), metav1.Now, tt.cfg, tt.imageConfigFn, tt.watchEventFn, tt.options, out)
-			wantErr := len(tt.wantErr) > 0
-			if (err != nil) != wantErr {
-				t.Errorf("appDeploy() error = %v, wantErr %v", err, tt.wantErr)
+			err := appDeployImage(context.Background(), metav1.Now, tt.cfg, tt.imageConfigFn, tt.watchEventFn, tt.options, out)
+			if len(tt.wantErr) > 0 {
+				require.NotNil(t, err)
+				require.True(t, strings.Contains(err.Error(), tt.wantErr))
 				return
 			}
-			if wantErr {
-				assert.Equal(t, tt.wantErr, err.Error())
-				return
-			}
+			require.Nil(t, err)
 			assert.Equal(t, tt.wantOut, out.String())
 
 			gotApp := ketchv1.App{}
@@ -685,7 +684,7 @@ type fakeAppReconcileWatcher struct {
 	ch chan watch.Event
 }
 
-func NewFakeAppReconcileWatcher() fakeAppReconcileWatcher {
+func newFakeAppReconcileWatcher() fakeAppReconcileWatcher {
 	return fakeAppReconcileWatcher{
 		ch: make(chan watch.Event),
 	}
@@ -720,7 +719,7 @@ func (f *fakeAppReconcileWatcher) Push(deplomentCount int, name, eventType, msg 
 
 func fakeAppReconcileFn(deplomentCount int, timeout time.Duration, name, eventType, msg string) watchReconcileEventFn {
 	return func(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
-		watcher := NewFakeAppReconcileWatcher()
+		watcher := newFakeAppReconcileWatcher()
 		time.Sleep(timeout)
 		go watcher.Push(deplomentCount, name, eventType, msg)
 		return &watcher, nil
