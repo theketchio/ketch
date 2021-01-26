@@ -79,12 +79,15 @@ func NormalizeImage(imageURI string) (string, error) {
 
 // New creates a docker client.
 func New() (*Client, error) {
-	var resp Client
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+
+	// Docker client version 19.03.09 doesn't automatically downgrade Docker API version correctly
+	// https://github.com/docker/cli/issues/2533
+
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.39"))
 	if err != nil {
 		return nil, err
 	}
-	resp.manager = cli
+	resp := Client{manager: cli}
 
 	dockerConfig, err := dockerConfigDirectory()
 	if err != nil {
