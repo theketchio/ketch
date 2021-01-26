@@ -160,6 +160,12 @@ spec:
                         description: Hooks allow to run commands during different
                           stages of the application deployment.
                         properties:
+                          build:
+                            description: Build defines commands that are run as part
+                              of the Dockerfile build
+                            items:
+                              type: string
+                            type: array
                           restart:
                             description: Restart describes commands to run during
                               different stages of the application deployment.
