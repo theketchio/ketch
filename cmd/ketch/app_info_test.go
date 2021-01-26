@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -25,6 +24,18 @@ func Test_appInfo(t *testing.T) {
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
+		},
+	}
+	appPython := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "app-python",
+		},
+		Spec: ketchv1.AppSpec{
+			Pool: "gke",
+			Ingress: ketchv1.IngressSpec{
+				GenerateDefaultCname: true,
+			},
+			Platform: "python",
 		},
 	}
 	goApp := &ketchv1.App{
@@ -146,6 +157,16 @@ func Test_appInfo(t *testing.T) {
 			wantOutputFilename: "./testdata/app-info/go-app-secret-name.output",
 		},
 		{
+			name: "app with platform",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{gke, appPython},
+			},
+			options: appInfoOptions{
+				name: "app-python",
+			},
+			wantOutputFilename: "./testdata/app-info/app-python.output",
+		},
+		{
 			name: "no pool",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{dashboard},
@@ -176,7 +197,7 @@ func Test_appInfo(t *testing.T) {
 			}
 			wantOut, err := ioutil.ReadFile(tt.wantOutputFilename)
 			require.Nil(t, err)
-			require.Equal(t, strings.TrimSpace(string(wantOut)), strings.TrimSpace(out.String()))
+			require.Equal(t, string(wantOut), out.String())
 		})
 	}
 }
