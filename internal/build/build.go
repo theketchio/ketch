@@ -197,10 +197,12 @@ func (bc *buildContext) BuildDir() string {
 func (bc *buildContext) prepare(platformImage string, workingDir string, sourcePaths, hooks []string) error {
 	// TODO: Replace with go:embed feature once Go 1.16 is released.
 	const sourceDockerfileTemplate = `FROM {{ .PlatformImage }}
-USER ubuntu
+USER root
 COPY . /home/application
 WORKDIR /home/application/current
-RUN /var/lib/shipa/deploy archive file://{{ .ArchivePath }}
+RUN chown ubuntu:ubuntu -R /home/application
+USER ubuntu
+RUN /var/lib/shipa/deploy archive file://{{ .ArchiveFileLocation }}
 {{- range .Hooks }}
 RUN /bin/sh -lc "{{ . }}"
 {{- end }}`
@@ -215,9 +217,9 @@ RUN /bin/sh -lc "{{ . }}"
 	}
 
 	templateParams := struct {
-		PlatformImage string
-		ArchivePath   string
-		Hooks         []string
+		PlatformImage       string
+		ArchiveFileLocation string
+		Hooks               []string
 	}{platformImage, archiveFileLocation, hooks}
 
 	tmpl, err := template.New("").Parse(sourceDockerfileTemplate)

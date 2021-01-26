@@ -11,8 +11,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	errors "github.com/pkg/errors"
-	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -26,6 +24,7 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/chart"
+	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/shipa-corp/ketch/internal/docker"
 	"github.com/shipa-corp/ketch/internal/errors"
 )
@@ -79,10 +78,7 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "1h", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
 	cmd.Flags().BoolVar(&options.wait, "wait", false, "await for reconcile event")
 	cmd.Flags().Uint8Var(&options.timeout, "timeout", 20, "timeout for await of reconcile (seconds)")
-	cmd.Flags().StringSliceVar(&options.buildPacks, "build-packs", nil, "a list of build packs")
-	cmd.Flags().StringVar(&options.builder, "builder", "heroku/buildpacks:18", "builder to use")
-	cmd.Flags().StringVarP(&options.appPath, "source-path", "f", "", "the path to source code that will be built into the image")
-	cmd.Flags().StringSliceVarP(&options.subPaths, "include-dirs", "d", []string{"."}, "optionally include additional source paths. additional paths must be relative to source-path")
+	cmd.Flags().StringSliceVar(&options.subPaths, "include-dirs", []string{"."}, "optionally include additional source paths. additional paths must be relative to source-path")
 	cmd.MarkFlagRequired("image")
 
 	return cmd
@@ -93,15 +89,13 @@ type appDeployOptions struct {
 	image                   string
 	ketchYamlFileName       string
 	procfileFileName        string
-	appPath                 string
 	strictKetchYamlDecoding bool
 	steps                   int
 	stepWeight              uint8
 	stepTimeInterval        string
 	wait                    bool
 	timeout                 uint8
-	buildPacks              []string
-	builder                 string
+	appPath                 string
 	subPaths                []string
 }
 
@@ -137,7 +131,7 @@ type watchReconcileEventFn func(ctx context.Context, kubeClient kubernetes.Inter
 // pass timeNowFn to appDeploy(). Useful for testing canary deployments.
 type timeNowFn func() metav1.Time
 
-func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, logWriter io.Writer) error {
+func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
 	if options.appPath != "" {
 		dockerSvc, err := docker.New()
 		if err != nil {
@@ -156,7 +150,7 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 				Image:   options.image,
 				AppName: options.appName,
 			},
-			build.WithOutput(logWriter),
+			build.WithOutput(out),
 			build.WithWorkingDirectory(options.appPath),
 			build.WithSourcePaths(options.subPaths...),
 			build.MaybeWithBuildHooks(ketchYaml),
@@ -165,10 +159,10 @@ func appDeploy(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfi
 			return err
 		}
 	}
-	return appDeployImage(ctx, timeNow, cfg, getImageConfigFile, watchReconcileEvent , options, logWriter)
+	return appDeployImage(ctx, timeNow, cfg, getImageConfigFile, watchReconcileEvent, options, out)
 }
 
-func appDeployImage(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn,watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
+func appDeployImage(ctx context.Context, timeNow timeNowFn, cfg config, getImageConfigFile getImageConfigFileFn, watchReconcileEvent watchReconcileEventFn, options appDeployOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
