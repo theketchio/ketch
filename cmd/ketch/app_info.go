@@ -20,6 +20,9 @@ import (
 var (
 	appInfoTemplate = `Application: {{ .App.Name }}
 Pool: {{ .App.Spec.Pool }} 
+{{- if .App.Spec.Platform }}
+Platform: {{ .App.Spec.Platform }}
+{{- end }}
 {{- if .App.Spec.Description }}
 Description: {{ .App.Spec.Description }}
 {{- end }}
@@ -43,7 +46,7 @@ No environment variables.
 {{- end }}
 {{ if .NoProcesses }}
 No processes.
-{{- else }}
+{{ else }}
 {{ .Table }}
 {{- end }}`
 )
