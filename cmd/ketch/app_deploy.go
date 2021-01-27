@@ -79,8 +79,8 @@ type appDeployOptions struct {
 }
 
 func (opts *appDeployOptions) validateCanaryOpts() error {
-	if opts.steps < 1 {
-		opts.steps = 1
+	if opts.steps < 1 || opts.steps > 100 {
+		return fmt.Errorf("steps must be within the range 1 to 100")
 	}
 
 	if opts.steps > 1 && opts.stepWeight > 0 {
