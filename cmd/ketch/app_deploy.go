@@ -83,6 +83,10 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 		return fmt.Errorf("steps must be within the range 1 to 100")
 	}
 
+	if opts.stepWeight < 1 || opts.stepWeight > 100 {
+		return fmt.Errorf("step weight must be within the range 1 to 100")
+	}
+
 	if opts.steps > 1 && opts.stepWeight > 0 {
 		return fmt.Errorf("set either --steps or --step-weight. Both are not supported together")
 	}
@@ -103,6 +107,8 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 	if opts.stepWeight <= 0 {
 		opts.stepWeight = defaultTrafficWeight
 	}
+
+	fmt.Println("step and weight:", opts.steps, opts.stepWeight)
 
 	if opts.stepTimeInterval == "" {
 		opts.stepTimeInterval = defaultStepTimeInterval
