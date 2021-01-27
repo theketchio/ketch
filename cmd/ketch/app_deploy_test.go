@@ -546,8 +546,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v2",
-				steps:            1,
-				stepWeight:       10,
+				steps:            10,
 				stepTimeInterval: "1h",
 			},
 			imageConfigFn: validExtractFn.get,
@@ -594,8 +593,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v1",
-				steps:            1,
-				stepWeight:       10,
+				steps:            10,
 				stepTimeInterval: "1h",
 			},
 			imageConfigFn: validExtractFn.get,
@@ -630,29 +628,13 @@ func Test_canaryAppDeploy(t *testing.T) {
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v2",
-				steps:            1,
-				stepWeight:       10,
+				steps:            10,
 				stepTimeInterval: "1h",
 			},
 			imageConfigFn:             validExtractFn.get,
 			wantErr:                   "canary deployment failed. Maximum number of two deployments are currently supported",
 			wantPrimaryDeployment:     true,
 			wantExtraCanaryDeployment: true,
-		},
-		{
-			name: "app deploy for canary deployment with invalid options",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
-			},
-			options: appDeployOptions{
-				appName:          "app-1",
-				image:            "ketch:v2",
-				steps:            10,
-				stepWeight:       10,
-				stepTimeInterval: "1h",
-			},
-			imageConfigFn: validExtractFn.get,
-			wantErr:       "set either --steps or --step-weight. Both are not supported together",
 		},
 		{
 			name: "app deploy for canary deployment with invalid step limits",
@@ -668,21 +650,6 @@ func Test_canaryAppDeploy(t *testing.T) {
 			},
 			imageConfigFn: validExtractFn.get,
 			wantErr:       "steps must be within the range 1 to 100",
-		},
-		{
-			name: "app deploy for canary deployment with invalid step weight limits",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
-			},
-			options: appDeployOptions{
-				appName:          "app-1",
-				image:            "ketch:v2",
-				steps:            1,
-				stepWeight:       150,
-				stepTimeInterval: "1h",
-			},
-			imageConfigFn: validExtractFn.get,
-			wantErr:       "step weight must be within the range 1 to 100",
 		},
 	}
 	for _, tt := range tests {
