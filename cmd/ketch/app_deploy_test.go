@@ -545,8 +545,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v2",
-				steps:            5,
-				stepWeight:       10,
+				steps:            10,
 				stepTimeInterval: "1h",
 			},
 			imageConfigFn: validExtractFn.get,
@@ -572,7 +571,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 					},
 				},
 				Canary: ketchv1.CanarySpec{
-					Steps:             5,
+					Steps:             10,
 					StepWeight:        10,
 					StepTimeInteval:   testStepInt,
 					NextScheduledTime: &testNextScheduledTime,
@@ -593,8 +592,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v1",
-				steps:            5,
-				stepWeight:       10,
+				steps:            10,
 				stepTimeInterval: "1h",
 			},
 			imageConfigFn: validExtractFn.get,
@@ -611,7 +609,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 					},
 				},
 				Canary: ketchv1.CanarySpec{
-					Steps:           5,
+					Steps:           10,
 					StepWeight:      10,
 					StepTimeInteval: testStepInt,
 				},
@@ -622,21 +620,35 @@ func Test_canaryAppDeploy(t *testing.T) {
 			wantPrimaryDeployment: false,
 		},
 		{
-			name: "app deploy for canary deployment with primary deployment",
+			name: "app deploy for canary deployment with primary deployment with canary already present",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{app1, pool1},
 			},
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v2",
-				steps:            5,
-				stepWeight:       10,
+				steps:            10,
 				stepTimeInterval: "1h",
 			},
 			imageConfigFn:             validExtractFn.get,
 			wantErr:                   "canary deployment failed. Maximum number of two deployments are currently supported",
 			wantPrimaryDeployment:     true,
 			wantExtraCanaryDeployment: true,
+		},
+		{
+			name: "app deploy for canary deployment with invalid step limits",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{app1, pool1},
+			},
+			options: appDeployOptions{
+				appName:          "app-1",
+				image:            "ketch:v2",
+				steps:            1001,
+				stepWeight:       1,
+				stepTimeInterval: "1h",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantErr:       "steps must be within the range 1 to 100",
 		},
 	}
 	for _, tt := range tests {
