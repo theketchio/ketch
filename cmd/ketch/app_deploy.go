@@ -109,8 +109,6 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 		}
 	}
 
-	fmt.Println("step and weight:", opts.steps, opts.stepWeight)
-
 	if opts.stepTimeInterval == "" {
 		opts.stepTimeInterval = defaultStepTimeInterval
 	}
