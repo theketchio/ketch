@@ -82,30 +82,11 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 		return fmt.Errorf("steps must be within the range 1 to 100")
 	}
 
-	if opts.stepWeight < 1 || opts.stepWeight > 100 {
-		return fmt.Errorf("step weight must be within the range 1 to 100")
-	}
+	opts.stepWeight = uint8(defaultTrafficWeight / opts.steps)
 
-	if opts.steps > 1 && opts.stepWeight > 1 {
-		return fmt.Errorf("set either --steps or --step-weight. Both are not supported together")
-	}
-
-	if opts.steps > 1 && opts.stepWeight == 1 {
-		opts.stepWeight = uint8(defaultTrafficWeight / opts.steps)
-
-		// normalize to reach 100% traffic
-		if defaultTrafficWeight%opts.stepWeight != 0 {
-			opts.stepWeight++
-		}
-	}
-
-	if opts.stepWeight > 1 && opts.steps == 1 {
-		opts.steps = int(defaultTrafficWeight / opts.stepWeight)
-
-		// normalize to reach 100% traffic
-		if defaultTrafficWeight%opts.stepWeight != 0 {
-			opts.steps++
-		}
+	// normalize to reach 100% traffic
+	if defaultTrafficWeight%opts.stepWeight != 0 {
+		opts.stepWeight++
 	}
 
 	if opts.stepTimeInterval == "" {
@@ -121,7 +102,7 @@ func (opts *appDeployOptions) validateCanaryOpts() error {
 }
 
 func (opts appDeployOptions) isCanarySet() bool {
-	return opts.steps > 1 || opts.stepWeight > 1
+	return opts.steps > 1
 }
 
 type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
