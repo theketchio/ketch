@@ -546,6 +546,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v2",
+				steps:            1,
 				stepWeight:       10,
 				stepTimeInterval: "1h",
 			},
@@ -593,6 +594,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v1",
+				steps:            1,
 				stepWeight:       10,
 				stepTimeInterval: "1h",
 			},
@@ -628,6 +630,7 @@ func Test_canaryAppDeploy(t *testing.T) {
 			options: appDeployOptions{
 				appName:          "app-1",
 				image:            "ketch:v2",
+				steps:            1,
 				stepWeight:       10,
 				stepTimeInterval: "1h",
 			},
