@@ -47,13 +47,18 @@ spec:
               description: Canary contains a configuration which will be required
                 for canary deployments.
               properties:
-                currentCanaryStep:
-                  description: CurrentCanaryStep is the count for current step for
-                    a canary deployment
-                  type: integer
-                isActiveCanary:
+                active:
+                  description: Active shows if canary deployment is active for this
+                    application.
                   type: boolean
-                nextSchedule:
+                currentStep:
+                  description: CurrentStep is the count for current step for a canary
+                    deployment.
+                  maximum: 100
+                  minimum: 0
+                  type: integer
+                nextScheduledTime:
+                  description: NextScheduledTime holds time of the next step.
                   format: date-time
                   type: string
                 stepTimeInterval:
@@ -63,14 +68,13 @@ spec:
                   format: int64
                   type: integer
                 stepWeight:
+                  maximum: 100
+                  minimum: 0
                   type: integer
                 steps:
+                  maximum: 100
+                  minimum: 0
                   type: integer
-              required:
-              - isActiveCanary
-              - stepTimeInterval
-              - stepWeight
-              - steps
               type: object
             deployments:
               description: Deployments is a list of running deployments.

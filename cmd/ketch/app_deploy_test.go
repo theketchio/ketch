@@ -4,19 +4,18 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/require"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/name"
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/fake"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -25,6 +24,8 @@ import (
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/build"
+	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/shipa-corp/ketch/internal/mocks"
 )
@@ -134,7 +135,7 @@ func Test_createProcfileFromImageEntrypointAndCmd(t *testing.T) {
 				secretNamespace: "secret-namespace",
 			},
 			initialObjects: []runtime.Object{
-				&v1.Secret{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "top-secret",
 						Namespace: "secret-namespace",
@@ -175,7 +176,7 @@ func Test_createProcfileFromImageEntrypointAndCmd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sa := &v1.ServiceAccount{
+			sa := &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "secret-namespace",
@@ -212,55 +213,111 @@ func (m *mockGetImageConfig) get(ctx context.Context, kubeClient kubernetes.Inte
 	return m.returnConfigFile, m.returnErr
 }
 
-func Test_appDeploy(t *testing.T) {
+func metav1TimeRef(t metav1.Time) *metav1.Time {
+	return &t
+}
 
-	app1 := &ketchv1.App{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "app-1",
-		},
-		Spec: ketchv1.AppSpec{
-			Pool: "pool-1",
-		},
-	}
-	pool1 := &ketchv1.Pool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "pool-1",
-		},
-		Spec: ketchv1.PoolSpec{
-			NamespaceName: "pool-1-namespace",
-		},
-	}
-	validExtractFn := mockGetImageConfig{
-		returnConfigFile: &registryv1.ConfigFile{
-			Config: registryv1.Config{
-				Cmd: []string{"cmd"},
-				ExposedPorts: map[string]struct{}{
-					"999/tcp": {},
-				},
+func Test_changeAppCRD(t *testing.T) {
+
+	configFile := &registryv1.ConfigFile{
+		Config: registryv1.Config{
+			ExposedPorts: map[string]struct{}{
+				"999/tcp": {},
 			},
 		},
 	}
 	tests := []struct {
-		name          string
-		cfg           config
-		options       appDeployOptions
-		imageConfigFn getImageConfigFileFn
-		watchEventFn  watchReconcileEventFn
+		name      string
+		args      deploymentArguments
+		sourceApp *ketchv1.App
 
 		wantAppSpec ketchv1.AppSpec
-		wantOut     string
 		wantErr     string
 	}{
 		{
+			name: "canary deployment",
+			sourceApp: &ketchv1.App{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "app-1",
+				},
+				Spec: ketchv1.AppSpec{
+					Pool: "pool-1",
+					Deployments: []ketchv1.AppDeploymentSpec{
+						{
+							Image:           "ketch:v1",
+							Version:         1,
+							Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+							RoutingSettings: ketchv1.RoutingSettings{Weight: 100},
+							ExposedPorts: []ketchv1.ExposedPort{
+								{Port: 999, Protocol: "TCP"},
+							},
+						},
+					},
+				},
+			},
+			args: deploymentArguments{
+				image: "ketch:v2",
+				procfile: chart.Procfile{
+					Processes: map[string][]string{
+						"web":    {"/app/web"},
+						"worker": {"/app/worker"},
+					},
+					RoutableProcessName: "web",
+				},
+				steps:             3,
+				stepWeight:        33,
+				stepTimeInterval:  5 * time.Hour,
+				nextScheduledTime: time.Date(2017, 11, 11, 10, 30, 30, 0, time.UTC),
+				configFile:        configFile,
+			},
+			wantAppSpec: ketchv1.AppSpec{
+				Canary: ketchv1.CanarySpec{
+					Steps:             3,
+					StepWeight:        33,
+					StepTimeInteval:   5 * time.Hour,
+					NextScheduledTime: metav1TimeRef(metav1.NewTime(time.Date(2017, 11, 11, 10, 30, 30, 0, time.UTC))),
+					CurrentStep:       1,
+					Active:            true,
+				},
+				Deployments: []ketchv1.AppDeploymentSpec{
+					{
+						Image:           "ketch:v1",
+						Version:         1,
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 67},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+					{
+						Image:   "ketch:v2",
+						Version: 1,
+						Processes: []ketchv1.ProcessSpec{
+							{Name: "web", Cmd: []string{"/app/web"}},
+							{Name: "worker", Cmd: []string{"/app/worker"}},
+						},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 33},
+						ExposedPorts: []ketchv1.ExposedPort{
+							{Port: 999, Protocol: "TCP"},
+						},
+					},
+				},
+				DeploymentsCount: 1,
+				Pool:             "pool-1",
+			},
+		},
+		{
 			name: "app deploy with entrypoint and cmd without ketch.yaml",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
+			args: deploymentArguments{
+				image: "ketch:v1",
+				procfile: chart.Procfile{
+					Processes: map[string][]string{
+						"web": {"cmd"},
+					},
+					RoutableProcessName: "web",
+				},
+				configFile: configFile,
 			},
-			options: appDeployOptions{
-				appName: "app-1",
-				image:   "ketch:v1",
-			},
-			imageConfigFn: validExtractFn.get,
 			wantAppSpec: ketchv1.AppSpec{
 				Deployments: []ketchv1.AppDeploymentSpec{
 					{
@@ -276,25 +333,28 @@ func Test_appDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantOut: "app crd updated successfully, check the app’s events to understand results of the deployment\n",
 		},
 		{
 			name: "app deploy with entrypoint and cmd + ketch.yaml",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
+			args: deploymentArguments{
+				image: "ketch:v1",
+				ketchYaml: &ketchv1.KetchYamlData{
+					Hooks: &ketchv1.KetchYamlHooks{Restart: ketchv1.KetchYamlRestartHooks{Before: []string{`echo "before"`}}},
+				},
+				procfile: chart.Procfile{
+					Processes: map[string][]string{
+						"web": {"/app/app"},
+					},
+					RoutableProcessName: "web",
+				},
+				configFile: configFile,
 			},
-			options: appDeployOptions{
-				appName:           "app-1",
-				image:             "ketch:v1",
-				ketchYamlFileName: "./testdata/mini-ketch.yaml",
-			},
-			imageConfigFn: validExtractFn.get,
 			wantAppSpec: ketchv1.AppSpec{
 				Deployments: []ketchv1.AppDeploymentSpec{
 					{
 						Image:           "ketch:v1",
 						Version:         1,
-						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
+						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"/app/app"}}},
 						RoutingSettings: ketchv1.RoutingSettings{Weight: 100},
 						KetchYaml: &ketchv1.KetchYamlData{
 							Hooks: &ketchv1.KetchYamlHooks{Restart: ketchv1.KetchYamlRestartHooks{Before: []string{`echo "before"`}}},
@@ -307,21 +367,23 @@ func Test_appDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantOut: "app crd updated successfully, check the app’s events to understand results of the deployment\n",
-			wantErr: "",
 		},
 		{
 			name: "app deploy with Procfile + ketch.yaml",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
+			args: deploymentArguments{
+				image: "ketch:v1",
+				ketchYaml: &ketchv1.KetchYamlData{
+					Hooks: &ketchv1.KetchYamlHooks{Restart: ketchv1.KetchYamlRestartHooks{Before: []string{`echo "before"`}}},
+				},
+				procfile: chart.Procfile{
+					Processes: map[string][]string{
+						"web":    {"/app/app :$PORT web"},
+						"worker": {"/app/app :$PORT worker"},
+					},
+					RoutableProcessName: "web",
+				},
+				configFile: configFile,
 			},
-			options: appDeployOptions{
-				appName:           "app-1",
-				image:             "ketch:v1",
-				procfileFileName:  "./testdata/Procfile",
-				ketchYamlFileName: "./testdata/mini-ketch.yaml",
-			},
-			imageConfigFn: validExtractFn.get,
 			wantAppSpec: ketchv1.AppSpec{
 				Deployments: []ketchv1.AppDeploymentSpec{
 					{
@@ -343,167 +405,50 @@ func Test_appDeploy(t *testing.T) {
 				DeploymentsCount: 1,
 				Pool:             "pool-1",
 			},
-			wantOut: "app crd updated successfully, check the app’s events to understand results of the deployment\n",
-		},
-		{
-			name: "app deploy with entrypoint and cmd with wait flag",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
-			},
-			options: appDeployOptions{
-				appName: "app-1",
-				image:   "ketch:v1",
-				wait:    true,
-				timeout: 20,
-			},
-			imageConfigFn: validExtractFn.get,
-			watchEventFn:  fakeAppReconcileFn(1, time.Millisecond*100, "app-1", v1.EventTypeNormal, ""),
-			wantAppSpec: ketchv1.AppSpec{
-				Deployments: []ketchv1.AppDeploymentSpec{
-					{
-						Image:           "ketch:v1",
-						Version:         1,
-						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
-						RoutingSettings: ketchv1.RoutingSettings{Weight: 100},
-						ExposedPorts: []ketchv1.ExposedPort{
-							{Port: 999, Protocol: "TCP"},
-						},
-					},
-				},
-				DeploymentsCount: 1,
-				Pool:             "pool-1",
-			},
-			wantOut: "successfully deployed!\n",
-		},
-		{
-			name: "error - reconcile failed",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
-			},
-			options: appDeployOptions{
-				appName: "app-1",
-				image:   "ketch:v1",
-				wait:    true,
-				timeout: 20,
-			},
-			imageConfigFn: validExtractFn.get,
-			watchEventFn:  fakeAppReconcileFn(1, time.Millisecond*100, "app-1", v1.EventTypeWarning, "error on reconcile"),
-			wantAppSpec: ketchv1.AppSpec{
-				Deployments: []ketchv1.AppDeploymentSpec{
-					{
-						Image:           "ketch:v1",
-						Version:         1,
-						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
-						RoutingSettings: ketchv1.RoutingSettings{Weight: 100},
-						ExposedPorts: []ketchv1.ExposedPort{
-							{Port: 999, Protocol: "TCP"},
-						},
-					},
-				},
-				DeploymentsCount: 1,
-				Pool:             "pool-1",
-			},
-			wantErr: "error on reconcile",
-		},
-		{
-			name: "error - no pool",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1},
-			},
-			options: appDeployOptions{
-				appName: "app-1",
-				image:   "ketch:v1",
-			},
-			imageConfigFn: validExtractFn.get,
-			wantErr:       `failed to get pool instance: pools.theketch.io "pool-1" not found`,
-		},
-		{
-			name: "error - no app",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{pool1},
-			},
-			options: appDeployOptions{
-				appName: "app-1",
-				image:   "ketch:v1",
-			},
-			imageConfigFn: validExtractFn.get,
-			wantErr:       `failed to get app instance: apps.theketch.io "app-1" not found`,
-		},
-		{
-			name: "error - ketch.yaml not found",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
-			},
-			options: appDeployOptions{
-				appName:           "app-1",
-				image:             "ketch:v1",
-				ketchYamlFileName: "no-ketch.yaml",
-			},
-			imageConfigFn: validExtractFn.get,
-			wantErr:       "failed to read ketch.yaml: open no-ketch.yaml: no such file or directory",
-		},
-		{
-			name: "error - ketch.yaml not found",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
-			},
-			options: appDeployOptions{
-				appName:           "app-1",
-				image:             "ketch:v1",
-				ketchYamlFileName: "no-ketch.yaml",
-			},
-			imageConfigFn: (&mockGetImageConfig{returnErr: errors.New("extract issue")}).get,
-			wantErr:       "can't use the image: extract issue",
-		},
-		{
-			name: "error - invalid ketch.yaml with strict option",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
-			},
-			options: appDeployOptions{
-				appName:                 "app-1",
-				image:                   "ketch:v1",
-				ketchYamlFileName:       "./testdata/invalid-ketch.yaml",
-				strictKetchYamlDecoding: true,
-			},
-			imageConfigFn: validExtractFn.get,
-			wantErr:       `failed to read ketch.yaml: error unmarshaling JSON: while decoding JSON: json: unknown field "invalidField"`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out := &bytes.Buffer{}
-			err := appDeployImage(context.Background(), metav1.Now, tt.cfg, tt.imageConfigFn, tt.watchEventFn, tt.options, out)
+			app := tt.sourceApp
+			if app == nil {
+				app = &ketchv1.App{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "app-1",
+					},
+					Spec: ketchv1.AppSpec{
+						Pool: "pool-1",
+					},
+				}
+			}
+			err := changeAppCRD(app, tt.args)
 			if len(tt.wantErr) > 0 {
 				require.NotNil(t, err)
 				require.True(t, strings.Contains(err.Error(), tt.wantErr))
 				return
 			}
 			require.Nil(t, err)
-			assert.Equal(t, tt.wantOut, out.String())
-
-			gotApp := ketchv1.App{}
-			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: "app-1"}, &gotApp)
-			assert.Nil(t, err)
-			if diff := cmp.Diff(gotApp.Spec, tt.wantAppSpec); diff != "" {
-				t.Errorf("AppSpec mismatch (-want +got):\n%s", diff)
-			}
+			require.Equal(t, tt.wantAppSpec, app.Spec)
 		})
 	}
 }
 
-func Test_canaryAppDeploy(t *testing.T) {
-	// set custom time func for tests
-	testTimeNowFn := func() metav1.Time { return metav1.Date(2020, 12, 11, 20, 34, 58, 651387237, time.UTC) }
-	testStepInt, _ := time.ParseDuration("1h")
-	testNextScheduledTime := metav1.NewTime(testTimeNowFn().Add(testStepInt))
+func Test_appDeploy(t *testing.T) {
 
-	app1 := &ketchv1.App{
+	dashboard := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "app-1",
+			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
 			Pool: "pool-1",
+		},
+	}
+	goapp := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "go-app",
+		},
+		Spec: ketchv1.AppSpec{
+			Pool:     "pool-1",
+			Platform: "golang",
 		},
 	}
 	pool1 := &ketchv1.Pool{
@@ -512,6 +457,14 @@ func Test_canaryAppDeploy(t *testing.T) {
 		},
 		Spec: ketchv1.PoolSpec{
 			NamespaceName: "pool-1-namespace",
+		},
+	}
+	platform := &ketchv1.Platform{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "golang",
+		},
+		Spec: ketchv1.PlatformSpec{
+			Image: "shipasoftware/golang:latest",
 		},
 	}
 	validExtractFn := mockGetImageConfig{
@@ -525,197 +478,311 @@ func Test_canaryAppDeploy(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		name          string
-		cfg           config
-		options       appDeployOptions
-		imageConfigFn getImageConfigFileFn
-		watchEventFn  watchReconcileEventFn
+		name              string
+		cfg               config
+		options           appDeployOptions
+		imageConfigFn     getImageConfigFileFn
+		waitFn            waitFn
+		changeAppCRDFn    changeAppCRDFn
+		buildFromSourceFn buildFromSourceFn
 
-		wantAppSpec               ketchv1.AppSpec
-		wantPrimaryDeployment     bool
-		wantExtraCanaryDeployment bool
-		wantOut                   string
-		wantErr                   string
+		wantOut string
+		wantErr string
 	}{
 		{
-			name: "app deploy for canary deployment with primary deployment",
+			name: "error - changeAppFn failed",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
+				CtrlClientObjects: []runtime.Object{dashboard, pool1},
 			},
 			options: appDeployOptions{
-				appName:          "app-1",
-				image:            "ketch:v2",
-				steps:            10,
-				stepTimeInterval: "1h",
+				appName: "dashboard",
+				image:   "ketch:v1",
+				timeout: "20s",
+				steps:   1,
 			},
 			imageConfigFn: validExtractFn.get,
-			wantAppSpec: ketchv1.AppSpec{
-				Deployments: []ketchv1.AppDeploymentSpec{
-					{
-						Image:           "ketch:v1",
-						Version:         1,
-						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
-						RoutingSettings: ketchv1.RoutingSettings{Weight: 90},
-						ExposedPorts: []ketchv1.ExposedPort{
-							{Port: 999, Protocol: "TCP"},
-						},
-					},
-					{
-						Image:           "ketch:v2",
-						Version:         2,
-						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
-						RoutingSettings: ketchv1.RoutingSettings{Weight: 10},
-						ExposedPorts: []ketchv1.ExposedPort{
-							{Port: 999, Protocol: "TCP"},
-						},
-					},
-				},
-				Canary: ketchv1.CanarySpec{
-					Steps:             10,
-					StepWeight:        10,
-					StepTimeInteval:   testStepInt,
-					NextScheduledTime: &testNextScheduledTime,
-					CurrentCanaryStep: 1,
-					IsActiveCanary:    true,
-				},
-				DeploymentsCount: 2,
-				Pool:             "pool-1",
+			changeAppCRDFn: func(app *ketchv1.App, args deploymentArguments) error {
+				return errors.New("changeAppFn error")
 			},
-			wantPrimaryDeployment: true,
-			wantOut:               "app crd updated successfully, check the app’s events to understand results of the deployment\n",
+			wantErr: "changeAppFn error",
 		},
 		{
-			name: "app deploy for canary deployment without primary deployment",
+			name: "error - buildFromSource failed: application without platform",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
+				CtrlClientObjects: []runtime.Object{dashboard, pool1, platform},
 			},
 			options: appDeployOptions{
-				appName:          "app-1",
-				image:            "ketch:v1",
-				steps:            10,
-				stepTimeInterval: "1h",
+				appName:       "dashboard",
+				image:         "ketch:v1",
+				timeout:       "20s",
+				steps:         1,
+				appSourcePath: "/home/shipa/application",
+			},
+			wantErr: "can't build an application without platform",
+		},
+		{
+			name: "error - buildFromSource failed: platform not found",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{goapp, pool1},
+			},
+			options: appDeployOptions{
+				appName:       "go-app",
+				image:         "ketch:v1",
+				timeout:       "20s",
+				steps:         1,
+				appSourcePath: "/home/shipa/application",
+			},
+			wantErr: "failed to get platform",
+		},
+		{
+			name: "error - buildFromSource failed",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{goapp, pool1, platform},
+			},
+			options: appDeployOptions{
+				appName:       "go-app",
+				image:         "ketch:v1",
+				timeout:       "20s",
+				steps:         1,
+				appSourcePath: "/home/shipa/application",
 			},
 			imageConfigFn: validExtractFn.get,
-			wantAppSpec: ketchv1.AppSpec{
-				Deployments: []ketchv1.AppDeploymentSpec{
-					{
-						Image:           "ketch:v1",
-						Version:         1,
-						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
-						RoutingSettings: ketchv1.RoutingSettings{Weight: 10},
-						ExposedPorts: []ketchv1.ExposedPort{
-							{Port: 999, Protocol: "TCP"},
-						},
-					},
-				},
-				Canary: ketchv1.CanarySpec{
-					Steps:           10,
-					StepWeight:      10,
-					StepTimeInteval: testStepInt,
-				},
-				DeploymentsCount: 1,
-				Pool:             "pool-1",
+			buildFromSourceFn: func(ctx context.Context, request *build.CreateImageFromSourceRequest, opts ...build.Option) (*build.CreateImageFromSourceResponse, error) {
+				require.Equal(t, "shipasoftware/golang:latest", request.PlatformImage)
+				require.Equal(t, "go-app", request.AppName)
+				require.Equal(t, "ketch:v1", request.Image)
+				return nil, errors.New("buildFn error")
 			},
-			wantErr:               "canary deployment failed. No primary deployment found for the app",
-			wantPrimaryDeployment: false,
+			wantErr: "buildFn error",
 		},
 		{
-			name: "app deploy for canary deployment with primary deployment with canary already present",
+			name: "error - wait failed",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
+				CtrlClientObjects: []runtime.Object{dashboard, pool1},
 			},
 			options: appDeployOptions{
-				appName:          "app-1",
-				image:            "ketch:v2",
-				steps:            10,
-				stepTimeInterval: "1h",
-			},
-			imageConfigFn:             validExtractFn.get,
-			wantErr:                   "canary deployment failed. Maximum number of two deployments are currently supported",
-			wantPrimaryDeployment:     true,
-			wantExtraCanaryDeployment: true,
-		},
-		{
-			name: "app deploy for canary deployment with invalid step limits",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{app1, pool1},
-			},
-			options: appDeployOptions{
-				appName:          "app-1",
-				image:            "ketch:v2",
-				steps:            1001,
-				stepWeight:       1,
-				stepTimeInterval: "1h",
+				appName: "dashboard",
+				image:   "ketch:v1",
+				timeout: "20s",
+				steps:   1,
+				wait:    true,
 			},
 			imageConfigFn: validExtractFn.get,
-			wantErr:       "steps must be within the range 1 to 100",
+			changeAppCRDFn: func(app *ketchv1.App, args deploymentArguments) error {
+				return nil
+			},
+			waitFn: func(ctx context.Context, cfg config, app ketchv1.App, timeout time.Duration, out io.Writer) error {
+				return errors.New("wait error")
+			},
+			wantErr: "wait error",
+		},
+		{
+			name: "happy path - wait is not called",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{dashboard, pool1},
+			},
+			options: appDeployOptions{
+				appName: "dashboard",
+				image:   "ketch:v1",
+				timeout: "20s",
+				steps:   1,
+			},
+			imageConfigFn: validExtractFn.get,
+			changeAppCRDFn: func(app *ketchv1.App, args deploymentArguments) error {
+				return nil
+			},
+			wantOut: "app crd updated successfully, check the app’s events to understand results of the deployment\n",
+		},
+		{
+			name: "error - no pool",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{dashboard},
+			},
+			options: appDeployOptions{
+				appName: "dashboard",
+				image:   "ketch:v1",
+				steps:   1,
+				timeout: "25s",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantErr:       `failed to get pool instance: pools.theketch.io "pool-1" not found`,
+		},
+		{
+			name: "error - no app",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{pool1},
+			},
+			options: appDeployOptions{
+				appName: "dashboard",
+				image:   "ketch:v1",
+				steps:   1,
+				timeout: "25s",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantErr:       `failed to get app instance: apps.theketch.io "dashboard" not found`,
+		},
+		{
+			name: "error - ketch.yaml not found",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{dashboard, pool1},
+			},
+			options: appDeployOptions{
+				appName:           "dashboard",
+				image:             "ketch:v1",
+				ketchYamlFileName: "no-ketch.yaml",
+				steps:             1,
+				timeout:           "25s",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantErr:       "ketch.yaml could not be processed",
+		},
+		{
+			name: "error - ketch.yaml not found",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{dashboard, pool1},
+			},
+			options: appDeployOptions{
+				appName: "dashboard",
+				image:   "ketch:v1",
+				steps:   1,
+				timeout: "25s",
+			},
+			imageConfigFn: (&mockGetImageConfig{returnErr: errors.New("extract issue")}).get,
+			wantErr:       "can't use the image: extract issue",
+		},
+		{
+			name: "error - invalid ketch.yaml with strict option",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{dashboard, pool1},
+			},
+			options: appDeployOptions{
+				appName:                 "dashboard",
+				image:                   "ketch:v1",
+				ketchYamlFileName:       "./testdata/invalid-ketch.yaml",
+				strictKetchYamlDecoding: true,
+				steps:                   1,
+				timeout:                 "25s",
+			},
+			imageConfigFn: validExtractFn.get,
+			wantErr:       `unknown field "invalidField"`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.wantPrimaryDeployment {
-				primOpts := appDeployOptions{
-					appName: "app-1",
-					image:   "ketch:v1",
-				}
-				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.watchEventFn, primOpts, &bytes.Buffer{})
-				require.Nil(t, err)
-			}
-
-			if tt.wantExtraCanaryDeployment {
-				err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.watchEventFn, tt.options, &bytes.Buffer{})
-				require.Nil(t, err)
-			}
 
 			out := &bytes.Buffer{}
-			err := appDeploy(context.Background(), testTimeNowFn, tt.cfg, tt.imageConfigFn, tt.watchEventFn, tt.options, out)
+			err := appDeploy(context.Background(), tt.cfg, tt.imageConfigFn, tt.waitFn, tt.buildFromSourceFn, tt.changeAppCRDFn, tt.options, out)
 
 			wantErr := len(tt.wantErr) > 0
 			if wantErr {
-				require.Equal(t, tt.wantErr, err.Error())
+				require.NotNil(t, err)
+				require.Contains(t, err.Error(), tt.wantErr)
 				return
 			}
 			require.Nil(t, err)
 			require.Equal(t, tt.wantOut, out.String())
 
 			gotApp := ketchv1.App{}
-			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: "app-1"}, &gotApp)
+			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.options.appName}, &gotApp)
 			require.Nil(t, err)
 
-			if tt.wantPrimaryDeployment {
-				gotApp.Spec.Canary.NextScheduledTime = &testNextScheduledTime
-			}
+		})
+	}
+}
 
-			require.Equal(t, tt.wantAppSpec, gotApp.Spec)
+func Test_waitHandler(t *testing.T) {
+
+	tests := []struct {
+		description     string
+		deploymentCount int
+		appName         string
+		eventType       string
+		controller      func(watcher *fakeAppReconcileWatcher, deploymentCount int, appName string, message string)
+		timeout         time.Duration
+		wantOut         string
+		wantErr         string
+	}{
+		{
+			description: "happy path",
+			controller: func(watcher *fakeAppReconcileWatcher, deploymentCount int, appName string, message string) {
+				watcher.Push(deploymentCount, appName, corev1.EventTypeNormal, message)
+			},
+			timeout:         10 * time.Second,
+			eventType:       corev1.EventTypeNormal,
+			deploymentCount: 3,
+			appName:         "dashboard",
+			wantOut:         "successfully deployed!\n",
+		},
+		{
+			description: "no events for this deployment",
+			controller: func(watcher *fakeAppReconcileWatcher, deploymentCount int, appName string, message string) {
+				watcher.Push(deploymentCount, appName, corev1.EventTypeNormal, message)
+			},
+			timeout:         3 * time.Second,
+			deploymentCount: 10,
+			appName:         "dashboard",
+			wantErr:         "maximum execution time exceeded",
+		},
+		{
+			description: "deployment fails",
+			controller: func(watcher *fakeAppReconcileWatcher, deploymentCount int, appName string, message string) {
+				watcher.Push(deploymentCount, appName, corev1.EventTypeWarning, message)
+			},
+			timeout:         3 * time.Second,
+			deploymentCount: 3,
+			appName:         "dashboard",
+			wantErr:         "deployed",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.description, func(t *testing.T) {
+
+			watcher := &fakeAppReconcileWatcher{ch: make(chan watch.Event)}
+			fn := func(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
+				return watcher, nil
+			}
+			out := &bytes.Buffer{}
+			app := ketchv1.App{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "dashboard",
+				},
+				Spec: ketchv1.AppSpec{
+					DeploymentsCount: 3,
+				},
+			}
+			go tt.controller(watcher, tt.deploymentCount, tt.appName, "deployed")
+			err := waitHandler(fn)(context.Background(), &mocks.Configuration{}, app, tt.timeout, out)
+			if len(tt.wantErr) > 0 {
+				require.NotNil(t, err)
+				require.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.Nil(t, err)
+			require.Equal(t, tt.wantOut, out.String())
 		})
 	}
 }
 
 type fakeAppReconcileWatcher struct {
-	watch.Interface
 	ch chan watch.Event
 }
 
-func newFakeAppReconcileWatcher() fakeAppReconcileWatcher {
-	return fakeAppReconcileWatcher{
-		ch: make(chan watch.Event),
-	}
-}
-
+// ResultChan implements ResultChan method of watch.Interface.
 func (f *fakeAppReconcileWatcher) ResultChan() <-chan watch.Event {
 	return f.ch
 }
 
+// Stop implements Stop method of watch.Interface.
 func (f *fakeAppReconcileWatcher) Stop() {
 	close(f.ch)
 }
 
-func (f *fakeAppReconcileWatcher) Push(deplomentCount int, name, eventType, msg string) {
-	reason := controllers.AppReconcileReason{Name: name, DeploymentCount: deplomentCount}
-	evt := v1.Event{
-		InvolvedObject: v1.ObjectReference{
+func (f *fakeAppReconcileWatcher) Push(deplomentCount int, appName, eventType, msg string) {
+	reason := controllers.AppReconcileReason{AppName: appName, DeploymentCount: deplomentCount}
+	evt := corev1.Event{
+		InvolvedObject: corev1.ObjectReference{
 			Kind:       "App",
-			Name:       name,
+			Name:       appName,
 			APIVersion: v1betaPrefix,
 		},
 		Reason:  reason.String(),
@@ -726,14 +793,5 @@ func (f *fakeAppReconcileWatcher) Push(deplomentCount int, name, eventType, msg 
 	f.ch <- watch.Event{
 		Type:   watch.Added,
 		Object: &evt,
-	}
-}
-
-func fakeAppReconcileFn(deplomentCount int, timeout time.Duration, name, eventType, msg string) watchReconcileEventFn {
-	return func(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
-		watcher := newFakeAppReconcileWatcher()
-		time.Sleep(timeout)
-		go watcher.Push(deplomentCount, name, eventType, msg)
-		return &watcher, nil
 	}
 }

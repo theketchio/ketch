@@ -2,6 +2,8 @@
 package docker
 
 import (
+	"archive/tar"
+	"bytes"
 	"context"
 	"encoding/base64"
 	"io"
@@ -17,18 +19,23 @@ import (
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
-const dockerDir = ".docker"
+const (
+	dockerDir        = ".docker"
+	procfileLocation = "home/application/current/Procfile"
+)
 
 type imageManager interface {
 	ImageBuild(ctx context.Context, buildContext io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
 	ImagePush(ctx context.Context, image string, options types.ImagePushOptions) (io.ReadCloser, error)
+	ImageSave(ctx context.Context, imageIDs []string) (io.ReadCloser, error)
 	Close() error
 }
 
 // Client maintains state for Docker API.
 type Client struct {
 	manager      imageManager
-	authEncodeFn func(br *BuildRequest) (string, error)
+	authEncodeFn func(req BuildRequest) (string, error)
+	getProcfile  func(imageSaver imageSaver, imageId string) (string, error)
 }
 
 // BuildRequest contains parameters for the Build command
@@ -50,6 +57,7 @@ type BuildRequest struct {
 // ImageURI that we pushed to the destination registry.
 type BuildResponse struct {
 	ImageURI string
+	Procfile string
 }
 
 func dockerConfigDirectory() (string, error) {
@@ -87,14 +95,17 @@ func New() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp := Client{manager: cli}
+	resp := Client{
+		manager:     cli,
+		getProcfile: getProcfile,
+	}
 
 	dockerConfig, err := dockerConfigDirectory()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not fetch docker config directory")
 	}
 
-	resp.authEncodeFn = func(req *BuildRequest) (string, error) {
+	resp.authEncodeFn = func(req BuildRequest) (string, error) {
 		if req.AuthConfig != nil {
 			jsonAuth, err := json.Marshal(req.AuthConfig)
 			if err != nil {
@@ -113,7 +124,6 @@ func New() (*Client, error) {
 		}
 		return encodedAuth, nil
 	}
-
 	return &resp, nil
 }
 
@@ -122,9 +132,39 @@ func (c *Client) Close() error {
 	return c.manager.Close()
 }
 
+// Push pushes the given image to a remote repository. It uses the docker credentials
+// of the local user.
+func (c *Client) Push(ctx context.Context, req BuildRequest) error {
+	normedImage, err := NormalizeImage(req.Image)
+	if err != nil {
+		return err
+	}
+	encodedAuth, err := c.authEncodeFn(req)
+	if err != nil {
+		return err
+	}
+
+	pushResp, err := c.manager.ImagePush(
+		ctx,
+		normedImage,
+		types.ImagePushOptions{
+			RegistryAuth: encodedAuth,
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to push image %q", normedImage)
+	}
+
+	if err := print(pushResp, req.Out); err != nil {
+		return errors.Wrap(err, "push failed")
+	}
+
+	return nil
+}
+
 // Build will create a docker image and push it to a remote repository. It will use the docker credentials
 // of the local user.
-func (c *Client) Build(ctx context.Context, req *BuildRequest) (*BuildResponse, error) {
+func (c *Client) Build(ctx context.Context, req BuildRequest) (*BuildResponse, error) {
 	buildCtx, err := archive.TarWithOptions(req.BuildDirectory, &archive.TarOptions{})
 	if err != nil {
 		return nil, err
@@ -148,31 +188,66 @@ func (c *Client) Build(ctx context.Context, req *BuildRequest) (*BuildResponse, 
 	if err := print(resp.Body, req.Out); err != nil {
 		return nil, errors.Wrap(err, "build failed")
 	}
-
+	procfile, err := c.getProcfile(c.manager, req.Image)
+	if err != nil {
+		return nil, err
+	}
 	normedImage, err := NormalizeImage(req.Image)
 	if err != nil {
 		return nil, err
 	}
+	response := &BuildResponse{
+		ImageURI: normedImage,
+		Procfile: procfile,
+	}
+	return response, nil
+}
 
-	encodedAuth, err := c.authEncodeFn(req)
+type imageSaver interface {
+	ImageSave(ctx context.Context, imageIDs []string) (io.ReadCloser, error)
+}
+
+// getProcfile exracts content of the given image, looks for Procfile and returns it.
+func getProcfile(imageSaver imageSaver, imageId string) (string, error) {
+	reader, err := imageSaver.ImageSave(context.TODO(), []string{imageId})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
+	defer reader.Close()
 
-	pushResp, err := c.manager.ImagePush(
-		ctx,
-		normedImage,
-		types.ImagePushOptions{
-			RegistryAuth: encodedAuth,
-		},
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to push image %q", normedImage)
+	tarReader := tar.NewReader(reader)
+	var procfile string
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+		if header.FileInfo().Name() == "layer.tar" {
+			layerReader := tar.NewReader(tarReader)
+			for {
+				header, err := layerReader.Next()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					return "", err
+				}
+				if header.Typeflag == tar.TypeReg && header.Name == procfileLocation {
+					buf := &bytes.Buffer{}
+					_, err := io.Copy(buf, layerReader)
+					if err != nil {
+						return "", err
+					}
+					procfile = buf.String()
+				}
+			}
+		}
 	}
-
-	if err := print(pushResp, req.Out); err != nil {
-		return nil, errors.Wrap(err, "push failed")
-	}
-
-	return &BuildResponse{ImageURI: normedImage}, nil
+	return procfile, nil
 }
