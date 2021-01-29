@@ -1,4 +1,0 @@
-hooks:
-  restart:
-    before:
-      - echo "before"
