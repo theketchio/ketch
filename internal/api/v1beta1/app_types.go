@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -526,26 +527,40 @@ func (s AppStatus) Condition(t AppConditionType) *AppCondition {
 
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
-func (app *App) DoCanary(now metav1.Time) {
-	if app.Spec.Canary.CurrentStep != app.Spec.Canary.Steps {
-		if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
-			// update traffic weight distributions across deployments
-			app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
-			app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
-			app.Spec.Canary.CurrentStep++
+func (app *App) DoCanary(now metav1.Time) error {
 
-			// check if the canary weight is exceeding 100% of traffic
-			if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 || app.Spec.Canary.CurrentStep == app.Spec.Canary.Steps {
-				// set primary deployment traffic to 0%
-				app.Spec.Deployments[0].RoutingSettings.Weight = 0
-				app.Spec.Canary.Active = false
-				app.Spec.Canary.CurrentStep = app.Spec.Canary.Steps
-			}
+	if !app.Spec.Canary.Active {
+		return nil
+	}
+	if app.Spec.Canary.NextScheduledTime == nil {
+		return errors.New("canary is active but the next step is not scheduled")
+	}
 
-			// update next scheduled time
-			*app.Spec.Canary.NextScheduledTime = metav1.NewTime(app.Spec.Canary.NextScheduledTime.Add(app.Spec.Canary.StepTimeInteval))
+	if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
+		// update traffic weight distributions across deployments
+		app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
+		app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
+		app.Spec.Canary.CurrentStep++
+
+		// update next scheduled time
+		*app.Spec.Canary.NextScheduledTime = metav1.NewTime(app.Spec.Canary.NextScheduledTime.Add(app.Spec.Canary.StepTimeInteval))
+
+		// check if the canary weight is exceeding 100% of traffic
+		if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 || app.Spec.Canary.CurrentStep == app.Spec.Canary.Steps {
+
+			// we need to set weight of the target deployment to 100
+			// because there is a chance that on the last step weight is not equal to 100 (e.g. steps=3, step-weight=33)
+			app.Spec.Deployments[1].RoutingSettings.Weight = 100
+
+			app.Spec.Canary.Active = false
+			app.Spec.Canary.CurrentStep = app.Spec.Canary.Steps
+			app.Spec.Canary.NextScheduledTime = nil
+
+			// remove the primary deployment
+			app.Spec.Deployments = []AppDeploymentSpec{app.Spec.Deployments[1]}
 		}
 	}
+	return nil
 }
 
 // PodState describes the simplified state of a pod in the cluster

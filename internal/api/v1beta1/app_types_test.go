@@ -1168,3 +1168,171 @@ func TestApp_SetCondition(t *testing.T) {
 		})
 	}
 }
+
+func TestApp_DoCanary(t *testing.T) {
+
+	timeRef := func(hours int, minutes int) *metav1.Time {
+		t := metav1.Date(2021, 2, 1, hours, minutes, 0, 0, time.UTC)
+		return &t
+	}
+	tests := []struct {
+		name          string
+		app           App
+		now           metav1.Time
+		wantNoChanges bool
+		wantApp       App
+		wantErr       string
+	}{
+		{
+			name: "happy path - do canary",
+			now:  *timeRef(10, 31),
+			app: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             3,
+						StepWeight:        33,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 30),
+						CurrentStep:       1,
+						Active:            true,
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 67}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 33}},
+					},
+				},
+			},
+			wantApp: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             3,
+						StepWeight:        33,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 40),
+						CurrentStep:       2,
+						Active:            true,
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 34}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 66}},
+					},
+				},
+			},
+		},
+		{
+			name: "happy path - the last step of canary",
+			now:  *timeRef(10, 31),
+			app: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             3,
+						StepWeight:        33,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 30),
+						CurrentStep:       2,
+						Active:            true,
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 34}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 66}},
+					},
+				},
+			},
+			wantApp: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:           3,
+						StepWeight:      33,
+						StepTimeInteval: 10 * time.Minute,
+						CurrentStep:     3,
+						Active:          false,
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 100}},
+					},
+				},
+			},
+		},
+		{
+			name:          "canary is not active - no changes",
+			now:           *timeRef(10, 31),
+			wantNoChanges: true,
+			app: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             3,
+						StepWeight:        33,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 30),
+						CurrentStep:       2,
+						Active:            false,
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 34}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 66}},
+					},
+				},
+			},
+		},
+		{
+			name:          "too early to do canary - no changes",
+			now:           *timeRef(10, 25),
+			wantNoChanges: true,
+			app: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             3,
+						StepWeight:        33,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 30),
+						CurrentStep:       2,
+						Active:            false,
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 34}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 66}},
+					},
+				},
+			},
+		},
+		{
+			name:          "error - nextScheduledTime is not set",
+			now:           *timeRef(10, 45),
+			wantNoChanges: true,
+			wantErr:       "canary is active but the next step is not scheduled",
+			app: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:           3,
+						StepWeight:      33,
+						StepTimeInteval: 10 * time.Minute,
+						CurrentStep:     2,
+						Active:          true,
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 34}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 66}},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.app.DoCanary(tt.now)
+			originalApp := *tt.app.DeepCopy()
+			if len(tt.wantErr) > 0 {
+				require.NotNil(t, err)
+				require.Equal(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.Nil(t, err)
+
+			if tt.wantNoChanges {
+				require.Equal(t, originalApp, tt.app)
+				return
+			}
+			require.Equal(t, tt.wantApp, tt.app)
+		})
+	}
+}
