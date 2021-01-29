@@ -107,11 +107,11 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if scheduleResult.status == v1.ConditionFalse {
 		// we have to return an error to run reconcile again.
 		err = fmt.Errorf(scheduleResult.message)
-		reason := AppReconcileReason{Name: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+		reason := AppReconcileReason{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeWarning, reason.String(), err.Error())
 	} else {
 		app.Status.Pool = scheduleResult.pool
-		reason := AppReconcileReason{Name: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+		reason := AppReconcileReason{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeNormal, reason.String(), "success")
 	}
 	app.SetCondition(ketchv1.AppScheduled, scheduleResult.status, scheduleResult.message, metav1.NewTime(time.Now()))
@@ -119,7 +119,7 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, err
 	}
 
-	if app.Spec.Canary.IsActiveCanary {
+	if app.Spec.Canary.Active {
 		result = ctrl.Result{RequeueAfter: app.Spec.Canary.NextScheduledTime.Sub(r.Now())}
 	}
 
@@ -199,7 +199,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	}
 
 	// check for canary deployment
-	if app.Spec.Canary.IsActiveCanary {
+	if app.Spec.Canary.Active {
 		app.DoCanary(metav1.NewTime(r.Now()))
 		if err := r.Update(ctx, app); err != nil {
 			return reconcileResult{
@@ -265,20 +265,19 @@ func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // AppReconcileReason handle information about app reconcile
 type AppReconcileReason struct {
-	fmt.Stringer
+	AppName         string
 	DeploymentCount int
-	Name            string
 }
 
 // String is a Stringer interface implementation
 func (r *AppReconcileReason) String() string {
-	return fmt.Sprintf(`app %s %d reconcile`, r.Name, r.DeploymentCount)
+	return fmt.Sprintf(`app %s %d reconcile`, r.AppName, r.DeploymentCount)
 }
 
 // ParseAppReconcileMessage makes AppReconcileReason from the incoming event reason string
 func ParseAppReconcileMessage(in string) (*AppReconcileReason, error) {
 	rm := AppReconcileReason{}
-	_, err := fmt.Sscanf(in, `app %s %d reconcile`, &rm.Name, &rm.DeploymentCount)
+	_, err := fmt.Sscanf(in, `app %s %d reconcile`, &rm.AppName, &rm.DeploymentCount)
 	if err != nil {
 		return nil, errors.Wrap(err, `unable to parse reconcile reason`)
 	}

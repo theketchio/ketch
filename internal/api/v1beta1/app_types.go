@@ -165,15 +165,23 @@ type AppStatus struct {
 	Pool *v1.ObjectReference `json:"pool,omitempty"`
 }
 
-// CanarySpec represents configuration for a canary deployment
+// CanarySpec represents configuration for a canary deployment.
 type CanarySpec struct {
-	Steps             int           `json:"steps"`
-	StepWeight        uint8         `json:"stepWeight"`
-	StepTimeInteval   time.Duration `json:"stepTimeInterval"`
-	NextScheduledTime *metav1.Time  `json:"nextSchedule,omitempty"`
-	// CurrentCanaryStep is the count for current step for a canary deployment
-	CurrentCanaryStep int  `json:"currentCanaryStep,omitempty"`
-	IsActiveCanary    bool `json:"isActiveCanary"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	Steps int `json:"steps,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	StepWeight      uint8         `json:"stepWeight,omitempty"`
+	StepTimeInteval time.Duration `json:"stepTimeInterval,omitempty"`
+	// NextScheduledTime holds time of the next step.
+	NextScheduledTime *metav1.Time `json:"nextScheduledTime,omitempty"`
+	// CurrentStep is the count for current step for a canary deployment.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	CurrentStep int `json:"currentStep,omitempty"`
+	// Active shows if canary deployment is active for this application.
+	Active bool `json:"active,omitempty"`
 }
 
 // AppSpec defines the desired state of App.
@@ -519,19 +527,19 @@ func (s AppStatus) Condition(t AppConditionType) *AppCondition {
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
 func (app *App) DoCanary(now metav1.Time) {
-	if app.Spec.Canary.CurrentCanaryStep != app.Spec.Canary.Steps {
+	if app.Spec.Canary.CurrentStep != app.Spec.Canary.Steps {
 		if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
 			// update traffic weight distributions across deployments
 			app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
 			app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
-			app.Spec.Canary.CurrentCanaryStep++
+			app.Spec.Canary.CurrentStep++
 
 			// check if the canary weight is exceeding 100% of traffic
-			if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 || app.Spec.Canary.CurrentCanaryStep == app.Spec.Canary.Steps {
+			if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 || app.Spec.Canary.CurrentStep == app.Spec.Canary.Steps {
 				// set primary deployment traffic to 0%
 				app.Spec.Deployments[0].RoutingSettings.Weight = 0
-				app.Spec.Canary.IsActiveCanary = false
-				app.Spec.Canary.CurrentCanaryStep = app.Spec.Canary.Steps
+				app.Spec.Canary.Active = false
+				app.Spec.Canary.CurrentStep = app.Spec.Canary.Steps
 			}
 
 			// update next scheduled time
