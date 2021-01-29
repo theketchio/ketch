@@ -31,6 +31,8 @@ spec:
         {{- if $process.routable }}
         - destination:
             host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+            port:
+              number: {{ $process.publicServicePort }}
           weight: {{$deployment.routingSettings.weight}}
           {{- end }}
           {{- end }}

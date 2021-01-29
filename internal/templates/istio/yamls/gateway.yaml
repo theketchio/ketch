@@ -15,7 +15,7 @@ spec:
       {{- if $process.routable }}
        {{- if  $.Values.app.ingress.http }}
   - port:
-      number: {{ $process.publicServicePort }}
+      number: 80
       name: http-{{ $deployment.version }}
       protocol: HTTP
     hosts:
