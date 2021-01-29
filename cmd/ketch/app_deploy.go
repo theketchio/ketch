@@ -163,7 +163,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		return err
 	}
 
-	if options.steps > 1 {
+	if options.isCanarySet() {
 		// check for old deployments
 		switch deps := len(app.Spec.Deployments); {
 		case deps == 0:
@@ -400,9 +400,14 @@ func (opts appDeployOptions) nextScheduledTime() time.Time {
 	return time.Now().Add(stepInt)
 }
 
+// Timeout parses a user-provided timeout for wait operation and returns it as time.Duration.
 func (opts appDeployOptions) Timeout() time.Duration {
 	timeout, _ := time.ParseDuration(opts.timeout)
 	return timeout
+}
+
+func (opts appDeployOptions) isCanarySet() bool {
+	return opts.steps > 1
 }
 
 func (opts appDeployOptions) KetchYaml() (*ketchv1.KetchYamlData, error) {

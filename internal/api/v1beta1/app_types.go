@@ -169,11 +169,11 @@ type AppStatus struct {
 type CanarySpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=100
-	Steps int `json:"steps"`
+	Steps int `json:"steps,omitempty"`
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=100
-	StepWeight      uint8         `json:"stepWeight"`
-	StepTimeInteval time.Duration `json:"stepTimeInterval"`
+	StepWeight      uint8         `json:"stepWeight,omitempty"`
+	StepTimeInteval time.Duration `json:"stepTimeInterval,omitempty"`
 	// NextScheduledTime holds time of the next step.
 	NextScheduledTime *metav1.Time `json:"nextScheduledTime,omitempty"`
 	// CurrentStep is the count for current step for a canary deployment.
@@ -181,7 +181,7 @@ type CanarySpec struct {
 	// +kubebuilder:validation:Maximum=100
 	CurrentStep int `json:"currentStep,omitempty"`
 	// Active shows if canary deployment is active for this application.
-	Active bool `json:"active"`
+	Active bool `json:"active,omitempty"`
 }
 
 // AppSpec defines the desired state of App.
