@@ -312,7 +312,7 @@ func changeAppCRD(app *ketchv1.App, args deploymentArguments) error {
 	if args.steps > 1 {
 
 		if len(app.Spec.Deployments) != 1 {
-			// Shouldn't happen
+			// Shouldn't happen, it's here to avoid tests with incorrect data.
 			return errors.New("canary deployment failed: the application has to contain one deployment")
 		}
 
