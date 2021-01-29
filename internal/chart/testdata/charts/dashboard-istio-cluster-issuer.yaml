@@ -179,7 +179,7 @@ spec:
     istio: ingressgateway
   servers:
   - port:
-      number: 9090
+      number: 80
       name: http-3
       protocol: HTTP
     hosts:
@@ -223,4 +223,6 @@ spec:
     - route:
         - destination:
             host: dashboard-web-3
+            port:
+              number: 9090
           weight: 100
