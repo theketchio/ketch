@@ -205,7 +205,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	// check for canary deployment
 	if app.Spec.Canary.Active {
 		// retry until all pods for canary deployment comes to running state.
-		if err := canaryPodStatus(r, app); err != nil {
+		if err := canaryPodStatus(r.Client, app); err != nil {
 			return reconcileResult{
 				status:     v1.ConditionFalse,
 				message:    fmt.Sprintf("canary upgrade failed: %v", err),
@@ -242,7 +242,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 }
 
 // canaryPodStatus checks whether all pods for canary deployment are running or not.
-func canaryPodStatus(r *AppReconciler, app *ketchv1.App) error {
+func canaryPodStatus(c client.Client, app *ketchv1.App) error {
 	if len(app.Spec.Deployments) <= 1 {
 		return errors.New("no canary deployment found")
 	}
@@ -256,7 +256,7 @@ func canaryPodStatus(r *AppReconciler, app *ketchv1.App) error {
 			"theketch.io/app-deployment-version": fmt.Sprint(app.Spec.Deployments[1].Version)}),
 	}
 
-	if err := r.Client.List(context.Background(), podList, listOpts...); err != nil {
+	if err := c.List(context.Background(), podList, listOpts...); err != nil {
 		return err
 	}
 
