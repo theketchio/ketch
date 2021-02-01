@@ -22,9 +22,8 @@ spec:
     kind: Rule
     services:
     {{- range $_, $deployment := $.Values.app.deployments }}
-    {{ if gt $deployment.routingSettings.weight 0.0}}
     {{- range $_, $process := $deployment.processes }}
-     {{- if $process.routable }}
+     {{- if $process.routable }}{{- if gt $deployment.routingSettings.weight 0.0}}
     - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
       port: {{ $process.publicServicePort }}
       weight: {{$deployment.routingSettings.weight}}
@@ -62,8 +61,7 @@ spec:
     services:
     {{- range $_, $deployment := $.Values.app.deployments }}
     {{- range $_, $process := $deployment.processes }}
-     {{- if $process.routable }}
-     {{ if gt $deployment.routingSettings.weight 0.0}}
+     {{- if $process.routable }}{{- if gt $deployment.routingSettings.weight 0.0}}
     - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
       port: {{ $process.publicServicePort }}
       weight: {{$deployment.routingSettings.weight}}  
