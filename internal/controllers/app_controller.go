@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/tools/reference"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -200,6 +201,22 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 
 	// check for canary deployment
 	if app.Spec.Canary.Active {
+		// retry until all pods for canary deployment comes to running state.
+		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			if err := canaryPodStatus(r, app); err != nil {
+				return chart.ErrEmptyProcfile
+			}
+			return nil
+		})
+
+		if retryErr != nil {
+			return reconcileResult{
+				status:  v1.ConditionFalse,
+				message: fmt.Sprintf("canary upgrade failed: %v", err),
+			}
+		}
+
+		// Once all pods are running then Perform canary deployment.
 		if err = app.DoCanary(metav1.NewTime(r.Now())); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
@@ -225,6 +242,30 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		pool:   ref,
 		status: v1.ConditionTrue,
 	}
+}
+
+func canaryPodStatus(r *AppReconciler, app *ketchv1.App) error {
+	if len(app.Spec.Deployments) <= 1 {
+		return errors.New("no canary deployment found")
+	}
+
+	podList := &v1.PodList{}
+	listOpts := []client.ListOption{
+		client.MatchingLabels(map[string]string{
+			"theketch.io/app-name":               app.Name,
+			"theketch.io/app-deployment-version": fmt.Sprint(app.Spec.Deployments[1].Version)}),
+	}
+
+	if err := r.Client.List(context.Background(), podList, listOpts...); err != nil {
+		return err
+	}
+
+	for _, pod := range podList.Items {
+		if pod.Status.Phase != v1.PodRunning {
+			return errors.New("all pods are not running")
+		}
+	}
+	return nil
 }
 
 func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {
