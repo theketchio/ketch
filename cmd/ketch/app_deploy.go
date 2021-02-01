@@ -326,11 +326,9 @@ func changeAppCRD(app *ketchv1.App, args deploymentArguments) error {
 			Active:            true,
 		}
 
-		// set weight for canary deployment
-		deploymentSpec.RoutingSettings.Weight = args.stepWeight
-
-		//  update old deployment weight
-		app.Spec.Deployments[0].RoutingSettings.Weight = defaultTrafficWeight - args.stepWeight
+		// set initial weight for canary deployment to zero.
+		// App controller will update the weight once all pods for canary will be on running state.
+		deploymentSpec.RoutingSettings.Weight = 0
 
 		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
 		app.Spec.Deployments = append(app.Spec.Deployments, deploymentSpec)

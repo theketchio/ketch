@@ -23,14 +23,15 @@ spec:
     services:
     {{- range $_, $deployment := $.Values.app.deployments }}
     {{- range $_, $process := $deployment.processes }}
-     {{- if $process.routable }}
+     {{- if $process.routable }}{{- if gt $deployment.routingSettings.weight 0.0}}
     - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
       port: {{ $process.publicServicePort }}
       weight: {{$deployment.routingSettings.weight}}
       {{- end }}   
       {{- end }}   
-      {{- end }}   
+      {{- end }}  
   {{- end }}   
+  {{- end }} 
 {{- end }}
 ---
 {{- end }}
@@ -60,13 +61,14 @@ spec:
     services:
     {{- range $_, $deployment := $.Values.app.deployments }}
     {{- range $_, $process := $deployment.processes }}
-     {{- if $process.routable }}
+     {{- if $process.routable }}{{- if gt $deployment.routingSettings.weight 0.0}}
     - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
       port: {{ $process.publicServicePort }}
       weight: {{$deployment.routingSettings.weight}}  
       {{- end }}   
       {{- end }}   
       {{- end }}   
+  {{- end }}   
   {{- end }}  
   tls:
   {{- range $_, $https := .Values.app.ingress.https }} 

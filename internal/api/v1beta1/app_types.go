@@ -532,6 +532,11 @@ func (app *App) DoCanary(now metav1.Time) error {
 	if !app.Spec.Canary.Active {
 		return nil
 	}
+
+	if len(app.Spec.Deployments) <= 1 {
+		return errors.New("no canary deployment found")
+	}
+
 	if app.Spec.Canary.NextScheduledTime == nil {
 		return errors.New("canary is active but the next step is not scheduled")
 	}
