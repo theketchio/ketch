@@ -214,7 +214,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
 			return reconcileResult{
 				status:     v1.ConditionFalse,
-				message:    fmt.Sprintf("canary upgrade failed: %v", err),
+				message:    fmt.Sprintf("canary update failed: %v", err),
 				useTimeout: true,
 			}
 		}
@@ -223,13 +223,13 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		if err = app.DoCanary(metav1.NewTime(r.Now())); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("canary upgrade failed: %v", err),
+				message: fmt.Sprintf("canary update failed: %v", err),
 			}
 		}
 		if err := r.Update(ctx, app); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("canary upgrade failed: %v", err),
+				message: fmt.Sprintf("canary update failed: %v", err),
 			}
 		}
 	}
