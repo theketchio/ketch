@@ -122,14 +122,14 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, err
 	}
 
+	// use canary step interval as the timeout when canary is active
+	if app.Spec.Canary.Active {
+		result = ctrl.Result{RequeueAfter: app.Spec.Canary.StepTimeInteval}
+	}
+
 	if scheduleResult.useTimeout {
 		// set default timeout
 		result = ctrl.Result{RequeueAfter: reconcileTimeout}
-
-		// use canary step interval as the timeout when canary is active
-		if app.Spec.Canary.Active {
-			result = ctrl.Result{RequeueAfter: app.Spec.Canary.StepTimeInteval}
-		}
 	}
 
 	return result, err
