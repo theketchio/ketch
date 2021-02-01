@@ -122,7 +122,7 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, err
 	}
 
-	if app.Spec.Canary.Active {
+	if scheduleResult.useTimeout {
 		result = ctrl.Result{RequeueAfter: reconcileTimeout}
 	}
 
@@ -130,9 +130,10 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 type reconcileResult struct {
-	status  v1.ConditionStatus
-	message string
-	pool    *v1.ObjectReference
+	status     v1.ConditionStatus
+	message    string
+	pool       *v1.ObjectReference
+	useTimeout bool
 }
 
 func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconcileResult {
@@ -206,8 +207,9 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		// retry until all pods for canary deployment comes to running state.
 		if err := canaryPodStatus(r, app); err != nil {
 			return reconcileResult{
-				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("canary upgrade failed: %v", err),
+				status:     v1.ConditionFalse,
+				message:    fmt.Sprintf("canary upgrade failed: %v", err),
+				useTimeout: true,
 			}
 		}
 
