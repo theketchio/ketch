@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/tools/reference"
-	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,6 +39,9 @@ import (
 	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/templates"
 )
+
+// reconcileTimeout is the timeout to trigger Operator reconcile
+const reconcileTimeout = 30 * time.Second
 
 // AppReconciler reconciles a App object.
 type AppReconciler struct {
@@ -121,7 +123,7 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if app.Spec.Canary.Active {
-		result = ctrl.Result{RequeueAfter: app.Spec.Canary.NextScheduledTime.Sub(r.Now())}
+		result = ctrl.Result{RequeueAfter: reconcileTimeout}
 	}
 
 	return result, err
@@ -202,14 +204,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	// check for canary deployment
 	if app.Spec.Canary.Active {
 		// retry until all pods for canary deployment comes to running state.
-		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			if err := canaryPodStatus(r, app); err != nil {
-				return chart.ErrEmptyProcfile
-			}
-			return nil
-		})
-
-		if retryErr != nil {
+		if err := canaryPodStatus(r, app); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
 				message: fmt.Sprintf("canary upgrade failed: %v", err),
