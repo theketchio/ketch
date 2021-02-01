@@ -211,7 +211,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	// check for canary deployment
 	if app.Spec.Canary.Active {
 		// retry until all pods for canary deployment comes to running state.
-		if err := canaryPodStatus(r.Client, app); err != nil {
+		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
 			return reconcileResult{
 				status:     v1.ConditionFalse,
 				message:    fmt.Sprintf("canary upgrade failed: %v", err),
@@ -247,19 +247,23 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	}
 }
 
-// canaryPodStatus checks whether all pods for canary deployment are running or not.
-func canaryPodStatus(c client.Client, app *ketchv1.App) error {
-	if len(app.Spec.Deployments) <= 1 {
-		return errors.New("no canary deployment found")
+// checkPodStatus checks whether all pods for a deployment are running or not.
+func checkPodStatus(c client.Client, appName string, depVersion ketchv1.DeploymentVersion) error {
+	if c == nil {
+		return errors.New("client must be non-nil")
+	}
+
+	if len(appName) == 0 || depVersion <= 0 {
+		return errors.New("invalid app specifications")
 	}
 
 	// podList contains list of Pods matching the specifed labels below
 	podList := &v1.PodList{}
 	listOpts := []client.ListOption{
-		// The specified labels below matches with the 2nd deployment or Canary deployment of the app.
+		// The specified labels below matches with the required deployment pods of the app.
 		client.MatchingLabels(map[string]string{
-			"theketch.io/app-name":               app.Name,
-			"theketch.io/app-deployment-version": fmt.Sprint(app.Spec.Deployments[1].Version)}),
+			"theketch.io/app-name":               appName,
+			"theketch.io/app-deployment-version": fmt.Sprint(depVersion)}),
 	}
 
 	if err := c.List(context.Background(), podList, listOpts...); err != nil {
