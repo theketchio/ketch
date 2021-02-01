@@ -182,7 +182,6 @@ spec:
   - match: Host("dashboard.10.10.10.10.shipa.cloud")
     kind: Rule
     services:
-    
     - name: dashboard-web-3
       port: 9090
       weight: 100
@@ -204,14 +203,12 @@ spec:
   - match: Host("theketch.io")
     kind: Rule
     services:
-    
     - name: dashboard-web-3
       port: 9090
       weight: 100
   - match: Host("app.theketch.io")
     kind: Rule
     services:
-    
     - name: dashboard-web-3
       port: 9090
       weight: 100  
