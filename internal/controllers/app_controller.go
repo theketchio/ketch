@@ -40,6 +40,9 @@ import (
 	"github.com/shipa-corp/ketch/internal/templates"
 )
 
+// reconcileTimeout is the default timeout to trigger Operator reconcile
+const reconcileTimeout = 30 * time.Second
+
 // AppReconciler reconciles a App object.
 type AppReconciler struct {
 	client.Client
@@ -119,17 +122,24 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, err
 	}
 
+	// use canary step interval as the timeout when canary is active
 	if app.Spec.Canary.Active {
-		result = ctrl.Result{RequeueAfter: app.Spec.Canary.NextScheduledTime.Sub(r.Now())}
+		result = ctrl.Result{RequeueAfter: app.Spec.Canary.StepTimeInteval}
+	}
+
+	if scheduleResult.useTimeout {
+		// set default timeout
+		result = ctrl.Result{RequeueAfter: reconcileTimeout}
 	}
 
 	return result, err
 }
 
 type reconcileResult struct {
-	status  v1.ConditionStatus
-	message string
-	pool    *v1.ObjectReference
+	status     v1.ConditionStatus
+	message    string
+	pool       *v1.ObjectReference
+	useTimeout bool
 }
 
 func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconcileResult {
@@ -200,16 +210,26 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 
 	// check for canary deployment
 	if app.Spec.Canary.Active {
+		// retry until all pods for canary deployment comes to running state.
+		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
+			return reconcileResult{
+				status:     v1.ConditionFalse,
+				message:    fmt.Sprintf("canary update failed: %v", err),
+				useTimeout: true,
+			}
+		}
+
+		// Once all pods are running then Perform canary deployment.
 		if err = app.DoCanary(metav1.NewTime(r.Now())); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("canary upgrade failed: %v", err),
+				message: fmt.Sprintf("canary update failed: %v", err),
 			}
 		}
 		if err := r.Update(ctx, app); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("canary upgrade failed: %v", err),
+				message: fmt.Sprintf("canary update failed: %v", err),
 			}
 		}
 	}
@@ -225,6 +245,38 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		pool:   ref,
 		status: v1.ConditionTrue,
 	}
+}
+
+// checkPodStatus checks whether all pods for a deployment are running or not.
+func checkPodStatus(c client.Client, appName string, depVersion ketchv1.DeploymentVersion) error {
+	if c == nil {
+		return errors.New("client must be non-nil")
+	}
+
+	if len(appName) == 0 || depVersion <= 0 {
+		return errors.New("invalid app specifications")
+	}
+
+	// podList contains list of Pods matching the specifed labels below
+	podList := &v1.PodList{}
+	listOpts := []client.ListOption{
+		// The specified labels below matches with the required deployment pods of the app.
+		client.MatchingLabels(map[string]string{
+			"theketch.io/app-name":               appName,
+			"theketch.io/app-deployment-version": fmt.Sprint(depVersion)}),
+	}
+
+	if err := c.List(context.Background(), podList, listOpts...); err != nil {
+		return err
+	}
+
+	// check if all pods are running for the deployment
+	for _, pod := range podList.Items {
+		if pod.Status.Phase != v1.PodRunning {
+			return errors.New("all pods are not running")
+		}
+	}
+	return nil
 }
 
 func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {

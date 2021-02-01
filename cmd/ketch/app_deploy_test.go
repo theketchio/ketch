@@ -284,7 +284,7 @@ func Test_changeAppCRD(t *testing.T) {
 						Image:           "ketch:v1",
 						Version:         1,
 						Processes:       []ketchv1.ProcessSpec{{Name: "web", Cmd: []string{"cmd"}}},
-						RoutingSettings: ketchv1.RoutingSettings{Weight: 67},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 100},
 						ExposedPorts: []ketchv1.ExposedPort{
 							{Port: 999, Protocol: "TCP"},
 						},
@@ -296,7 +296,7 @@ func Test_changeAppCRD(t *testing.T) {
 							{Name: "web", Cmd: []string{"/app/web"}},
 							{Name: "worker", Cmd: []string{"/app/worker"}},
 						},
-						RoutingSettings: ketchv1.RoutingSettings{Weight: 33},
+						RoutingSettings: ketchv1.RoutingSettings{Weight: 0},
 						ExposedPorts: []ketchv1.ExposedPort{
 							{Port: 999, Protocol: "TCP"},
 						},
