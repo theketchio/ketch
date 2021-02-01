@@ -244,13 +244,16 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	}
 }
 
+// canaryPodStatus checks whether all pods for canary deployment are running or not.
 func canaryPodStatus(r *AppReconciler, app *ketchv1.App) error {
 	if len(app.Spec.Deployments) <= 1 {
 		return errors.New("no canary deployment found")
 	}
 
+	// podList contains list of Pods matching the specifed labels below
 	podList := &v1.PodList{}
 	listOpts := []client.ListOption{
+		// The specified labels below matches with the 2nd deployment or Canary deployment of the app.
 		client.MatchingLabels(map[string]string{
 			"theketch.io/app-name":               app.Name,
 			"theketch.io/app-deployment-version": fmt.Sprint(app.Spec.Deployments[1].Version)}),
@@ -260,6 +263,7 @@ func canaryPodStatus(r *AppReconciler, app *ketchv1.App) error {
 		return err
 	}
 
+	// check if all pods are running for the deployment
 	for _, pod := range podList.Items {
 		if pod.Status.Phase != v1.PodRunning {
 			return errors.New("all pods are not running")
