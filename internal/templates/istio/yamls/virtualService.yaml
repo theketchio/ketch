@@ -26,9 +26,10 @@ spec:
     - {{ $.Values.app.name }}-http-gateway
     http:
     - route:
-      {{- range $_, $deployment := $.Values.app.deployments }} {{ if gt $deployment.routingSettings.weight 0.0}}
+      {{- range $_, $deployment := $.Values.app.deployments }} 
         {{- range $_, $process := $deployment.processes }}
-        {{- if $process.routable }}
+        {{- if $process.routable }} 
+        {{ if gt $deployment.routingSettings.weight 0.0}}
         - destination:
             host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
             port:
