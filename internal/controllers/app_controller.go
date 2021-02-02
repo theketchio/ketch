@@ -270,6 +270,10 @@ func checkPodStatus(c client.Client, appName string, depVersion ketchv1.Deployme
 		return err
 	}
 
+	if len(podList.Items) == 0 {
+		return errors.New("no pods found")
+	}
+
 	// check if all pods are running for the deployment
 	for _, pod := range podList.Items {
 		if pod.Status.Phase != v1.PodRunning {
