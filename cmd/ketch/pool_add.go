@@ -79,6 +79,15 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 	if len(options.namespace) > 0 {
 		namespace = options.namespace
 	}
+	if len(options.ingressClusterIssuer) > 0 {
+		exists, err := isClusterIssuerExist(cfg.DynamicClient(), ctx, options.ingressClusterIssuer)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return ErrClusterIssuerNotFound
+		}
+	}
 	pool := ketchv1.Pool{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{

@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -18,6 +18,18 @@ import (
 )
 
 func Test_addPool(t *testing.T) {
+	clusterIssuerLe := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "cert-manager.io/v1",
+			"kind":       "ClusterIssuer",
+			"metadata": map[string]interface{}{
+				"name": "le-production",
+			},
+			"spec": map[string]interface{}{
+				"acme": "https://acme-v02.api.letsencrypt.org/directory",
+			},
+		},
+	}
 	tests := []struct {
 		name    string
 		cfg     config
@@ -25,12 +37,13 @@ func Test_addPool(t *testing.T) {
 
 		wantPoolSpec ketchv1.PoolSpec
 		wantOut      string
-		wantErr      bool
+		wantErr      string
 	}{
 		{
 			name: "default class name for istio is istio",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{},
+				CtrlClientObjects:    []runtime.Object{},
+				DynamicClientObjects: []runtime.Object{clusterIssuerLe},
 			},
 			options: poolAddOptions{
 				name:                   "hello",
@@ -56,7 +69,8 @@ func Test_addPool(t *testing.T) {
 		{
 			name: "successfully added with istio",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{},
+				CtrlClientObjects:    []runtime.Object{},
+				DynamicClientObjects: []runtime.Object{clusterIssuerLe},
 			},
 			options: poolAddOptions{
 				name:                   "hello",
@@ -105,13 +119,27 @@ func Test_addPool(t *testing.T) {
 			},
 			wantOut: "Successfully added!\n",
 		},
+		{
+			name: "error - no cluster issuer",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects:    []runtime.Object{},
+				DynamicClientObjects: []runtime.Object{},
+			},
+			options: poolAddOptions{
+				name:                 "hello",
+				ingressClusterIssuer: "le-production",
+			},
+
+			wantErr: ErrClusterIssuerNotFound.Error(),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
 			err := addPool(context.Background(), tt.cfg, tt.options, out)
-			if tt.wantErr {
+			if len(tt.wantErr) > 0 {
 				require.NotNil(t, err)
+				require.Equal(t, tt.wantErr, err.Error())
 				return
 			}
 			require.Equal(t, out.String(), tt.wantOut)
@@ -119,9 +147,7 @@ func Test_addPool(t *testing.T) {
 			gotPool := ketchv1.Pool{}
 			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.options.name}, &gotPool)
 			require.Nil(t, err)
-			if diff := cmp.Diff(gotPool.Spec, tt.wantPoolSpec); diff != "" {
-				t.Errorf("PoolSpec mismatch (-want +got):\n%s", diff)
-			}
+			require.Equal(t, tt.wantPoolSpec, gotPool.Spec)
 		})
 	}
 }

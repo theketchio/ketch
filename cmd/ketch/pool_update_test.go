@@ -5,18 +5,29 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/stretchr/testify/require"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/mocks"
 )
 
 func Test_poolUpdate(t *testing.T) {
+	clusterIssuerLe := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "cert-manager.io/v1",
+			"kind":       "ClusterIssuer",
+			"metadata": map[string]interface{}{
+				"name": "le-production",
+			},
+			"spec": map[string]interface{}{
+				"acme": "https://acme-v02.api.letsencrypt.org/directory",
+			},
+		},
+	}
 	frontendPool := &ketchv1.Pool{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -156,12 +167,13 @@ func Test_poolUpdate(t *testing.T) {
 		{
 			name: "update cluster issuer",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{frontendPool},
+				CtrlClientObjects:    []runtime.Object{frontendPool},
+				DynamicClientObjects: []runtime.Object{clusterIssuerLe},
 			},
 			options: poolUpdateOptions{
 				name:                    "frontend-pool",
 				ingressClusterIssuerSet: true,
-				ingressClusterIssuer:    "letsencrypt-production",
+				ingressClusterIssuer:    "le-production",
 			},
 			wantOut: "Successfully updated!\n",
 			wantPoolSpec: ketchv1.PoolSpec{
@@ -171,7 +183,7 @@ func Test_poolUpdate(t *testing.T) {
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.17",
 					IngressType:     ketchv1.IstioIngressControllerType,
-					ClusterIssuer:   "letsencrypt-production",
+					ClusterIssuer:   "le-production",
 				},
 			},
 		},
@@ -187,6 +199,18 @@ func Test_poolUpdate(t *testing.T) {
 			},
 			wantErr: `failed to get the pool: pools.theketch.io "frontend-pool" not found`,
 		},
+		{
+			name: "error - no cluster issuer",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{frontendPool},
+			},
+			options: poolUpdateOptions{
+				name:                    "frontend-pool",
+				ingressClusterIssuerSet: true,
+				ingressClusterIssuer:    "le-production",
+			},
+			wantErr: "cluster issuer not found",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -194,20 +218,15 @@ func Test_poolUpdate(t *testing.T) {
 			err := poolUpdate(context.Background(), tt.cfg, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
 			if wantErr {
-				require.NotNil(t, err, "poolUpdate() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if wantErr {
+				require.NotNil(t, err)
 				require.Equal(t, tt.wantErr, err.Error())
 				return
 			}
-			require.Equal(t, tt.wantOut, out.String(), "poolUpdate() gotOut = %v, want %v", out.String(), tt.wantOut)
+			require.Equal(t, tt.wantOut, out.String())
 			gotPool := ketchv1.Pool{}
 			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.options.name}, &gotPool)
 			require.Nil(t, err)
-			if diff := cmp.Diff(gotPool.Spec, tt.wantPoolSpec); diff != "" {
-				t.Errorf("PoolSpec mismatch (-want +got):\n%s", diff)
-			}
+			require.Equal(t, tt.wantPoolSpec, gotPool.Spec)
 		})
 	}
 }

@@ -17,6 +17,8 @@ const (
 
 	ErrNoEntrypointAndCmd   cliError = "image doesn't have entrypoint and cmd set"
 	ErrLogUnknownTimeFormat cliError = "unknown time format"
+
+	ErrClusterIssuerNotFound cliError = "cluster issuer not found"
 )
 
 func unwrappedError(err error) error {
