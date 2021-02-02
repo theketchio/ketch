@@ -101,7 +101,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(w, "DEPLOYMENT VERSION\tIMAGE\tPROCESS NAME\tSTATE\tCMD")
+	fmt.Fprintln(w, "DEPLOYMENT VERSION\tIMAGE\tPROCESS NAME\tSTATE\tCMD\tWeight")
 	noProcesses := true
 	for _, deployment := range app.Spec.Deployments {
 		for _, process := range deployment.Processes {
@@ -114,6 +114,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 				process.Name,
 				state,
 				strings.Join(process.Cmd, " "),
+				fmt.Sprintf("%v", deployment.RoutingSettings.Weight),
 			}
 			fmt.Fprintln(w, strings.Join(line, "\t"))
 		}
