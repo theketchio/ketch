@@ -9,16 +9,13 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-var (
-	clusterIssuerGVR = schema.GroupVersionResource{
+func clusterIssuerExist(iface dynamic.Interface, ctx context.Context, clusterIssuerName string) (bool, error) {
+	gvr := schema.GroupVersionResource{
 		Group:    "cert-manager.io",
 		Version:  "v1",
 		Resource: "clusterissuers",
 	}
-)
-
-func isClusterIssuerExist(iface dynamic.Interface, ctx context.Context, clusterIssuerName string) (bool, error) {
-	_, err := iface.Resource(clusterIssuerGVR).Get(ctx, clusterIssuerName, metav1.GetOptions{})
+	_, err := iface.Resource(gvr).Get(ctx, clusterIssuerName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return false, nil
 	}

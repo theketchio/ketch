@@ -40,11 +40,11 @@ func (cfg *Configuration) Client() client.Client {
 	factory := cmdutil.NewFactory(configFlags)
 	kubeCfg, err := factory.ToRESTConfig()
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	cfg.cli, err = client.New(kubeCfg, client.Options{Scheme: scheme})
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	return cfg.cli
 }
@@ -55,11 +55,11 @@ func (cfg *Configuration) KubernetesClient() kubernetes.Interface {
 	factory := cmdutil.NewFactory(configFlags)
 	kubeCfg, err := factory.ToRESTConfig()
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	clientset, err := kubernetes.NewForConfig(kubeCfg)
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	return clientset
 }
@@ -79,11 +79,11 @@ func (cfg *Configuration) DynamicClient() dynamic.Interface {
 	factory := cmdutil.NewFactory(flags)
 	conf, err := factory.ToRESTConfig()
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	i, err := dynamic.NewForConfig(conf)
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	return i
 }

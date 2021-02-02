@@ -80,7 +80,7 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 		namespace = options.namespace
 	}
 	if len(options.ingressClusterIssuer) > 0 {
-		exists, err := isClusterIssuerExist(cfg.DynamicClient(), ctx, options.ingressClusterIssuer)
+		exists, err := clusterIssuerExist(cfg.DynamicClient(), ctx, options.ingressClusterIssuer)
 		if err != nil {
 			return err
 		}

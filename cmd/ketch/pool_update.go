@@ -81,7 +81,7 @@ func poolUpdate(ctx context.Context, cfg config, options poolUpdateOptions, out 
 		pool.Spec.IngressController.IngressType = options.ingressType.ingressControllerType()
 	}
 	if options.ingressClusterIssuerSet {
-		exists, err := isClusterIssuerExist(cfg.DynamicClient(), ctx, options.ingressClusterIssuer)
+		exists, err := clusterIssuerExist(cfg.DynamicClient(), ctx, options.ingressClusterIssuer)
 		if err != nil {
 			return err
 		}
