@@ -263,7 +263,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		return wait(ctx, cfg, app, options.Timeout(), out)
 	}
 
-	fmt.Fprintln(out, "app crd updated successfully, check the app’s events to understand results of the deployment")
+	fmt.Fprintln(out, fmt.Sprintf("App %s deployed successfully. Run `ketch app info %s` to check status of the deployment", app.Name, app.Name))
 	return nil
 }
 

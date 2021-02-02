@@ -591,7 +591,7 @@ func Test_appDeploy(t *testing.T) {
 			changeAppCRDFn: func(app *ketchv1.App, args deploymentArguments) error {
 				return nil
 			},
-			wantOut: "app crd updated successfully, check the app’s events to understand results of the deployment\n",
+			wantOut: "App dashboard deployed successfully. Run `ketch app info dashboard` to check status of the deployment\n",
 		},
 		{
 			name: "error - no pool",
