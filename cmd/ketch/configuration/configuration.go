@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -39,25 +40,26 @@ func (cfg *Configuration) Client() client.Client {
 	factory := cmdutil.NewFactory(configFlags)
 	kubeCfg, err := factory.ToRESTConfig()
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	cfg.cli, err = client.New(kubeCfg, client.Options{Scheme: scheme})
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	return cfg.cli
 }
 
+// KubernetesClient returns kubernetes typed client. It's used to work with standard kubernetes types.
 func (cfg *Configuration) KubernetesClient() kubernetes.Interface {
 	configFlags := genericclioptions.NewConfigFlags(true)
 	factory := cmdutil.NewFactory(configFlags)
 	kubeCfg, err := factory.ToRESTConfig()
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	clientset, err := kubernetes.NewForConfig(kubeCfg)
 	if err != nil {
-		log.Fatalf("can't create kubernetes client: %v", err)
+		log.Fatalf("failed to create kubernetes client: %v", err)
 	}
 	return clientset
 }
@@ -69,4 +71,19 @@ func (cfg *Configuration) Storage() templates.Client {
 	}
 	cfg.storage = templates.NewStorage(cfg.Client(), controllers.KetchNamespace)
 	return cfg.storage
+}
+
+// DynamicClient returns kubernetes dynamic client. It's used to work with CRDs for which we don't have go types like ClusterIssuer.
+func (cfg *Configuration) DynamicClient() dynamic.Interface {
+	flags := genericclioptions.NewConfigFlags(true)
+	factory := cmdutil.NewFactory(flags)
+	conf, err := factory.ToRESTConfig()
+	if err != nil {
+		log.Fatalf("failed to create kubernetes client: %v", err)
+	}
+	i, err := dynamic.NewForConfig(conf)
+	if err != nil {
+		log.Fatalf("failed to create kubernetes client: %v", err)
+	}
+	return i
 }

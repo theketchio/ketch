@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"io"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
@@ -16,7 +18,10 @@ import (
 type config interface {
 	Client() client.Client
 	Storage() templates.Client
+	// KubernetesClient returns kubernetes typed client. It's used to work with standard kubernetes types.
 	KubernetesClient() kubernetes.Interface
+	// DynamicClient returns kubernetes dynamic client. It's used to work with CRDs for which we don't have go types like ClusterIssuer.
+	DynamicClient() dynamic.Interface
 }
 
 type resourceCreator interface {
