@@ -189,7 +189,7 @@ type CanarySpec struct {
 	// FailureCount is a number that holds how many times the canary deployment was in unhealthy state.
 	// This will help to rollback all the waits to primary deployment if the count reaches it's limit.
 	// +kubebuilder:validation:Minimum=0
-	FailureCount int `json:"failureCount,omitempty"`
+	FailureCount int `json:"failureCount"`
 }
 
 // AppSpec defines the desired state of App.
