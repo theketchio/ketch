@@ -36,7 +36,7 @@ const (
 	DefaultNumberOfUnits = 1
 	// CanaryFailureCountLimit is the maximum number of consecutive failure Count for canary deployment.
 	// If it reaches this limit then weights will be rolledback to primary deployment and canary will become inactive
-	CanaryFailureCountLimit = 5
+	CanaryFailureCountLimit = 20
 )
 
 // Env represents an environment variable present in an application.
