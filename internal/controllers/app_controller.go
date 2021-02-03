@@ -223,8 +223,9 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 			app.IncrementCanaryFailureCounter()
 			if e := r.Update(ctx, app); err != nil {
 				return reconcileResult{
-					status:  v1.ConditionFalse,
-					message: fmt.Sprintf("failed to increment canary failure count: %v", e),
+					status:     v1.ConditionFalse,
+					message:    fmt.Sprintf("failed to increment canary failure count: %v", e),
+					useTimeout: true,
 				}
 			}
 
@@ -232,8 +233,9 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 			app.DoRollbackIfNeeded()
 			if e := r.Update(ctx, app); err != nil {
 				return reconcileResult{
-					status:  v1.ConditionFalse,
-					message: fmt.Sprintf("failed to perform rollback: %v", e),
+					status:     v1.ConditionFalse,
+					message:    fmt.Sprintf("failed to perform rollback: %v", e),
+					useTimeout: true,
 				}
 			}
 
