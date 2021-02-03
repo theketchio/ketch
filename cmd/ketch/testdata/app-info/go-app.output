@@ -6,6 +6,6 @@ Environment variables:
 API_KEY=public_key
 VAR1=VALUE
 
-DEPLOYMENT VERSION    IMAGE                      PROCESS NAME    Weight    STATE      CMD
+DEPLOYMENT VERSION    IMAGE                      PROCESS NAME    WEIGHT    STATE      CMD
 1                     shipasoftware/go-app:v1    web             0%        created    docker-entrypoint.sh npm start
 1                     shipasoftware/go-app:v1    worker          0%        created    docker-entrypoint.sh npm worker
