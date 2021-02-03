@@ -2,50 +2,44 @@ package docker
 
 import (
 	"encoding/base64"
-	"github.com/docker/cli/cli/config"
-	cliTypes "github.com/docker/cli/cli/config/types"
-	"github.com/docker/docker/api/types"
-	regTypes "github.com/docker/docker/api/types/registry"
-	"github.com/docker/docker/registry"
-	"k8s.io/apimachinery/pkg/util/json"
+	"encoding/json"
 	"strings"
 
+	"github.com/docker/cli/cli/config"
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
-const officialHost = "docker"
+const (
+	officialHost = "docker"
+	dockerIndex  = "index.docker.io"
+)
 
-func getEncodedRegistryAuth(configPath string, regHost string, insecure bool) (string, error) {
-	cfg, err := config.Load(configPath)
+func getEncodedRegistryAuth(regHost string) (string, error) {
+	cfg, err := config.Load(config.Dir())
 	if err != nil {
 		return "", errors.Wrap(err, "could not load docker config")
 	}
-	info := &regTypes.IndexInfo{Name: regHost, Secure: !insecure, Official: official(regHost)}
-	auth := registry.ResolveAuthConfig(convert(cfg.AuthConfigs), info)
+
+	auth, err := cfg.GetAuthConfig(norm(regHost))
+	if err != nil {
+		return "", errors.Wrap(err, "could not load auth from docker config")
+	}
+
 	jsonAuth, err := json.Marshal(auth)
 	if err != nil {
 		return "", errors.Wrap(err, "could not json encode docker auth config")
 	}
+
 	return base64.URLEncoding.EncodeToString(jsonAuth), nil
 }
 
-func official(regHost string) bool {
-	return strings.Contains(regHost, officialHost)
+func norm(regHost string) string {
+	if isHostOfficial(regHost) {
+		return dockerIndex
+	}
+	return regHost
 }
 
-func convert(auths map[string]cliTypes.AuthConfig) map[string]types.AuthConfig {
-	result := make(map[string]types.AuthConfig)
-	for k, v := range auths {
-		result[k] = types.AuthConfig{
-			Username:      v.Username,
-			Password:      v.Password,
-			Auth:          v.Auth,
-			Email:         v.Email,
-			ServerAddress: v.ServerAddress,
-			IdentityToken: v.IdentityToken,
-			RegistryToken: v.RegistryToken,
-		}
-
-	}
-	return result
+func isHostOfficial(regHost string) bool {
+	return strings.Contains(regHost, officialHost)
 }
