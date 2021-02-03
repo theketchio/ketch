@@ -36,7 +36,7 @@ const (
 	DefaultNumberOfUnits = 1
 	// CanaryFailureCountLimit is the maximum number of consecutive failure Count for canary deployment.
 	// If it reaches this limit then weights will be rolledback to primary deployment and canary will become inactive
-	CanaryFailureCountLimit = 30
+	CanaryFailureCountLimit = 20
 )
 
 // Env represents an environment variable present in an application.
@@ -190,8 +190,6 @@ type CanarySpec struct {
 	// This will help to rollback all the waits to primary deployment if the count reaches it's limit.
 	// +kubebuilder:validation:Minimum=0
 	FailureCount int `json:"failureCount,omitempty"`
-	// Timeout for canary deployment
-	Timeout time.Duration `json:"timeout,omitempty"`
 }
 
 // AppSpec defines the desired state of App.

@@ -40,6 +40,9 @@ import (
 	"github.com/shipa-corp/ketch/internal/templates"
 )
 
+// reconcileTimeout is the default timeout to trigger Operator reconcile
+const reconcileTimeout = 30 * time.Second
+
 // AppReconciler reconciles a App object.
 type AppReconciler struct {
 	client.Client
@@ -126,7 +129,7 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if scheduleResult.useTimeout {
 		// set default timeout
-		result = ctrl.Result{RequeueAfter: app.Spec.Canary.Timeout}
+		result = ctrl.Result{RequeueAfter: reconcileTimeout}
 	}
 
 	return result, err

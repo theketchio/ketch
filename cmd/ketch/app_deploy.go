@@ -327,7 +327,6 @@ func changeAppCRD(app *ketchv1.App, args deploymentArguments) error {
 			CurrentStep:       1,
 			Active:            true,
 			FailureCount:      0,
-			Timeout:           args.timeout,
 		}
 
 		// set initial weight for canary deployment to zero.
