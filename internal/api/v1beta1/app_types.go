@@ -183,6 +183,8 @@ type CanarySpec struct {
 	CurrentStep int `json:"currentStep,omitempty"`
 	// Active shows if canary deployment is active for this application.
 	Active bool `json:"active,omitempty"`
+	// Started holds time when canary started
+	Started *metav1.Time `json:"started,omitempty"`
 }
 
 // AppSpec defines the desired state of App.
@@ -565,7 +567,16 @@ func (app *App) DoCanary(now metav1.Time) error {
 			app.Spec.Deployments = []AppDeploymentSpec{app.Spec.Deployments[1]}
 		}
 	}
+
 	return nil
+}
+
+// DoRollback performs rollback
+func (app *App) DoRollback() {
+	// we need to rollback all weight to the primary deployment
+	app.Spec.Deployments[0].RoutingSettings.Weight = 100
+	app.Spec.Deployments[1].RoutingSettings.Weight = 0
+	app.Spec.Canary.Active = false
 }
 
 // PodState describes the simplified state of a pod in the cluster

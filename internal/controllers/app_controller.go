@@ -40,9 +40,6 @@ import (
 	"github.com/shipa-corp/ketch/internal/templates"
 )
 
-// reconcileTimeout is the default timeout to trigger Operator reconcile
-const reconcileTimeout = 30 * time.Second
-
 // AppReconciler reconciles a App object.
 type AppReconciler struct {
 	client.Client
@@ -210,12 +207,37 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 
 	// check for canary deployment
 	if app.Spec.Canary.Active {
-		// retry until all pods for canary deployment comes to running state.
-		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
+		// ensures that the canary deployment exists
+		if len(app.Spec.Deployments) <= 1 {
+			// reset canary specs
+			app.Spec.Canary = ketchv1.CanarySpec{}
+
 			return reconcileResult{
 				status:     v1.ConditionFalse,
-				message:    fmt.Sprintf("canary update failed: %v", err),
+				message:    "no canary deployment found",
 				useTimeout: true,
+			}
+		}
+
+		// retry until all pods for canary deployment comes to running state.
+		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
+
+			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
+				return reconcileResult{
+					status:     v1.ConditionFalse,
+					message:    fmt.Sprintf("canary update failed: %v", err),
+					useTimeout: true,
+				}
+			}
+
+			// Do rollback if timeout expired
+			app.DoRollback()
+			if e := r.Update(ctx, app); err != nil {
+				return reconcileResult{
+					status:     v1.ConditionFalse,
+					message:    fmt.Sprintf("failed to update app crd: %v", e),
+					useTimeout: true,
+				}
 			}
 		}
 
@@ -247,6 +269,11 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	}
 }
 
+// check if timeout has expired
+func timeoutExpired(t *metav1.Time, now time.Time) bool {
+	return t.Add(reconcileTimeout).Before(now)
+}
+
 // checkPodStatus checks whether all pods for a deployment are running or not.
 func checkPodStatus(c client.Client, appName string, depVersion ketchv1.DeploymentVersion) error {
 	if c == nil {
@@ -263,7 +290,7 @@ func checkPodStatus(c client.Client, appName string, depVersion ketchv1.Deployme
 		// The specified labels below matches with the required deployment pods of the app.
 		client.MatchingLabels(map[string]string{
 			"theketch.io/app-name":               appName,
-			"theketch.io/app-deployment-version": fmt.Sprint(depVersion)}),
+			"theketch.io/app-deployment-version": fmt.Sprintf("%d", depVersion)}),
 	}
 
 	if err := c.List(context.Background(), podList, listOpts...); err != nil {
@@ -272,8 +299,19 @@ func checkPodStatus(c client.Client, appName string, depVersion ketchv1.Deployme
 
 	// check if all pods are running for the deployment
 	for _, pod := range podList.Items {
+		// check if pod have voluntarily terminated with a container exit code of 0
+		if pod.Status.Phase == v1.PodSucceeded {
+			return nil
+		}
+
 		if pod.Status.Phase != v1.PodRunning {
 			return errors.New("all pods are not running")
+		}
+
+		for _, c := range pod.Status.Conditions {
+			if c.Status != v1.ConditionTrue {
+				return errors.New("all pods are not in healthy state")
+			}
 		}
 	}
 	return nil

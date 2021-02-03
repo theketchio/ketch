@@ -269,6 +269,7 @@ func Test_changeAppCRD(t *testing.T) {
 				stepTimeInterval:  5 * time.Hour,
 				nextScheduledTime: time.Date(2017, 11, 11, 10, 30, 30, 0, time.UTC),
 				configFile:        configFile,
+				started:           time.Date(2017, 11, 11, 10, 30, 30, 0, time.UTC),
 			},
 			wantAppSpec: ketchv1.AppSpec{
 				Canary: ketchv1.CanarySpec{
@@ -278,6 +279,7 @@ func Test_changeAppCRD(t *testing.T) {
 					NextScheduledTime: metav1TimeRef(metav1.NewTime(time.Date(2017, 11, 11, 10, 30, 30, 0, time.UTC))),
 					CurrentStep:       1,
 					Active:            true,
+					Started:           metav1TimeRef(metav1.NewTime(time.Date(2017, 11, 11, 10, 30, 30, 0, time.UTC))),
 				},
 				Deployments: []ketchv1.AppDeploymentSpec{
 					{
