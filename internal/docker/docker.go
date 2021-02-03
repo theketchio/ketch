@@ -6,12 +6,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
+	"io"
+
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
-	"io"
-	"k8s.io/apimachinery/pkg/util/json"
 
 	"github.com/shipa-corp/ketch/internal/errors"
 )
