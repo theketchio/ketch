@@ -19,6 +19,7 @@ func getEncodedRegistryAuth(regHost string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "could not load docker config")
 	}
+
 	auth, err := cfg.GetAuthConfig(norm(regHost))
 	if err != nil {
 		return "", errors.Wrap(err, "could not load auth from docker config")
@@ -28,16 +29,17 @@ func getEncodedRegistryAuth(regHost string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "could not json encode docker auth config")
 	}
+
 	return base64.URLEncoding.EncodeToString(jsonAuth), nil
 }
 
 func norm(regHost string) string {
-	if official(regHost) {
+	if isHostOfficial(regHost) {
 		return dockerIndex
 	}
 	return regHost
 }
 
-func official(regHost string) bool {
+func isHostOfficial(regHost string) bool {
 	return strings.Contains(regHost, officialHost)
 }
