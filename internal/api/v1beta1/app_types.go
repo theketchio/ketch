@@ -190,6 +190,8 @@ type CanarySpec struct {
 	// This will help to rollback all the waits to primary deployment if the count reaches it's limit.
 	// +kubebuilder:validation:Minimum=0
 	FailureCount int `json:"failureCount,omitempty"`
+	// Timeout for canary deployment
+	Timeout time.Duration `json:"timeout,omitempty"`
 }
 
 // AppSpec defines the desired state of App.

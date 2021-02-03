@@ -82,6 +82,10 @@ spec:
                   maximum: 100
                   minimum: 0
                   type: integer
+                timeout:
+                  description: Timeout for canary deployment
+                  format: int64
+                  type: integer
               type: object
             deployments:
               description: Deployments is a list of running deployments.

@@ -130,6 +130,11 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if scheduleResult.useTimeout {
 		// set default timeout
 		result = ctrl.Result{RequeueAfter: reconcileTimeout}
+
+		// set user provided timeout
+		if app.Spec.Canary.Timeout != 0 {
+			result = ctrl.Result{RequeueAfter: app.Spec.Canary.Timeout}
+		}
 	}
 
 	return result, err
