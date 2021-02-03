@@ -221,20 +221,12 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
 			// increment failure count for canary
 			app.IncrementCanaryFailureCounter()
-			if e := r.Update(ctx, app); err != nil {
-				return reconcileResult{
-					status:     v1.ConditionFalse,
-					message:    fmt.Sprintf("failed to increment canary failure count: %v", e),
-					useTimeout: true,
-				}
-			}
-
 			// check if rollback is needed
 			app.DoRollbackIfNeeded()
 			if e := r.Update(ctx, app); err != nil {
 				return reconcileResult{
 					status:     v1.ConditionFalse,
-					message:    fmt.Sprintf("failed to perform rollback: %v", e),
+					message:    fmt.Sprintf("failed to update app crd: %v", e),
 					useTimeout: true,
 				}
 			}
