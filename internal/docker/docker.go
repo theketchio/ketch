@@ -6,21 +6,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"io"
-	"os/user"
-	"path"
-
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
+	"io"
 	"k8s.io/apimachinery/pkg/util/json"
 
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
 const (
-	dockerDir        = ".docker"
 	procfileLocation = "home/application/current/Procfile"
 )
 
@@ -49,8 +45,6 @@ type BuildRequest struct {
 	// AuthConfig optional auth config that could be from a k8s secret or supplied on the
 	// command line if you don't want to use your local docker credentials.
 	AuthConfig *types.AuthConfig
-	// Insecure true if the repository doesn't use TLS
-	Insecure bool
 }
 
 // BuildResponse is returned from successful invocation of Build. It contains the fully qualified
@@ -58,14 +52,6 @@ type BuildRequest struct {
 type BuildResponse struct {
 	ImageURI string
 	Procfile string
-}
-
-func dockerConfigDirectory() (string, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-	return path.Join(usr.HomeDir, dockerDir), nil
 }
 
 func domain(img string) (string, error) {
@@ -100,11 +86,6 @@ func New() (*Client, error) {
 		getProcfile: getProcfile,
 	}
 
-	dockerConfig, err := dockerConfigDirectory()
-	if err != nil {
-		return nil, errors.Wrap(err, "could not fetch docker config directory")
-	}
-
 	resp.authEncodeFn = func(req BuildRequest) (string, error) {
 		if req.AuthConfig != nil {
 			jsonAuth, err := json.Marshal(req.AuthConfig)
@@ -118,7 +99,7 @@ func New() (*Client, error) {
 		if err != nil {
 			return "", err
 		}
-		encodedAuth, err := getEncodedRegistryAuth(dockerConfig, repo, req.Insecure)
+		encodedAuth, err := getEncodedRegistryAuth(repo)
 		if err != nil {
 			return "", err
 		}
