@@ -210,6 +210,16 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 
 	// check for canary deployment
 	if app.Spec.Canary.Active {
+		// ensures that the canary deploment exists
+		if len(app.Spec.Deployments) <= 1 {
+			app.Spec.Canary.Active = false
+			return reconcileResult{
+				status:     v1.ConditionFalse,
+				message:    "no canary deployment found",
+				useTimeout: true,
+			}
+		}
+
 		// retry until all pods for canary deployment comes to running state.
 		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
 			// update canary failure count
@@ -276,6 +286,12 @@ func checkPodStatus(c client.Client, appName string, depVersion ketchv1.Deployme
 	for _, pod := range podList.Items {
 		if pod.Status.Phase != v1.PodRunning {
 			return errors.New("all pods are not running")
+		}
+
+		for _, c := range pod.Status.Conditions {
+			if c.Status != v1.ConditionTrue {
+				return errors.New("all pods are not in healthy state")
+			}
 		}
 	}
 	return nil
