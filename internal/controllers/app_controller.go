@@ -210,7 +210,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 
 	// check for canary deployment
 	if app.Spec.Canary.Active {
-		// ensures that the canary deploment exists
+		// ensures that the canary deployment exists
 		if len(app.Spec.Deployments) <= 1 {
 			app.Spec.Canary.Active = false
 			return reconcileResult{
