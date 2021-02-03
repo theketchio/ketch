@@ -15,7 +15,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
@@ -362,18 +361,9 @@ func waitHandler(watchReconcileEvent watchReconcileEventFn) waitFn {
 				}
 				e, ok := evt.Object.(*corev1.Event)
 				if ok {
-					reason, err := controllers.ParseAppReconcileMessage(e.Reason)
-					if err != nil {
-						return err
-					}
-					if reason.DeploymentCount == app.Spec.DeploymentsCount {
-						switch e.Type {
-						case v1.EventTypeNormal:
-							fmt.Fprintln(out, "successfully deployed!")
-							return nil
-						case v1.EventTypeWarning:
-							return errors.New(e.Message)
-						}
+					fmt.Printf("get event %v\n", e.Message)
+					if e.Reason == controllers.DeploymentDone {
+						return nil
 					}
 				}
 			case <-maxExecTime.C:
@@ -472,15 +462,13 @@ func getImageConfigFile(ctx context.Context, kubeClient kubernetes.Interface, ar
 }
 
 func watchAppReconcileEvent(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
-	reason := controllers.AppReconcileReason{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 	selector := fields.Set(map[string]string{
 		"involvedObject.apiVersion": v1betaPrefix,
 		"involvedObject.kind":       "App",
 		"involvedObject.name":       app.Name,
-		"reason":                    reason.String(),
 	}).AsSelector()
 	return kubeClient.CoreV1().
-		Events(app.Namespace).Watch(ctx, metav1.ListOptions{FieldSelector: selector.String()})
+		Events(app.Namespace).Watch(ctx, metav1.ListOptions{FieldSelector: selector.String(), ResourceVersion: app.ResourceVersion})
 }
 
 func createProcfile(configFile registryv1.ConfigFile) (*chart.Procfile, error) {
