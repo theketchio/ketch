@@ -583,11 +583,14 @@ func (app *App) DoCanary(now metav1.Time) error {
 	return nil
 }
 
-// CheckForRollback checks if rollback is required from Canary deployment
-func (app *App) CheckForRollback() {
+// IncrementCanaryFailureCounter increments failure count for canary deployment
+func (app *App) IncrementCanaryFailureCounter() {
 	// update canary failure count
 	app.Spec.Canary.FailureCount++
+}
 
+// DoRollbackIfNeeded do rollback if needed
+func (app *App) DoRollbackIfNeeded() {
 	// check if rollback is required
 	if app.Spec.Canary.FailureCount >= CanaryFailureCountLimit {
 		// we need to rollback all weight to the primary deployment
