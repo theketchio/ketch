@@ -548,6 +548,17 @@ func (app *App) DoCanary(now metav1.Time) error {
 		return errors.New("canary is active but the next step is not scheduled")
 	}
 
+	// check if rollback is required
+	if app.Spec.Canary.FailureCount >= CanaryFailureCountLimit {
+		// we need to rollback all weight to the primary deployment
+		app.Spec.Deployments[0].RoutingSettings.Weight = 100
+		app.Spec.Deployments[1].RoutingSettings.Weight = 0
+		app.Spec.Canary.Active = false
+		// remove the canary deployment
+		app.Spec.Deployments = []AppDeploymentSpec{app.Spec.Deployments[0]}
+		return nil
+	}
+
 	if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
 		// update traffic weight distributions across deployments
 		app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight

@@ -212,6 +212,8 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	if app.Spec.Canary.Active {
 		// retry until all pods for canary deployment comes to running state.
 		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
+			// update canary failure count
+			app.Spec.Canary.FailureCount++
 			return reconcileResult{
 				status:     v1.ConditionFalse,
 				message:    fmt.Sprintf("canary update failed: %v", err),
