@@ -2,20 +2,20 @@ package docker
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"strings"
 
 	"github.com/docker/cli/cli/config"
-	cliTypes "github.com/docker/cli/cli/config/types"
-	"github.com/docker/docker/api/types"
-	"k8s.io/apimachinery/pkg/util/json"
-
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
-const officialHost = "docker"
+const (
+	officialHost = "docker"
+	dockerIndex  = "index.docker.io"
+)
 
-func getEncodedRegistryAuth(configPath string, regHost string, insecure bool) (string, error) {
-	cfg, err := config.Load(configPath)
+func getEncodedRegistryAuth(regHost string) (string, error) {
+	cfg, err := config.Load(config.Dir())
 	if err != nil {
 		return "", errors.Wrap(err, "could not load docker config")
 	}
@@ -32,29 +32,12 @@ func getEncodedRegistryAuth(configPath string, regHost string, insecure bool) (s
 }
 
 func norm(regHost string) string {
-	if regHost == "docker.io" {
-		return "index.docker.io"
+	if official(regHost) {
+		return dockerIndex
 	}
 	return regHost
 }
 
 func official(regHost string) bool {
 	return strings.Contains(regHost, officialHost)
-}
-
-func convert(auths map[string]cliTypes.AuthConfig) map[string]types.AuthConfig {
-	result := make(map[string]types.AuthConfig)
-	for k, v := range auths {
-		result[k] = types.AuthConfig{
-			Username:      v.Username,
-			Password:      v.Password,
-			Auth:          v.Auth,
-			Email:         v.Email,
-			ServerAddress: v.ServerAddress,
-			IdentityToken: v.IdentityToken,
-			RegistryToken: v.RegistryToken,
-		}
-
-	}
-	return result
 }
