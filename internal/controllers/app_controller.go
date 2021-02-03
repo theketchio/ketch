@@ -40,9 +40,6 @@ import (
 	"github.com/shipa-corp/ketch/internal/templates"
 )
 
-// reconcileTimeout is the default timeout to trigger Operator reconcile
-const reconcileTimeout = 30 * time.Second
-
 // AppReconciler reconciles a App object.
 type AppReconciler struct {
 	client.Client
