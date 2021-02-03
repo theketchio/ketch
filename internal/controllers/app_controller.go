@@ -265,7 +265,7 @@ func checkPodStatus(c client.Client, appName string, depVersion ketchv1.Deployme
 		// The specified labels below matches with the required deployment pods of the app.
 		client.MatchingLabels(map[string]string{
 			"theketch.io/app-name":               appName,
-			"theketch.io/app-deployment-version": fmt.Sprint(depVersion)}),
+			"theketch.io/app-deployment-version": fmt.Sprintf("%d", depVersion)}),
 	}
 
 	if err := c.List(context.Background(), podList, listOpts...); err != nil {
