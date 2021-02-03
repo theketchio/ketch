@@ -297,6 +297,11 @@ func checkPodStatus(c client.Client, appName string, depVersion ketchv1.Deployme
 
 	// check if all pods are running for the deployment
 	for _, pod := range podList.Items {
+		// check if pod have voluntarily terminated with a container exit code of 0
+		if pod.Status.Phase == v1.PodSucceeded {
+			return nil
+		}
+
 		if pod.Status.Phase != v1.PodRunning {
 			return errors.New("all pods are not running")
 		}
