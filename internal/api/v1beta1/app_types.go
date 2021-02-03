@@ -36,7 +36,7 @@ const (
 	DefaultNumberOfUnits = 1
 	// CanaryFailureCountLimit is the maximum number of consecutive failure Count for canary deployment.
 	// If it reaches this limit then weights will be rolledback to primary deployment and canary will become inactive
-	CanaryFailureCountLimit = 20
+	CanaryFailureCountLimit = 30
 )
 
 // Env represents an environment variable present in an application.
@@ -550,15 +550,6 @@ func (app *App) DoCanary(now metav1.Time) error {
 		return errors.New("canary is active but the next step is not scheduled")
 	}
 
-	// check if rollback is required
-	if app.Spec.Canary.FailureCount >= CanaryFailureCountLimit {
-		// we need to rollback all weight to the primary deployment
-		app.Spec.Deployments[0].RoutingSettings.Weight = 100
-		app.Spec.Deployments[1].RoutingSettings.Weight = 0
-		app.Spec.Canary.Active = false
-		return nil
-	}
-
 	if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
 		// update traffic weight distributions across deployments
 		app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
@@ -590,6 +581,20 @@ func (app *App) DoCanary(now metav1.Time) error {
 	}
 
 	return nil
+}
+
+// CheckForRollback checks if rollback is required from Canary deployment
+func (app *App) CheckForRollback() {
+	// update canary failure count
+	app.Spec.Canary.FailureCount++
+
+	// check if rollback is required
+	if app.Spec.Canary.FailureCount >= CanaryFailureCountLimit {
+		// we need to rollback all weight to the primary deployment
+		app.Spec.Deployments[0].RoutingSettings.Weight = 100
+		app.Spec.Deployments[1].RoutingSettings.Weight = 0
+		app.Spec.Canary.Active = false
+	}
 }
 
 // PodState describes the simplified state of a pod in the cluster

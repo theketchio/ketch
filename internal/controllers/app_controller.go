@@ -40,9 +40,6 @@ import (
 	"github.com/shipa-corp/ketch/internal/templates"
 )
 
-// reconcileTimeout is the default timeout to trigger Operator reconcile
-const reconcileTimeout = 30 * time.Second
-
 // AppReconciler reconciles a App object.
 type AppReconciler struct {
 	client.Client
@@ -129,12 +126,7 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if scheduleResult.useTimeout {
 		// set default timeout
-		result = ctrl.Result{RequeueAfter: reconcileTimeout}
-
-		// set user provided timeout
-		if app.Spec.Canary.Timeout != 0 {
-			result = ctrl.Result{RequeueAfter: app.Spec.Canary.Timeout}
-		}
+		result = ctrl.Result{RequeueAfter: app.Spec.Canary.Timeout}
 	}
 
 	return result, err
@@ -227,8 +219,15 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 
 		// retry until all pods for canary deployment comes to running state.
 		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
-			// update canary failure count
-			app.Spec.Canary.FailureCount++
+			// check for rollback
+			app.CheckForRollback()
+			if e := r.Update(ctx, app); err != nil {
+				return reconcileResult{
+					status:  v1.ConditionFalse,
+					message: fmt.Sprintf("failed to perform rollback: %v", e),
+				}
+			}
+
 			return reconcileResult{
 				status:     v1.ConditionFalse,
 				message:    fmt.Sprintf("canary update failed: %v", err),
