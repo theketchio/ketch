@@ -61,6 +61,10 @@ spec:
                   description: NextScheduledTime holds time of the next step.
                   format: date-time
                   type: string
+                started:
+                  description: Started holds time when canary started
+                  format: date-time
+                  type: string
                 stepTimeInterval:
                   description: A Duration represents the elapsed time between two
                     instants as an int64 nanosecond count. The representation limits
