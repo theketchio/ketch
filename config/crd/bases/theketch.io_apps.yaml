@@ -82,6 +82,8 @@ spec:
                   maximum: 100
                   minimum: 0
                   type: integer
+              required:
+              - failureCount
               type: object
             deployments:
               description: Deployments is a list of running deployments.
