@@ -2,13 +2,12 @@ package docker
 
 import (
 	"encoding/base64"
+	"strings"
+
 	"github.com/docker/cli/cli/config"
 	cliTypes "github.com/docker/cli/cli/config/types"
 	"github.com/docker/docker/api/types"
-	regTypes "github.com/docker/docker/api/types/registry"
-	"github.com/docker/docker/registry"
 	"k8s.io/apimachinery/pkg/util/json"
-	"strings"
 
 	"github.com/shipa-corp/ketch/internal/errors"
 )
@@ -20,13 +19,23 @@ func getEncodedRegistryAuth(configPath string, regHost string, insecure bool) (s
 	if err != nil {
 		return "", errors.Wrap(err, "could not load docker config")
 	}
-	info := &regTypes.IndexInfo{Name: regHost, Secure: !insecure, Official: official(regHost)}
-	auth := registry.ResolveAuthConfig(convert(cfg.AuthConfigs), info)
+	auth, err := cfg.GetAuthConfig(norm(regHost))
+	if err != nil {
+		return "", errors.Wrap(err, "could not load auth from docker config")
+	}
+
 	jsonAuth, err := json.Marshal(auth)
 	if err != nil {
 		return "", errors.Wrap(err, "could not json encode docker auth config")
 	}
 	return base64.URLEncoding.EncodeToString(jsonAuth), nil
+}
+
+func norm(regHost string) string {
+	if regHost == "docker.io" {
+		return "index.docker.io"
+	}
+	return regHost
 }
 
 func official(regHost string) bool {
