@@ -575,9 +575,9 @@ func (app *App) DoCanary(now metav1.Time) error {
 		}
 	}
 
-	// update failure count on successful canary rollout
+	// reset failure count on successful canary rollout
 	if app.Spec.Canary.FailureCount > 0 {
-		app.Spec.Canary.FailureCount--
+		app.Spec.Canary.FailureCount = 0
 	}
 
 	return nil
