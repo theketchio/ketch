@@ -317,6 +317,7 @@ func changeAppCRD(app *ketchv1.App, args deploymentArguments) error {
 		}
 
 		nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
+		started := metav1.NewTime(time.Now())
 		app.Spec.Canary = ketchv1.CanarySpec{
 			Steps:             args.steps,
 			StepWeight:        args.stepWeight,
@@ -324,7 +325,7 @@ func changeAppCRD(app *ketchv1.App, args deploymentArguments) error {
 			NextScheduledTime: &nextScheduledTime,
 			CurrentStep:       1,
 			Active:            true,
-			FailureCount:      0,
+			Started:           &started,
 		}
 
 		// set initial weight for canary deployment to zero.

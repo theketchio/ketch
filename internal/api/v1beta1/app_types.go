@@ -34,9 +34,6 @@ func init() {
 const (
 	ShipaCloudDomain     = "shipa.cloud"
 	DefaultNumberOfUnits = 1
-	// CanaryFailureCountLimit is the maximum number of consecutive failure Count for canary deployment.
-	// If it reaches this limit then weights will be rolledback to primary deployment and canary will become inactive
-	CanaryFailureCountLimit = 20
 )
 
 // Env represents an environment variable present in an application.
@@ -186,10 +183,8 @@ type CanarySpec struct {
 	CurrentStep int `json:"currentStep,omitempty"`
 	// Active shows if canary deployment is active for this application.
 	Active bool `json:"active,omitempty"`
-	// FailureCount is a number that holds how many times the canary deployment was in unhealthy state.
-	// This will help to rollback all the waits to primary deployment if the count reaches it's limit.
-	// +kubebuilder:validation:Minimum=0
-	FailureCount int `json:"failureCount,omitempty"`
+	// Started holds time when canary started
+	Started *metav1.Time `json:"started,omitempty"`
 }
 
 // AppSpec defines the desired state of App.
@@ -573,27 +568,15 @@ func (app *App) DoCanary(now metav1.Time) error {
 		}
 	}
 
-	// reset failure count on successful canary rollout
-	app.Spec.Canary.FailureCount = 0
-
 	return nil
 }
 
-// IncrementCanaryFailureCounter increments failure count for canary deployment
-func (app *App) IncrementCanaryFailureCounter() {
-	// update canary failure count
-	app.Spec.Canary.FailureCount++
-}
-
-// DoRollbackIfNeeded do rollback if needed
-func (app *App) DoRollbackIfNeeded() {
-	// check if rollback is required
-	if app.Spec.Canary.FailureCount >= CanaryFailureCountLimit {
-		// we need to rollback all weight to the primary deployment
-		app.Spec.Deployments[0].RoutingSettings.Weight = 100
-		app.Spec.Deployments[1].RoutingSettings.Weight = 0
-		app.Spec.Canary.Active = false
-	}
+// DoRollback performs rollback
+func (app *App) DoRollback() {
+	// we need to rollback all weight to the primary deployment
+	app.Spec.Deployments[0].RoutingSettings.Weight = 100
+	app.Spec.Deployments[1].RoutingSettings.Weight = 0
+	app.Spec.Canary.Active = false
 }
 
 // PodState describes the simplified state of a pod in the cluster

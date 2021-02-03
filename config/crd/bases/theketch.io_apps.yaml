@@ -57,15 +57,12 @@ spec:
                   maximum: 100
                   minimum: 0
                   type: integer
-                failureCount:
-                  description: FailureCount is a number that holds how many times
-                    the canary deployment was in unhealthy state. This will help to
-                    rollback all the waits to primary deployment if the count reaches
-                    it's limit.
-                  minimum: 0
-                  type: integer
                 nextScheduledTime:
                   description: NextScheduledTime holds time of the next step.
+                  format: date-time
+                  type: string
+                started:
+                  description: Started holds time when canary started
                   format: date-time
                   type: string
                 stepTimeInterval:

@@ -5,5 +5,5 @@ import "time"
 const (
 	KetchNamespace = "ketch-system"
 	// reconcileTimeout is the default timeout to trigger Operator reconcile
-	reconcileTimeout = 30 * time.Second
+	reconcileTimeout = 10 * time.Minute
 )

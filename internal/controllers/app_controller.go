@@ -221,22 +221,23 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 
 		// retry until all pods for canary deployment comes to running state.
 		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
-			// increment failure count for canary
-			app.IncrementCanaryFailureCounter()
-			// check if rollback is needed
-			app.DoRollbackIfNeeded()
+
+			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
+				return reconcileResult{
+					status:     v1.ConditionFalse,
+					message:    fmt.Sprintf("canary update failed: %v", err),
+					useTimeout: true,
+				}
+			}
+
+			// Do rollback if timeout expired
+			app.DoRollback()
 			if e := r.Update(ctx, app); err != nil {
 				return reconcileResult{
 					status:     v1.ConditionFalse,
 					message:    fmt.Sprintf("failed to update app crd: %v", e),
 					useTimeout: true,
 				}
-			}
-
-			return reconcileResult{
-				status:     v1.ConditionFalse,
-				message:    fmt.Sprintf("canary update failed: %v", err),
-				useTimeout: true,
 			}
 		}
 
@@ -266,6 +267,11 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		pool:   ref,
 		status: v1.ConditionTrue,
 	}
+}
+
+// check if timeout has expired
+func timeoutExpired(t *metav1.Time, now time.Time) bool {
+	return t.Add(reconcileTimeout).Before(now)
 }
 
 // checkPodStatus checks whether all pods for a deployment are running or not.
