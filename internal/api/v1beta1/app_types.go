@@ -34,7 +34,7 @@ func init() {
 const (
 	ShipaCloudDomain     = "shipa.cloud"
 	DefaultNumberOfUnits = 1
-	// CanaryFailureCountLimit is the maximum number of failure Count for canary deployment.
+	// CanaryFailureCountLimit is the maximum number of consecutive failure Count for canary deployment.
 	// If it reaches this limit then weights will be rolledback to primary deployment and canary will become inactive
 	CanaryFailureCountLimit = 5
 )
