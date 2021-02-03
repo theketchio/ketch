@@ -29,31 +29,35 @@ func newPlatformCmd(cfg config, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-type justInTimeInvoker struct {
-	cfg config
+type justInTimeClient struct {
+	cfg clientCtor
+}
+
+type clientCtor interface {
+	Client() client.Client
 }
 
 // defers the creation of the client until we need it (Just In Time). The reason we do this is so that the application doesn't
 // attempt to connect to a k8s cluster unless we need to in order to avoid delays in say, showing help.
-func jit(cfg config) *justInTimeInvoker {
-	return &justInTimeInvoker{
+func jit(cfg clientCtor) *justInTimeClient {
+	return &justInTimeClient{
 		cfg: cfg,
 	}
 }
 
-func (rg *justInTimeInvoker) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+func (rg *justInTimeClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
 	return rg.cfg.Client().Create(ctx, obj, opts...)
 }
 
-func (rg *justInTimeInvoker) Get(ctx context.Context, name types.NamespacedName, object runtime.Object) error {
+func (rg *justInTimeClient) Get(ctx context.Context, name types.NamespacedName, object runtime.Object) error {
 	return rg.cfg.Client().Get(ctx, name, object)
 }
 
-func (rg *justInTimeInvoker) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
+func (rg *justInTimeClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
 	return rg.cfg.Client().Delete(ctx, obj, opts...)
 }
 
-func (rg *justInTimeInvoker) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+func (rg *justInTimeClient) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
 	return rg.cfg.Client().List(ctx, list, opts...)
 }
 
