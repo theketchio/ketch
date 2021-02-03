@@ -12,6 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// this test runs against your local docker credential store.  It will be skipped unless
+// the acceptance build tag is included in go flags and environment variables are set
+// containing your user and password to test against.
 func Test_getEncodedRegistryAuth(t *testing.T) {
 	expectedUser, ok := os.LookupEnv("KETCH_TEST_DOCKER_USER")
 	if !ok {
