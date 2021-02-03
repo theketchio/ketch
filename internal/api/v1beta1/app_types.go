@@ -554,8 +554,6 @@ func (app *App) DoCanary(now metav1.Time) error {
 		app.Spec.Deployments[0].RoutingSettings.Weight = 100
 		app.Spec.Deployments[1].RoutingSettings.Weight = 0
 		app.Spec.Canary.Active = false
-		// remove the canary deployment
-		app.Spec.Deployments = []AppDeploymentSpec{app.Spec.Deployments[0]}
 		return nil
 	}
 
