@@ -6,7 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
@@ -20,11 +22,39 @@ func newPlatformCmd(cfg config, out io.Writer) *cobra.Command {
 			return cmd.Usage()
 		},
 	}
-	cmd.AddCommand(newPlatformAddCmd(cfg.Client(), out))
-	cmd.AddCommand(newPlatformListCmd(cfg.Client(), out))
-	cmd.AddCommand(newPlatformDeleteCmd(cfg.Client(), out))
+	cmd.AddCommand(newPlatformAddCmd(jit(cfg), out))
+	cmd.AddCommand(newPlatformListCmd(jit(cfg), out))
+	cmd.AddCommand(newPlatformDeleteCmd(jit(cfg), out))
 
 	return cmd
+}
+
+type justInTimeInvoker struct {
+	cfg config
+}
+
+// defers the creation of the client until we need it (Just In Time). The reason we do this is so that the application doesn't
+// attempt to connect to a k8s cluster unless we need to in order to avoid delays in say, showing help.
+func jit(cfg config) *justInTimeInvoker {
+	return &justInTimeInvoker{
+		cfg: cfg,
+	}
+}
+
+func (rg *justInTimeInvoker) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+	return rg.cfg.Client().Create(ctx, obj, opts...)
+}
+
+func (rg *justInTimeInvoker) Get(ctx context.Context, name types.NamespacedName, object runtime.Object) error {
+	return rg.cfg.Client().Get(ctx, name, object)
+}
+
+func (rg *justInTimeInvoker) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
+	return rg.cfg.Client().Delete(ctx, obj, opts...)
+}
+
+func (rg *justInTimeInvoker) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+	return rg.cfg.Client().List(ctx, list, opts...)
 }
 
 func platformGet(ctx context.Context, getter resourceGetter, platformName string) (*v1beta1.Platform, error) {
