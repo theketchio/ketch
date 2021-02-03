@@ -219,11 +219,17 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 
 		// retry until all pods for canary deployment comes to running state.
 		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
-			// update failure count
+			// increment failure count for canary
 			app.IncrementCanaryFailureCounter()
+			if e := r.Update(ctx, app); err != nil {
+				return reconcileResult{
+					status:  v1.ConditionFalse,
+					message: fmt.Sprintf("failed to increment canary failure count: %v", e),
+				}
+			}
+
 			// check if rollback is needed
 			app.DoRollbackIfNeeded()
-
 			if e := r.Update(ctx, app); err != nil {
 				return reconcileResult{
 					status:  v1.ConditionFalse,
