@@ -248,7 +248,6 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		ketchYaml:         ketchYaml,
 		configFile:        configFile,
 		nextScheduledTime: options.nextScheduledTime(),
-		timeout:           options.Timeout(),
 	}
 	deployArgs.stepTimeInterval, _ = time.ParseDuration(options.stepTimeInterval)
 	err = changeAppCRD(&app, deployArgs)
@@ -277,7 +276,6 @@ type deploymentArguments struct {
 	ketchYaml         *ketchv1.KetchYamlData
 	configFile        *registryv1.ConfigFile
 	nextScheduledTime time.Time
-	timeout           time.Duration
 }
 
 func changeAppCRD(app *ketchv1.App, args deploymentArguments) error {
