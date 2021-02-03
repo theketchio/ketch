@@ -248,6 +248,7 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		ketchYaml:         ketchYaml,
 		configFile:        configFile,
 		nextScheduledTime: options.nextScheduledTime(),
+		started:           time.Now(),
 	}
 	deployArgs.stepTimeInterval, _ = time.ParseDuration(options.stepTimeInterval)
 	err = changeAppCRD(&app, deployArgs)
@@ -276,6 +277,7 @@ type deploymentArguments struct {
 	ketchYaml         *ketchv1.KetchYamlData
 	configFile        *registryv1.ConfigFile
 	nextScheduledTime time.Time
+	started           time.Time
 }
 
 func changeAppCRD(app *ketchv1.App, args deploymentArguments) error {
@@ -317,7 +319,7 @@ func changeAppCRD(app *ketchv1.App, args deploymentArguments) error {
 		}
 
 		nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
-		started := metav1.NewTime(time.Now())
+		started := metav1.NewTime(args.started)
 		app.Spec.Canary = ketchv1.CanarySpec{
 			Steps:             args.steps,
 			StepWeight:        args.stepWeight,
