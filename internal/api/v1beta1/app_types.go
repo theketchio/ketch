@@ -576,7 +576,10 @@ func (app *App) DoRollback() {
 	// we need to rollback all weight to the primary deployment
 	app.Spec.Deployments[0].RoutingSettings.Weight = 100
 	app.Spec.Deployments[1].RoutingSettings.Weight = 0
-	app.Spec.Canary.Active = false
+	// reset canary specs
+	app.Spec.Canary = CanarySpec{}
+	// remove the canary deployment
+	app.Spec.Deployments = []AppDeploymentSpec{app.Spec.Deployments[0]}
 }
 
 // PodState describes the simplified state of a pod in the cluster
