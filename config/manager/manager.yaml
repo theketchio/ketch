@@ -22,6 +22,10 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
       containers:
       - command:
         - /manager
@@ -36,4 +40,11 @@ spec:
           requests:
             cpu: 300m
             memory: 300Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
       terminationGracePeriodSeconds: 10
