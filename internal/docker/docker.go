@@ -55,14 +55,6 @@ type BuildResponse struct {
 	Procfile string
 }
 
-func domain(img string) (string, error) {
-	named, err := reference.ParseNormalizedNamed(img)
-	if err != nil {
-		return "", err
-	}
-	return reference.Domain(named), nil
-}
-
 // NormalizeImage will convert an image into a fully qualified form with the registry host and a tag.
 func NormalizeImage(imageURI string) (string, error) {
 	named, err := reference.ParseNormalizedNamed(imageURI)
@@ -96,11 +88,7 @@ func New() (*Client, error) {
 			return base64.URLEncoding.EncodeToString(jsonAuth), nil
 		}
 
-		repo, err := domain(req.Image)
-		if err != nil {
-			return "", err
-		}
-		encodedAuth, err := getEncodedRegistryAuth(repo)
+		encodedAuth, err := getEncodedRegistryAuth(req.Image)
 		if err != nil {
 			return "", err
 		}

@@ -31,6 +31,7 @@ func Test_getEncodedRegistryAuth(t *testing.T) {
 	var auth types.AuthConfig
 	err = json.Unmarshal(b, &auth)
 	require.Nil(t, err)
+	t.Logf("%+v\n", auth)
 	require.Equal(t, expectedUser, auth.Username)
 	require.Equal(t, expectedPwd, auth.Password)
 }

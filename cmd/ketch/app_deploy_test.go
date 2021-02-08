@@ -108,7 +108,7 @@ func Test_createProcfileFromImageEntrypointAndCmd(t *testing.T) {
 	tests := []struct {
 		name string
 
-		args           getImageConfigArgs
+		args           imageConfigArgs
 		mock           *mockRemoteImage
 		initialObjects []runtime.Object
 
@@ -118,7 +118,7 @@ func Test_createProcfileFromImageEntrypointAndCmd(t *testing.T) {
 	}{
 		{
 			name: "remote.Image error",
-			args: getImageConfigArgs{
+			args: imageConfigArgs{
 				imageName: "ketch:latest",
 			},
 			mock: &mockRemoteImage{
@@ -129,7 +129,7 @@ func Test_createProcfileFromImageEntrypointAndCmd(t *testing.T) {
 		},
 		{
 			name: "procfile with a private registry",
-			args: getImageConfigArgs{
+			args: imageConfigArgs{
 				imageName:       "ketch:latest",
 				secretName:      "top-secret",
 				secretNamespace: "secret-namespace",
@@ -164,7 +164,7 @@ func Test_createProcfileFromImageEntrypointAndCmd(t *testing.T) {
 		},
 		{
 			name: "secret not found",
-			args: getImageConfigArgs{
+			args: imageConfigArgs{
 				imageName:       "ketch:latest",
 				secretName:      "top-secret",
 				secretNamespace: "secret-namespace",
@@ -209,7 +209,7 @@ type mockGetImageConfig struct {
 	returnErr        error
 }
 
-func (m *mockGetImageConfig) get(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error) {
+func (m *mockGetImageConfig) get(ctx context.Context, kubeClient kubernetes.Interface, args imageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error) {
 	return m.returnConfigFile, m.returnErr
 }
 

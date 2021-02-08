@@ -16,11 +16,13 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/yaml"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -144,7 +146,7 @@ func (opts *appDeployOptions) validate() error {
 	return nil
 }
 
-type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
+type getImageConfigFileFn func(ctx context.Context, kubeClient kubernetes.Interface, args imageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error)
 type waitFn func(ctx context.Context, cfg config, app ketchv1.App, timeout time.Duration, out io.Writer) error
 type buildFromSourceFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) (*build.CreateImageFromSourceResponse, error)
 type changeAppCRDFn func(app *ketchv1.App, args deploymentArguments) error
@@ -213,15 +215,26 @@ func appDeploy(ctx context.Context, cfg config, getImageConfigFile getImageConfi
 		procfile = resp.Procfile
 	}
 
-	args := getImageConfigArgs{
-		imageName:       options.image,
-		secretName:      app.Spec.DockerRegistry.SecretName,
-		secretNamespace: pool.Spec.NamespaceName,
+	updateArgs := &secretUpdateArgs{
+		imageName:        options.image,
+		secretName:       app.Spec.DockerRegistry.SecretName,
+		secretNamespace:  pool.Spec.NamespaceName,
+		client:           cfg.Client(),
+		generateSecretFn: docker.GenerateSecret,
+	}
+	imgCfgArgs, err := maybeCreateSecret(ctx, updateArgs)
+	if err != nil {
+		return err
+	}
+
+	// if the app didn't have a secret associated with it, assign the name of the secret we just created
+	if app.Spec.DockerRegistry.SecretName == "" {
+		app.Spec.DockerRegistry.SecretName = imgCfgArgs.secretName
 	}
 	// we get the image's config file because of several reasons:
 	// 1. to support images with exposed ports defined in Dockerfile with EXPOSE directive.
 	// 2. to support deployments without Procfile, in this case we the image's cmd and entrypoint to define Procfile
-	configFile, err := getImageConfigFile(ctx, cfg.KubernetesClient(), args, remote.Image)
+	configFile, err := getImageConfigFile(ctx, cfg.KubernetesClient(), *imgCfgArgs, remote.Image)
 	if err != nil {
 		return fmt.Errorf("can't use the image: %w", err)
 	}
@@ -445,13 +458,63 @@ func (opts appDeployOptions) KetchYaml() (*ketchv1.KetchYamlData, error) {
 
 type getRemoteImageFn func(ref name.Reference, options ...remote.Option) (registryv1.Image, error)
 
-type getImageConfigArgs struct {
+type imageConfigArgs struct {
 	imageName       string
 	secretName      string
 	secretNamespace string
 }
 
-func getImageConfigFile(ctx context.Context, kubeClient kubernetes.Interface, args getImageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error) {
+type secretUpdateArgs struct {
+	imageName        string
+	secretName       string
+	secretNamespace  string
+	client           resourceUpdateCreator
+	generateSecretFn func(image, namespace string) (*v1.Secret, error)
+}
+
+//func updateSecret(ctx context.Context, imageName, secretName, secretNamespace string, client resourceUpdateCreator) (*imageConfigArgs, error) {
+func maybeCreateSecret(ctx context.Context, args *secretUpdateArgs) (*imageConfigArgs, error) {
+	if args.secretName != "" {
+		return &imageConfigArgs{
+			imageName:       args.imageName,
+			secretName:      args.secretName,
+			secretNamespace: args.secretNamespace,
+		}, nil
+	}
+	// if a secret containing registry credentials isn't specified, we'll create one from the local
+	// user's docker config and write it to the cluster so k8s can authenticate against the registry
+	// when it pulls the image down as part of the deploy.
+	secret, err := args.generateSecretFn(args.imageName, args.secretNamespace)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not generate secret for docker auth")
+	}
+
+	if err = createOrUpdateSecret(ctx, secret, args.client); err != nil {
+		return nil, errors.Wrap(err, "could not write docker creds secret")
+	}
+
+	return &imageConfigArgs{
+		imageName:       args.imageName,
+		secretName:      secret.Name,
+		secretNamespace: args.secretNamespace,
+	}, nil
+}
+
+func createOrUpdateSecret(ctx context.Context, secret *v1.Secret, client resourceUpdateCreator) error {
+	if err := client.Create(ctx, secret); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return err
+		}
+
+		return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			return client.Update(ctx, secret)
+		})
+
+	}
+	return nil
+}
+
+func getImageConfigFile(ctx context.Context, kubeClient kubernetes.Interface, args imageConfigArgs, fn getRemoteImageFn) (*registryv1.ConfigFile, error) {
 	ref, err := name.ParseReference(args.imageName)
 	if err != nil {
 		return nil, err

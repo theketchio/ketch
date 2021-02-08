@@ -28,6 +28,10 @@ type resourceCreator interface {
 	Create(context.Context, runtime.Object, ...client.CreateOption) error
 }
 
+type resourceUpdater interface {
+	Update(context.Context, runtime.Object, ...client.UpdateOption) error
+}
+
 type resourceLister interface {
 	List(context.Context, runtime.Object, ...client.ListOption) error
 }
@@ -43,6 +47,11 @@ type resourceDeleter interface {
 type resourceGetDeleter interface {
 	resourceGetter
 	resourceDeleter
+}
+
+type resourceUpdateCreator interface {
+	resourceCreator
+	resourceUpdater
 }
 
 // RootCmd represents the base command when called without any subcommands
