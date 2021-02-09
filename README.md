@@ -86,17 +86,16 @@ ketch app deploy bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0
 # Check app status
 ketch app list 
 
-NAME             POOL      UNITS    ADDRESSES                                DESCRIPTION
-bulletinboard    mypool      1     bulletinboard.35.247.8.23.shipa.cloud    
+NAME             POOL        STATE        ADDRESSES                                      PLATFORM    DESCRIPTION
+bulletinboard    mypool      1 running    http://bulletinboard.35.247.8.23.shipa.cloud
 ```
 After you deploy your application, you can access it at the address associated with it using the `ketch app list`, in 
 this example `bulletinboard.35.247.8.23.shipa.cloud`. 
 
 ### Usage 
+For details see https://theketch.io.
 
 ```bash
-For details see https://theketch.io
-
 Usage:
   ketch [flags]
   ketch [command]
@@ -106,14 +105,15 @@ Available Commands:
   cname       Manage cnames of an application
   env         Manage an app's environment variables
   help        Help about any command
+  platform    Manage platforms
   pool        Manage pools
   unit        Manage an app's units
 
 Flags:
-  -h, --help   help for ketch
+  -h, --help      help for ketch
+  -v, --version   version for ketch
 
 Use "ketch [command] --help" for more information about a command.
-
 ```
 
 #### Developer Guide [See Contributing](./CONTRIBUTING.md)
