@@ -24,11 +24,13 @@ Install latest at /usr/local/bin default location
 curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | bash
 ```
 
-Alternatively, you can install specific tag at a target location, for example command below installs ketch version v0.1.1 in current directory:
+Alternatively, you can install specific tag at a target location, for example command below installs ketch version v0.2.0 in current directory:
 
 ```bash
-curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | INSTALL_DIR=. TAG=v0.1.1  bash
+curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | INSTALL_DIR=. TAG=v0.2.0  bash
 ```
+
+
 
 ### Install Ingress Controller
 
