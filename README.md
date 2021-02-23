@@ -60,7 +60,7 @@ kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/relea
 ```
 ### Install Ketch controller.
 ```bash
-kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.1.1/ketch-controller.yaml
+kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.2.0/ketch-controller.yaml
 ```
 
 Thats it!
