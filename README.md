@@ -49,8 +49,7 @@ helm install traefik traefik/traefik
 Or you can install Istio:
 
 ```bash
-curl -L https://istio.io/downloadIstio | sh -
-export PATH=$PWD/istio-1.7.4/bin:$PATH
+ISTIO_VERSION=1.9.0 && curl -L https://istio.io/downloadIstio |  sh - && cd istio-$ISTIO_VERSION && export PATH=$PWD/bin:$PATH
 istioctl install --set profile=demo 
 ```
 
