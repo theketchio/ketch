@@ -19,10 +19,11 @@ type Configurator struct {
 	procfile     Procfile
 	exposedPorts []ketchv1.ExposedPort
 	defaultPort  int
+	platform     string
 }
 
 // NewConfigurator returns a Configurator instance.
-func NewConfigurator(data *ketchv1.KetchYamlData, procfile Procfile, exposedPorts []ketchv1.ExposedPort, defaultPort int) Configurator {
+func NewConfigurator(data *ketchv1.KetchYamlData, procfile Procfile, exposedPorts []ketchv1.ExposedPort, defaultPort int, platform string) Configurator {
 	shipaYaml := ketchv1.KetchYamlData{}
 	if data != nil {
 		shipaYaml = *data
@@ -32,6 +33,7 @@ func NewConfigurator(data *ketchv1.KetchYamlData, procfile Procfile, exposedPort
 		procfile:     procfile,
 		exposedPorts: exposedPorts,
 		defaultPort:  defaultPort,
+		platform:     strings.ToLower(platform),
 	}
 }
 
@@ -206,6 +208,11 @@ func (c Configurator) ServicePortsForProcess(process string) []apiv1.ServicePort
 }
 
 func (c Configurator) ProcessCmd(process string) []string {
+	// If we are not using an existing Shipa platform return the commands unmodified. In this case
+	// the onus is on the image creator to build an image with entry points/commands that k8s understands.
+	if c.platform == "" {
+		return c.procfile.Processes[process]
+	}
 	cmd := c.procfile.Processes[process]
 	before := ""
 	if c.data.Hooks != nil {

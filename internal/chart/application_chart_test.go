@@ -55,6 +55,7 @@ func TestNew(t *testing.T) {
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
+			Platform: "static",
 			Deployments: []ketchv1.AppDeploymentSpec{
 				{
 					Image:   "shipasoftware/go-app:v1",
