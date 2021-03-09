@@ -145,7 +145,7 @@ func New(application *ketchv1.App, pool *ketchv1.Pool, opts ...Option) (*Applica
 			return nil, err
 		}
 		exposedPorts := options.ExposedPorts[deployment.Version]
-		c := NewConfigurator(deploymentSpec.KetchYaml, *procfile, exposedPorts, DefaultApplicationPort)
+		c := NewConfigurator(deploymentSpec.KetchYaml, *procfile, exposedPorts, DefaultApplicationPort, application.Spec.Platform)
 		for _, processSpec := range deploymentSpec.Processes {
 			name := processSpec.Name
 			isRoutable := procfile.IsRoutable(name)

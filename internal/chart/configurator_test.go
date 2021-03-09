@@ -14,6 +14,7 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 		procfile Procfile
 		process  string
 		want     []string
+		platform string
 	}{
 		{
 			name: "single command without changing working directory",
@@ -22,8 +23,9 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 					"web": {"python web.py"},
 				},
 			},
-			process: "web",
-			want:    []string{"/bin/sh", "-lc", "exec python web.py"},
+			process:  "web",
+			want:     []string{"/bin/sh", "-lc", "exec python web.py"},
+			platform: "python",
 		},
 		{
 			name: "single command",
@@ -32,8 +34,9 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 					"web": {"python web.py"},
 				},
 			},
-			process: "web",
-			want:    []string{"/bin/sh", "-lc", "exec python web.py"},
+			process:  "web",
+			want:     []string{"/bin/sh", "-lc", "exec python web.py"},
+			platform: "python",
 		},
 		{
 			name: "single command with hooks",
@@ -51,8 +54,9 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 					"web": {"python web.py"},
 				},
 			},
-			process: "web",
-			want:    []string{"/bin/sh", "-lc", "cmd1 && cmd2 && exec python web.py"},
+			process:  "web",
+			want:     []string{"/bin/sh", "-lc", "cmd1 && cmd2 && exec python web.py"},
+			platform: "python",
 		},
 		{
 			name: "single command with hooks, without changing working directory",
@@ -70,8 +74,9 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 					"web": {"python web.py"},
 				},
 			},
-			process: "web",
-			want:    []string{"/bin/sh", "-lc", "cmd1 && cmd2 && exec python web.py"},
+			process:  "web",
+			want:     []string{"/bin/sh", "-lc", "cmd1 && cmd2 && exec python web.py"},
+			platform: "python",
 		},
 		{
 			name: "many commands",
@@ -80,8 +85,9 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 					"web": {"python", "web.py"},
 				},
 			},
-			process: "web",
-			want:    []string{"/bin/sh", "-lc", "exec $0 \"$@\"", "python", "web.py"},
+			process:  "web",
+			want:     []string{"/bin/sh", "-lc", "exec $0 \"$@\"", "python", "web.py"},
+			platform: "python",
 		},
 	}
 	for _, tt := range tests {
@@ -89,6 +95,7 @@ func TestKubernetesConfigurator_ProcessCmd(t *testing.T) {
 			conf := Configurator{
 				data:     tt.data,
 				procfile: tt.procfile,
+				platform: tt.platform,
 			}
 			if got := conf.ProcessCmd(tt.process); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ProcessCmd() = %v, want %v", got, tt.want)
