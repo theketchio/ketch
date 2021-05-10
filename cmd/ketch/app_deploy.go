@@ -52,6 +52,8 @@ Deploy from an image:
 	defaultTrafficWeight = 100
 )
 
+const defaultProcessType = "web"
+
 func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	options := appDeployOptions{}
 	cmd := &cobra.Command{
