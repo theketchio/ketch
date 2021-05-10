@@ -685,7 +685,11 @@ func Test_streamLogs(t *testing.T) {
 				case <-ch:
 					doneCh <- struct{}{}
 					require.Equal(t, tt.wantMsgs, msgs)
-					require.Equal(t, tt.wantOut, out.String())
+					// if the error case occurs the code can loop through and write multiple identical error
+					// messages, based on timing, we're only interested in the first message, so this avoids
+					// a flaky test
+					firstMessage := strings.SplitAfter(out.String(), "\n")[0]
+					require.Equal(t, tt.wantOut, firstMessage)
 					return
 				}
 			}
