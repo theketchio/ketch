@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/shipa-corp/ketch/internal/deploy"
 	"io"
 	"io/ioutil"
 	"os"
@@ -27,7 +28,6 @@ import (
 	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/controllers"
-	"github.com/shipa-corp/ketch/internal/docker"
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
@@ -53,48 +53,68 @@ Deploy from an image:
 )
 
 func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
-	options := appDeployOptions{}
+	//options := appDeployOptions{}
+	var options deploy.Options
+
 	cmd := &cobra.Command{
 		Use:   "deploy APPNAME [SOURCE DIRECTORY]",
 		Short: "Deploy an app",
 		Long:  appDeployHelp,
 		Args:  cobra.RangeArgs(1, 2),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if options.image == "" {
-				return errors.New("missing required image name")
-			}
+			//if options.image == "" {
+			//	return errors.New("missing required image name")
+			//}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options.appName = args[0]
-
-			var (
-				err       error
-				dockerSvc *docker.Client
-			)
-
+			options.AppName = args[0]
 			if len(args) == 2 {
-				dockerSvc, err = docker.New()
-				if err != nil {
-					return err
-				}
-				defer dockerSvc.Close()
-				options.appSourcePath = args[1]
+				options.AppSourcePath = args[1]
 			}
-			return appDeploy(cmd.Context(), cfg, getImageConfigFile, waitHandler(watchAppReconcileEvent), build.GetSourceHandler(dockerSvc), changeAppCRD, options, out)
+			//
+			//var (
+			//	err       error
+			//	dockerSvc *docker.Client
+			//)
+			//
+			//if len(args) == 2 {
+			//	dockerSvc, err = docker.New()
+			//	if err != nil {
+			//		return err
+			//	}
+			//	defer dockerSvc.Close()
+			//	options.appSourcePath = args[1]
+			//}
+			//return appDeploy(cmd.Context(), cfg, getImageConfigFile, waitHandler(watchAppReconcileEvent), build.GetSourceHandler(dockerSvc), changeAppCRD, options, out)
+			runner, err := deploy.New(cfg.Client(), options)
+			if err != nil {
+				return err
+			}
+			if err = runner.Run(cmd.Context()); err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.image, "image", "i", "", "the image with the application")
-	cmd.Flags().StringVar(&options.ketchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
-	cmd.Flags().StringVar(&options.procfileFileName, "procfile", "", "the path to Procfile")
-	cmd.Flags().BoolVar(&options.strictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
-	cmd.Flags().IntVar(&options.steps, "steps", 1, "number of steps to roll out the new deployment")
-	cmd.Flags().StringVar(&options.stepTimeInterval, "step-interval", "", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
-	cmd.Flags().BoolVar(&options.wait, "wait", false, "await for reconcile event")
-	cmd.Flags().StringVar(&options.timeout, "timeout", "20s", "timeout for await of reconcile. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
-	cmd.Flags().StringSliceVar(&options.subPaths, "include-dirs", []string{"."}, "optionally include additional source paths. Additional paths must be relative to source-path")
+	cmd.Flags().StringVarP(&options.Image, "image", "i", "", "the image that will be deployed")
+	cmd.Flags().StringVar(&options.KetchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
+	cmd.Flags().StringVar(&options.ProcfileFileName, "procfile", "", "the path to Procfile")
+	cmd.Flags().BoolVar(&options.StrictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
+	cmd.Flags().IntVar(&options.Steps, "steps", 1, "number of steps to roll out the new deployment")
+	cmd.Flags().StringVar(&options.StepTimeInterval, "step-interval", "", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
+	cmd.Flags().BoolVar(&options.Wait, "wait", false, "await for reconcile event")
+	cmd.Flags().StringVar(&options.Timeout, "timeout", "20s", "timeout for await of reconcile. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
+	cmd.Flags().StringSliceVar(&options.SubPaths, "include-dirs", []string{"."}, "optionally include additional source paths. Additional paths must be relative to source-path")
 	cmd.MarkFlagRequired("image")
+
+	cmd.Flags().StringVarP(&options.Platform, "platform", "P", "", "Platform name")
+	cmd.Flags().StringVarP(&options.Description, "description", "d", "", "App description")
+	cmd.Flags().StringSliceVarP(&options.Envs, "env", "e", []string{}, "App env variables")
+	cmd.Flags().StringVarP(&options.Pool, "pool", "o", "", "Pool to deploy your app")
+	cmd.Flags().StringVarP(&options.DockerRegistrySecret, "registry-secret", "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
 
 	return cmd
 }

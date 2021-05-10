@@ -8,7 +8,7 @@ jobs:
   include:
     - stage: test
       language: go
-      go: "1.15"
+      go: "1.16"
       script:
         - make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
         - export TEST_ASSET_KUBECTL=/tmp/kubebuilder/bin/kubectl
