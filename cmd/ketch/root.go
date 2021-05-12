@@ -57,6 +57,7 @@ func newRootCmd(cfg config, out io.Writer) *cobra.Command {
 		},
 	}
 	cmd.AddCommand(newAppCmd(cfg, out))
+	cmd.AddCommand(newBuilderCmd(cfg, out))
 	cmd.AddCommand(newCnameCmd(cfg, out))
 	cmd.AddCommand(newPoolCmd(cfg, out))
 	cmd.AddCommand(newUnitCmd(cfg, out))
