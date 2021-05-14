@@ -36,10 +36,12 @@ type Configuration struct {
 	ketchConfig KetchConfig
 }
 
+// KetchConfig contains all the values present in the config.toml
 type KetchConfig struct {
 	AdditionalBuilders []AdditionalBuilder `toml:"additional-builders,omitempty"`
 }
 
+// AdditionalBuilder contains the information of any user added builders
 type AdditionalBuilder struct {
 	Vendor      string `toml:"vendor"`
 	Image       string `toml:"image"`
