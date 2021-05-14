@@ -20,6 +20,6 @@ func newBuilderCmd(cfg config, out io.Writer) *cobra.Command {
 			return cmd.Usage()
 		},
 	}
-	cmd.AddCommand(newBuilderListCmd(out))
+	cmd.AddCommand(newBuilderListCmd(cfg, out))
 	return cmd
 }

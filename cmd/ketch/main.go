@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -21,9 +22,25 @@ func main() {
 	// Remove any flags that were added by libraries automatically.
 	pflag.CommandLine = pflag.NewFlagSet("ketch", pflag.ExitOnError)
 
-	cmd := newRootCmd(&configuration.Configuration{}, os.Stdout)
+	cmd := newRootCmd(initConfig(), os.Stdout)
 	if err := cmd.Execute(); err != nil {
 		fmt.Printf("%v\n", err)
 		os.Exit(1)
 	}
+}
+
+func initConfig() *configuration.Configuration {
+	path, err := configuration.DefaultConfigPath()
+	if err != nil {
+		log.Println(err)
+		return &configuration.Configuration{}
+	}
+
+	cfg, err := configuration.Read(path)
+	if err != nil {
+		log.Println(err)
+		return &configuration.Configuration{}
+	}
+
+	return cfg
 }
