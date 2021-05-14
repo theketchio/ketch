@@ -51,7 +51,7 @@ var suggestedBuilders = []SuggestedBuilder{
 	},
 }
 
-func newBuilderListCmd(cfg config, out io.Writer) *cobra.Command {
+func newBuilderListCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List CNCF registered builders",
