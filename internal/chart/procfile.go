@@ -23,7 +23,7 @@ type Procfile struct {
 }
 
 // NewProcfile creates a Procfile from a file.
-func NewProcfile(fileName string)(*Procfile,error){
+func NewProcfile(fileName string) (*Procfile, error) {
 	content, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err

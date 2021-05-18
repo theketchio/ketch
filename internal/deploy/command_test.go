@@ -27,7 +27,7 @@ type mockClient struct {
 	createFn func(counter int, obj runtime.Object) error
 	updateFn func(counter int, obj runtime.Object) error
 
-	getCounter int
+	getCounter    int
 	createCounter int
 	updateCounter int
 }
@@ -56,23 +56,35 @@ func (m *mockClient) Update(ctx context.Context, obj runtime.Object, opts ...cli
 	return nil
 }
 
-type dockerMocker struct {}
-func (dockerMocker) Build(ctx context.Context, req docker.BuildRequest)(*docker.BuildResponse,error){
+type dockerMocker struct{}
+
+func (dockerMocker) Build(ctx context.Context, req docker.BuildRequest) (*docker.BuildResponse, error) {
 	return &docker.BuildResponse{
-		Procfile: ".proc",
 		ImageURI: "shipa/someimage:latest",
 	}, nil
 }
-func(dockerMocker) Push(ctx context.Context, req docker.BuildRequest) error {
+func (dockerMocker) Push(ctx context.Context, req docker.BuildRequest) error {
 	return nil
 }
 
-type mockConfiger struct  {}
+type mockConfiger struct{}
 
 func (c mockConfiger) ConfigFile() (*registryv1.ConfigFile, error) {
-	return &registryv1.ConfigFile{}, nil
+	return &registryv1.ConfigFile{
+		Architecture:  "",
+		Author:        "",
+		Container:     "",
+		Created:       registryv1.Time{},
+		DockerVersion: "",
+		History:       nil,
+		OS:            "",
+		RootFS:        registryv1.RootFS{},
+		Config: registryv1.Config{
+			Cmd: []string{"/bin/eatme"},
+		},
+		OSVersion: "",
+	}, nil
 }
-
 
 func remoteImgFn(ref name.Reference, options ...remote.Option) (ImageConfiger, error) {
 	return &mockConfiger{}, nil
@@ -101,20 +113,165 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 			},
 			params: &Params{
-				Client:      &mockClient{
+				Client: &mockClient{
 					getFn: func(counter int, obj runtime.Object) error {
 						switch counter {
 						case 1:
 							return errors.NewNotFound(v1.Resource(""), "")
-						case 2, 4:
+						case 2, 4, 6:
 							_, ok := obj.(*ketchv1.Pool)
 							require.True(t, ok)
 							return nil
-						case 3:
+						case 3, 5:
 							_, ok := obj.(*ketchv1.Platform)
 							require.True(t, ok)
 							return nil
 
+						}
+
+						panic("should not reach")
+					},
+				},
+				KubeClient:  fake.NewSimpleClientset(),
+				Builder:     build.GetSourceHandler(&dockerMocker{}),
+				RemoteImage: remoteImgFn,
+				Wait:        nil,
+				Writer:      &bytes.Buffer{},
+			},
+		},
+		{
+			name:      "missing source path",
+			wantError: true,
+			arguments: []string{
+				"myapp",
+				"src",
+				"--platform", "go",
+				"--pool", "mypool",
+				"--image", "shipa/go-sample:latest",
+			},
+			setup: func(t *testing.T) {
+				dir := t.TempDir()
+				require.Nil(t, os.Chdir(dir))
+			},
+			params: &Params{
+				Client: &mockClient{
+					getFn: func(counter int, obj runtime.Object) error {
+						switch counter {
+						case 1:
+							return errors.NewNotFound(v1.Resource(""), "")
+						case 2, 4, 6:
+							_, ok := obj.(*ketchv1.Pool)
+							require.True(t, ok)
+							return nil
+						case 3, 5:
+							_, ok := obj.(*ketchv1.Platform)
+							require.True(t, ok)
+							return nil
+
+						}
+
+						panic("should not reach")
+					},
+				},
+				KubeClient:  fake.NewSimpleClientset(),
+				Builder:     build.GetSourceHandler(&dockerMocker{}),
+				RemoteImage: remoteImgFn,
+				Wait:        nil,
+				Writer:      &bytes.Buffer{},
+			},
+		},
+		{
+			name: "with environment variables",
+			arguments: []string{
+				"myapp",
+				"src",
+				"--platform", "go",
+				"--pool", "mypool",
+				"--image", "shipa/go-sample:latest",
+				"--env", "foo=bar,bobb=dobbs",
+			},
+			setup: func(t *testing.T) {
+				dir := t.TempDir()
+				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
+				require.Nil(t, os.Chdir(dir))
+			},
+			params: &Params{
+				Client: &mockClient{
+					createFn: func(counter int, obj runtime.Object) error {
+						switch counter {
+						case 1:
+							app, ok := obj.(*ketchv1.App)
+							require.True(t, ok)
+							t.Logf("envs %v", app.Spec.Env)
+							require.Len(t, app.Spec.Env, 2)
+						}
+						return nil
+					},
+					getFn: func(counter int, obj runtime.Object) error {
+						switch counter {
+						case 1:
+							return errors.NewNotFound(v1.Resource(""), "")
+						case 2, 4, 6:
+							_, ok := obj.(*ketchv1.Pool)
+							require.True(t, ok)
+							return nil
+						case 3, 5:
+							_, ok := obj.(*ketchv1.Platform)
+							require.True(t, ok)
+							return nil
+
+						}
+
+						panic("should not reach")
+					},
+				},
+				KubeClient:  fake.NewSimpleClientset(),
+				Builder:     build.GetSourceHandler(&dockerMocker{}),
+				RemoteImage: remoteImgFn,
+				Wait:        nil,
+				Writer:      &bytes.Buffer{},
+			},
+		},
+		{
+			name:      "with messed up environment variables",
+			wantError: true,
+			arguments: []string{
+				"myapp",
+				"src",
+				"--platform", "go",
+				"--pool", "mypool",
+				"--image", "shipa/go-sample:latest",
+				"--env", "foo=bar,bobbdobbs",
+			},
+			setup: func(t *testing.T) {
+				dir := t.TempDir()
+				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
+				require.Nil(t, os.Chdir(dir))
+			},
+			params: &Params{
+				Client: &mockClient{
+					createFn: func(counter int, obj runtime.Object) error {
+						switch counter {
+						case 1:
+							app, ok := obj.(*ketchv1.App)
+							require.True(t, ok)
+							t.Logf("envs %v", app.Spec.Env)
+							require.Len(t, app.Spec.Env, 2)
+						}
+						return nil
+					},
+					getFn: func(counter int, obj runtime.Object) error {
+						switch counter {
+						case 1:
+							return errors.NewNotFound(v1.Resource(""), "")
+						case 2, 4, 6:
+							_, ok := obj.(*ketchv1.Pool)
+							require.True(t, ok)
+							return nil
+						case 3, 5:
+							_, ok := obj.(*ketchv1.Platform)
+							require.True(t, ok)
+							return nil
 
 						}
 
@@ -139,6 +296,7 @@ func TestNewCommand(t *testing.T) {
 			cmd.SetArgs(tc.arguments)
 			err := cmd.Execute()
 			if tc.wantError {
+				t.Logf("got error %s", err)
 				require.NotNil(t, err)
 				return
 			}

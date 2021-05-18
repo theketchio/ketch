@@ -10,22 +10,47 @@ import (
 	"os"
 )
 
-type errValidation string
-
-func (e errValidation) Error() string { return string(e) }
+type StatusType int
 
 const (
-	errMissing errValidation = "missing value"
-	errInvalid errValidation = "invalid value"
+	MissingValue StatusType = iota
+	InvalidValue
 )
+
+type Statuser interface {
+	Status() StatusType
+}
+
+type Error struct {
+	Reason  StatusType
+	Message string
+}
+
+func (e Error) Status() StatusType { return e.Reason }
+func (e Error) Error() string      { return e.Message }
+func (e Error) String() string     { return e.Message }
+
+func NewMissingError(flag string) error {
+	return &Error{
+		Reason:  MissingValue,
+		Message: fmt.Sprintf("%q missing", flag),
+	}
+}
+
+func NewInvalidError(flag string) error {
+	return &Error{
+		Reason:  InvalidValue,
+		Message: fmt.Sprintf("%q invalid value", flag),
+	}
+}
 
 func isMissing(err error) bool {
 	if err == nil {
 		return false
 	}
-	var v *errValidation
+	var v *Error
 	if errors.As(err, &v) {
-		if *v == errMissing {
+		if v.Status() == MissingValue {
 			return true
 		}
 	}
@@ -34,10 +59,9 @@ func isMissing(err error) bool {
 
 func isValid(err error) bool {
 	if err != nil {
-
-		var v *errValidation
+		var v *Error
 		if errors.As(err, &v) {
-			if *v == errInvalid {
+			if v.Status() == InvalidValue {
 				return false
 			}
 		}
@@ -111,13 +135,13 @@ func validateCreateApp(ctx context.Context, client getter, appName string, cs *C
 func directoryExists(dir string) error {
 	fi, err := os.Stat(dir)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("%w %q doesn't exist", errInvalid, dir)
+		return fmt.Errorf("%w directory doesn't exist", NewInvalidError(dir))
 	}
 	if err != nil {
 		return kerrs.Wrap(err, "test for directory failed")
 	}
 	if !fi.IsDir() {
-		return fmt.Errorf("%w %q is not a directory", errInvalid, dir)
+		return fmt.Errorf("%w not a directory", NewInvalidError(dir))
 	}
 	return nil
 }

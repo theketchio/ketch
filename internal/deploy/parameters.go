@@ -146,19 +146,19 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 
 func (c *ChangeSet) getProcfileName() (string, error) {
 	if c.procfileFileName == nil {
-		return "", fmt.Errorf("%w %s", errMissing, FlagProcFile)
+		return "", NewMissingError(FlagProcFile)
 	}
 	return *c.procfileFileName, nil
 }
 
 func (c *ChangeSet) getPlatform(ctx context.Context, client getter) (string, error) {
 	if c.platform == nil {
-		return "", fmt.Errorf("%w %s", errMissing, FlagPlatform)
+		return "", NewMissingError(FlagPlatform)
 	}
 	var p ketchv1.Platform
 	err := client.Get(ctx, types.NamespacedName{Name: *c.platform}, &p)
 	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("%w platform %q has not been created", errInvalid, *c.platform)
+		return "", fmt.Errorf("%w platform %q has not been created", NewInvalidError(FlagPlatform), *c.platform)
 	}
 	if err != nil {
 		return "", errors.Wrap(err, "could not fetch platform %q", *c.platform)
@@ -168,14 +168,14 @@ func (c *ChangeSet) getPlatform(ctx context.Context, client getter) (string, err
 
 func (c *ChangeSet) getDescription() (string, error) {
 	if c.description == nil {
-		return "", fmt.Errorf("%w %s", errMissing, FlagDescription)
+		return "", NewMissingError(FlagDescription)
 	}
 	return *c.description, nil
 }
 
 func (c *ChangeSet) getIncludeDirs() ([]string, error) {
 	if c.subPaths == nil {
-		return nil, fmt.Errorf("%w %s", errMissing, FlagIncludeDirs)
+		return nil, NewMissingError(FlagIncludeDirs)
 	}
 	rootDir, err := c.getSourceDirectory()
 	if err != nil {
@@ -192,21 +192,21 @@ func (c *ChangeSet) getIncludeDirs() ([]string, error) {
 
 func (c *ChangeSet) getYamlPath() (string, error) {
 	if c.ketchYamlFileName == nil {
-		return "", fmt.Errorf("%w %s", errMissing, FlagKetchYaml)
+		return "", NewMissingError(FlagKetchYaml)
 	}
 	stat, err := os.Stat(*c.ketchYamlFileName)
 	if err != nil {
-		return "", fmt.Errorf("%w %s %s", errInvalid, FlagKetchYaml, err)
+		return "", NewInvalidError(FlagKetchYaml)
 	}
 	if stat.IsDir() {
-		return "", fmt.Errorf("%w %s is not a regular file", errInvalid, *c.ketchYamlFileName)
+		return "", fmt.Errorf("%w %s is not a regular file", NewInvalidError(FlagKetchYaml), *c.ketchYamlFileName)
 	}
 	return *c.ketchYamlFileName, nil
 }
 
 func (c *ChangeSet) getSourceDirectory() (string, error) {
 	if c.sourcePath == nil {
-		return "", fmt.Errorf("%w source directory", errMissing)
+		return "", NewMissingError("source directory")
 	}
 	if err := directoryExists(*c.sourcePath); err != nil {
 		return "", err
@@ -216,12 +216,12 @@ func (c *ChangeSet) getSourceDirectory() (string, error) {
 
 func (c *ChangeSet) getPool(ctx context.Context, client getter) (string, error) {
 	if c.pool == nil {
-		return "", fmt.Errorf("%w %s is required", errMissing, FlagPool)
+		return "", NewMissingError(FlagPool)
 	}
 	var p ketchv1.Pool
 	err := client.Get(ctx, types.NamespacedName{Name: *c.pool}, &p)
 	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("%w pool %q has not been created", errInvalid, *c.pool)
+		return "", fmt.Errorf("%w pool %q has not been created", NewInvalidError(FlagPool), *c.pool)
 	}
 	if err != nil {
 		return "", errors.Wrap(err, "could not fetch pool %q", *c.pool)
@@ -231,34 +231,34 @@ func (c *ChangeSet) getPool(ctx context.Context, client getter) (string, error) 
 
 func (c *ChangeSet) getImage() (string, error) {
 	if c.image == nil {
-		return "", fmt.Errorf("%w %s is required", errMissing, FlagImage)
+		return "", fmt.Errorf("%w %s is required", NewMissingError(FlagImage), FlagImage)
 	}
 	return *c.image, nil
 }
 
 func (c *ChangeSet) getSteps() (int, error) {
 	if c.steps == nil {
-		return 0, fmt.Errorf("%w %s is required", errMissing, FlagSteps)
+		return 0, NewMissingError(FlagSteps)
 	}
 	steps := *c.steps
 	if steps < minimumSteps || steps > maximumSteps {
 		return 0, fmt.Errorf("%w %s must be between %d and %d",
-			errInvalid, FlagSteps, minimumSteps, maximumSteps)
+			NewInvalidError(FlagSteps), FlagSteps, minimumSteps, maximumSteps)
 	}
 	if maximumSteps%steps != 0 {
 		return 0, fmt.Errorf("%w %d must be evenly divisable by %d",
-			errInvalid, maximumSteps, steps)
+			NewInvalidError(FlagSteps), maximumSteps, steps)
 	}
 	return *c.steps, nil
 }
 
 func (c *ChangeSet) getStepInterval() (time.Duration, error) {
 	if c.stepTimeInterval == nil {
-		return 0, fmt.Errorf("%w %s is required", errMissing, FlagStepInterval)
+		return 0, NewMissingError(FlagStepInterval)
 	}
 	dur, err := time.ParseDuration(*c.stepTimeInterval)
 	if err != nil {
-		return 0, fmt.Errorf("%w %s", errInvalid, FlagStepInterval)
+		return 0, NewInvalidError(FlagStepInterval)
 	}
 	return dur, nil
 }
@@ -273,36 +273,36 @@ func (c *ChangeSet) getStepWeight() (uint8, error) {
 
 func (c *ChangeSet) getEnvironments() ([]ketchv1.Env, error) {
 	if c.envs == nil {
-		return nil, fmt.Errorf("%w %s", errMissing, FlagEnvironment)
+		return nil, NewMissingError(FlagEnvironment)
 	}
 	envs, err := utils.MakeEnvironments(*c.envs)
 	if err != nil {
-		return nil, fmt.Errorf("%w %s %s", errInvalid, FlagEnvironment, err)
+		return nil, NewInvalidError(FlagEnvironment)
 	}
 	return envs, nil
 }
 
 func (c *ChangeSet) getWait() (bool, error) {
 	if c.wait == nil {
-		return false, fmt.Errorf("%w %s", errMissing, FlagWait)
+		return false, NewMissingError(FlagWait)
 	}
 	return *c.wait, nil
 }
 
 func (c *ChangeSet) getTimeout() (time.Duration, error) {
 	if c.timeout == nil {
-		return 0, fmt.Errorf("%w %s", errMissing, FlagTimeout)
+		return 0, NewMissingError(FlagTimeout)
 	}
 	d, err := time.ParseDuration(*c.timeout)
 	if err != nil {
-		return 0, fmt.Errorf("%w %s %s", errInvalid, FlagTimeout, err)
+		return 0, NewInvalidError(FlagTimeout)
 	}
 	return d, nil
 }
 
 func (c *ChangeSet) getDockerRegistrySecret() (string, error) {
 	if c.dockerRegistrySecret == nil {
-		return "", fmt.Errorf("%w %s", errMissing, FlagRegistrySecret)
+		return "", NewMissingError(FlagRegistrySecret)
 	}
 	return *c.dockerRegistrySecret, nil
 }

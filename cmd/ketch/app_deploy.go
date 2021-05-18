@@ -76,12 +76,12 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 			defer dockerSvc.Close()
 
 			svc := &deploy.Params{
-				Client: cfg.Client(),
-				KubeClient: cfg.KubernetesClient(),
-				Writer: out,
-				Builder: build.GetSourceHandler(dockerSvc),
+				Client:      cfg.Client(),
+				KubeClient:  cfg.KubernetesClient(),
+				Writer:      out,
+				Builder:     build.GetSourceHandler(dockerSvc),
 				RemoteImage: remote.Image,
-				Wait: deploy.WaitForDeployment,
+				Wait:        deploy.WaitForDeployment,
 			}
 			return deploy.New(options.GetChangeSet(cmd.Flags())).Run(cmd.Context(), svc)
 		},
@@ -102,14 +102,10 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&options.Description, deploy.FlagDescription, deploy.FlagDescriptionShort, "", "App description")
 	cmd.Flags().StringSliceVarP(&options.Envs, deploy.FlagEnvironment, deploy.FlagEnvironmentShort, []string{}, "App env variables")
 	cmd.Flags().StringVarP(&options.Pool, deploy.FlagPool, deploy.FlagPoolShort, "", "Pool to deploy your app")
-	cmd.Flags().StringVarP(&options.DockerRegistrySecret,deploy.FlagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
-
+	cmd.Flags().StringVarP(&options.DockerRegistrySecret, deploy.FlagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
 
 	return cmd
 }
-
-
-
 
 type appDeployOptions struct {
 	appName                 string
