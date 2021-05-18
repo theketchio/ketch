@@ -484,7 +484,7 @@ func (app *App) ExposedPorts() map[DeploymentVersion][]ExposedPort {
 	return ports
 }
 
-// SetCondition sets Status and Message fields of the given type of condition to the provided values.
+// SetCondition sets Status and message fields of the given type of condition to the provided values.
 func (app *App) SetCondition(t AppConditionType, status v1.ConditionStatus, message string, time metav1.Time) {
 	c := AppCondition{
 		Type:               t,

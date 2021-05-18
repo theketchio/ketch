@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/shipa-corp/ketch/internal/build"
+	"github.com/shipa-corp/ketch/internal/deploy"
+	"github.com/shipa-corp/ketch/internal/docker"
 	"io"
 	"strings"
 
@@ -11,7 +14,7 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
-func newAppCmd(cfg config, out io.Writer) *cobra.Command {
+func newAppCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "app",
 		Short: "Manage applications",
@@ -20,9 +23,17 @@ func newAppCmd(cfg config, out io.Writer) *cobra.Command {
 			return cmd.Usage()
 		},
 	}
-	cmd.AddCommand(newAppCreateCmd(cfg, out))
-	cmd.AddCommand(newAppDeployCmd(cfg, out))
-	cmd.AddCommand(newAppUpdateCmd(cfg, out))
+
+	params := &deploy.Params{
+		Client:         cfg.Client(),
+		KubeClient:     cfg.KubernetesClient(),
+		Builder:        build.GetSourceHandler(docker),
+		GetImageConfig: deploy.GetImageConfig,
+		Wait:           deploy.WaitForDeployment,
+		Writer:         out,
+	}
+
+	cmd.AddCommand(deploy.NewCommand(params))
 	cmd.AddCommand(newAppListCmd(cfg, out))
 	cmd.AddCommand(newAppLogCmd(cfg, out, appLog))
 	cmd.AddCommand(newAppRemoveCmd(cfg, out, appRemove))

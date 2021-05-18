@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/shipa-corp/ketch/internal/docker"
 	"io"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,7 +47,7 @@ type resourceGetDeleter interface {
 }
 
 // RootCmd represents the base command when called without any subcommands
-func newRootCmd(cfg config, out io.Writer) *cobra.Command {
+func newRootCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "ketch",
 		Short:   "Manage your applications and your cloud resources",
@@ -56,7 +57,7 @@ func newRootCmd(cfg config, out io.Writer) *cobra.Command {
 			return cmd.Usage()
 		},
 	}
-	cmd.AddCommand(newAppCmd(cfg, out))
+	cmd.AddCommand(newAppCmd(cfg, out, docker))
 	cmd.AddCommand(newCnameCmd(cfg, out))
 	cmd.AddCommand(newPoolCmd(cfg, out))
 	cmd.AddCommand(newUnitCmd(cfg, out))

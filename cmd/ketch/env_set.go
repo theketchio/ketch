@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 	"log"
 
@@ -40,7 +41,7 @@ type envSetOptions struct {
 }
 
 func envSet(ctx context.Context, cfg config, options envSetOptions, out io.Writer) error {
-	envs, err := getEnvs(options.envs)
+	envs, err := utils.MakeEnvironments(options.envs)
 	if err != nil {
 		return fmt.Errorf("failed to get kubernetes client: %w", err)
 	}
