@@ -393,10 +393,10 @@ func updateAppCRD(ctx context.Context, svc *Params, app *ketchv1.App, args updat
 	}
 
 	if args.steps > 1 {
-		if len(app.Spec.Deployments) != 1 {
+		/* if len(app.Spec.Deployments) != 1 {
 			// Shouldn't happen, it's here to avoid tests with incorrect data.
 			return nil, errors.New("canary deployment failed: the application has to contain one deployment")
-		}
+		} */
 
 		nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
 		started := metav1.NewTime(args.started)

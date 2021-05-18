@@ -140,6 +140,88 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 		{
+			name: "happy path with canary deploy build from source",
+			arguments: []string{
+				"myapp",
+				"src",
+				"--steps", "4",
+				"--step-interval", "1h",
+				"--platform", "go",
+				"--pool", "mypool",
+				"--image", "shipa/go-sample:latest",
+			},
+			setup: func(t *testing.T) {
+				dir := t.TempDir()
+				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
+				require.Nil(t, os.Chdir(dir))
+			},
+			params: &Params{
+				Client: &mockClient{
+					getFn: func(counter int, obj runtime.Object) error {
+						switch counter {
+						case 1:
+							return errors.NewNotFound(v1.Resource(""), "")
+						case 2, 4, 6:
+							_, ok := obj.(*ketchv1.Pool)
+							require.True(t, ok)
+							return nil
+						case 3, 5:
+							_, ok := obj.(*ketchv1.Platform)
+							require.True(t, ok)
+							return nil
+
+						}
+
+						panic("should not reach")
+					},
+				},
+				KubeClient:  fake.NewSimpleClientset(),
+				Builder:     build.GetSourceHandler(&dockerMocker{}),
+				RemoteImage: remoteImgFn,
+				Wait:        nil,
+				Writer:      &bytes.Buffer{},
+			},
+		},
+		{
+			name: "happy path build from image",
+			arguments: []string{
+				"myapp",
+				"--pool", "mypool",
+				"--image", "shipa/go-sample:latest",
+			},
+			setup: func(t *testing.T) {
+				dir := t.TempDir()
+				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
+				require.Nil(t, os.Chdir(dir))
+			},
+			params: &Params{
+				Client: &mockClient{
+					getFn: func(counter int, obj runtime.Object) error {
+						switch counter {
+						case 1:
+							return errors.NewNotFound(v1.Resource(""), "")
+						case 2, 3, 5:
+							_, ok := obj.(*ketchv1.Pool)
+							require.True(t, ok)
+							return nil
+						case 4:
+							_, ok := obj.(*ketchv1.Platform)
+							require.True(t, ok)
+							return nil
+
+						}
+
+						panic("should not reach")
+					},
+				},
+				KubeClient:  fake.NewSimpleClientset(),
+				Builder:     build.GetSourceHandler(&dockerMocker{}),
+				RemoteImage: remoteImgFn,
+				Wait:        nil,
+				Writer:      &bytes.Buffer{},
+			},
+		},
+		{
 			name:      "missing source path",
 			wantError: true,
 			arguments: []string{
