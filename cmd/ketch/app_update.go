@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -65,7 +66,7 @@ func (au appUpdateOptions) validate() error {
 }
 
 func appUpdate(ctx context.Context, cfg config, options appUpdateOptions, out io.Writer) error {
-	envs, err := getEnvs(options.envs)
+	envs, err := utils.MakeEnvironments(options.envs)
 	if err != nil {
 		return fmt.Errorf("failed to parse env variables: %w", err)
 	}

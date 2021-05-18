@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -53,7 +54,7 @@ func appCreate(ctx context.Context, cfg config, options appCreateOptions, out io
 	if !validation.ValidateName(options.name) {
 		return ErrInvalidAppName
 	}
-	envs, err := getEnvs(options.envs)
+	envs, err := utils.MakeEnvironments(options.envs)
 	if err != nil {
 		return fmt.Errorf("failed to parse env variables: %w", err)
 	}

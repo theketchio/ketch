@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 	"strings"
 	"testing"
@@ -785,7 +786,7 @@ func (f *fakeAppReconcileWatcher) Push(deplomentCount int, appName, eventType, m
 		InvolvedObject: corev1.ObjectReference{
 			Kind:       "App",
 			Name:       appName,
-			APIVersion: v1betaPrefix,
+			APIVersion: utils.v1betaPrefix,
 		},
 		Reason:  reason.String(),
 		Type:    eventType,

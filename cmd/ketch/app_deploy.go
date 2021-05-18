@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/shipa-corp/ketch/internal/deploy"
+	"github.com/shipa-corp/ketch/internal/docker"
+	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 	"io/ioutil"
 	"os"
@@ -61,63 +63,53 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 		Short: "Deploy an app",
 		Long:  appDeployHelp,
 		Args:  cobra.RangeArgs(1, 2),
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			//if options.image == "" {
-			//	return errors.New("missing required image name")
-			//}
-			return nil
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.AppName = args[0]
 			if len(args) == 2 {
 				options.AppSourcePath = args[1]
 			}
-			//
-			//var (
-			//	err       error
-			//	dockerSvc *docker.Client
-			//)
-			//
-			//if len(args) == 2 {
-			//	dockerSvc, err = docker.New()
-			//	if err != nil {
-			//		return err
-			//	}
-			//	defer dockerSvc.Close()
-			//	options.appSourcePath = args[1]
-			//}
-			//return appDeploy(cmd.Context(), cfg, getImageConfigFile, waitHandler(watchAppReconcileEvent), build.GetSourceHandler(dockerSvc), changeAppCRD, options, out)
-			runner, err := deploy.New(cfg.Client(), options)
-			if err != nil {
-				return err
-			}
-			if err = runner.Run(cmd.Context()); err != nil {
-				return err
-			}
 
-			return nil
+			dockerSvc, err := docker.New()
+			if err != nil {
+				return errors.Wrap(err, "couldn't create docker service")
+			}
+			defer dockerSvc.Close()
+
+			svc := &deploy.Params{
+				Client: cfg.Client(),
+				KubeClient: cfg.KubernetesClient(),
+				Writer: out,
+				Builder: build.GetSourceHandler(dockerSvc),
+				RemoteImage: remote.Image,
+				Wait: deploy.WaitForDeployment,
+			}
+			return deploy.New(options.GetChangeSet(cmd.Flags())).Run(cmd.Context(), svc)
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.Image, "image", "i", "", "the image that will be deployed")
-	cmd.Flags().StringVar(&options.KetchYamlFileName, "ketch-yaml", "", "the path to ketch.yaml")
-	cmd.Flags().StringVar(&options.ProcfileFileName, "procfile", "", "the path to Procfile")
-	cmd.Flags().BoolVar(&options.StrictKetchYamlDecoding, "strict", false, "strict decoding of ketch.yaml")
-	cmd.Flags().IntVar(&options.Steps, "steps", 1, "number of steps to roll out the new deployment")
-	cmd.Flags().StringVar(&options.StepTimeInterval, "step-interval", "", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
-	cmd.Flags().BoolVar(&options.Wait, "wait", false, "await for reconcile event")
-	cmd.Flags().StringVar(&options.Timeout, "timeout", "20s", "timeout for await of reconcile. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
-	cmd.Flags().StringSliceVar(&options.SubPaths, "include-dirs", []string{"."}, "optionally include additional source paths. Additional paths must be relative to source-path")
-	cmd.MarkFlagRequired("image")
+	cmd.Flags().StringVarP(&options.Image, deploy.FlagImage, deploy.FlagImageShort, "", "the image that will be deployed")
+	cmd.Flags().StringVar(&options.KetchYamlFileName, deploy.FlagKetchYaml, "", "the path to ketch.yaml")
 
-	cmd.Flags().StringVarP(&options.Platform, "platform", "P", "", "Platform name")
-	cmd.Flags().StringVarP(&options.Description, "description", "d", "", "App description")
-	cmd.Flags().StringSliceVarP(&options.Envs, "env", "e", []string{}, "App env variables")
-	cmd.Flags().StringVarP(&options.Pool, "pool", "o", "", "Pool to deploy your app")
-	cmd.Flags().StringVarP(&options.DockerRegistrySecret, "registry-secret", "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
+	cmd.Flags().StringVar(&options.ProcfileFileName, deploy.FlagProcFile, "", "the path to Procfile")
+	cmd.Flags().BoolVar(&options.StrictKetchYamlDecoding, deploy.FlagStrict, false, "strict decoding of ketch.yaml")
+	cmd.Flags().IntVar(&options.Steps, deploy.FlagSteps, 2, "number of steps to roll out the new deployment")
+	cmd.Flags().StringVar(&options.StepTimeInterval, deploy.FlagStepInterval, "", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
+	cmd.Flags().BoolVar(&options.Wait, deploy.FlagWait, false, "await for reconcile event")
+	cmd.Flags().StringVar(&options.Timeout, deploy.FlagTimeout, "20s", "timeout for await of reconcile. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
+	cmd.Flags().StringSliceVar(&options.SubPaths, deploy.FlagIncludeDirs, []string{"."}, "optionally include additional source paths. Additional paths must be relative to source-path")
+
+	cmd.Flags().StringVarP(&options.Platform, deploy.FlagPlatform, deploy.FlagPlatformShort, "", "Platform name")
+	cmd.Flags().StringVarP(&options.Description, deploy.FlagDescription, deploy.FlagDescriptionShort, "", "App description")
+	cmd.Flags().StringSliceVarP(&options.Envs, deploy.FlagEnvironment, deploy.FlagEnvironmentShort, []string{}, "App env variables")
+	cmd.Flags().StringVarP(&options.Pool, deploy.FlagPool, deploy.FlagPoolShort, "", "Pool to deploy your app")
+	cmd.Flags().StringVarP(&options.DockerRegistrySecret,deploy.FlagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
+
 
 	return cmd
 }
+
+
+
 
 type appDeployOptions struct {
 	appName                 string
@@ -498,7 +490,7 @@ func getImageConfigFile(ctx context.Context, kubeClient kubernetes.Interface, ar
 func watchAppReconcileEvent(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
 	reason := controllers.AppReconcileReason{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 	selector := fields.Set(map[string]string{
-		"involvedObject.apiVersion": v1betaPrefix,
+		"involvedObject.apiVersion": utils.v1betaPrefix,
 		"involvedObject.kind":       "App",
 		"involvedObject.name":       app.Name,
 		"reason":                    reason.String(),
