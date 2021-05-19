@@ -86,9 +86,9 @@ func Test_watchLogs(t *testing.T) {
 				UID:       types.UID(name),
 				Labels: map[string]string{
 					"TIME":                            logsStartTime.Format(time.RFC3339Nano),
-					utils.ketchAppNameLabel:           appName,
-					utils.ketchProcessNameLabel:       processName,
-					utils.ketchDeploymentVersionLabel: version,
+					utils.KetchAppNameLabel:           appName,
+					utils.KetchProcessNameLabel:       processName,
+					utils.KetchDeploymentVersionLabel: version,
 				},
 			},
 		}
@@ -161,7 +161,7 @@ func Test_watchLogs(t *testing.T) {
 			description: "happy path - logs from dashboard containers, + prefix, + timestamps",
 			options: watchOptions{
 				namespace:  "default",
-				selector:   labels.SelectorFromSet(map[string]string{utils.ketchAppNameLabel: "dashboard"}),
+				selector:   labels.SelectorFromSet(map[string]string{utils.KetchAppNameLabel: "dashboard"}),
 				prefix:     true,
 				timestamps: true,
 			},
@@ -303,7 +303,7 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					utils.ketchAppNameLabel: "dashboard",
+					utils.KetchAppNameLabel: "dashboard",
 				}),
 				prefix: true,
 			},
@@ -318,7 +318,7 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					utils.ketchAppNameLabel: "dashboard",
+					utils.KetchAppNameLabel: "dashboard",
 				}),
 				follow: true,
 			},
@@ -333,8 +333,8 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					utils.ketchAppNameLabel:     "dashboard",
-					utils.ketchProcessNameLabel: "web",
+					utils.KetchAppNameLabel:     "dashboard",
+					utils.KetchProcessNameLabel: "web",
 				}),
 				timestamps: true,
 			},
@@ -349,9 +349,9 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					utils.ketchAppNameLabel:           "dashboard",
-					utils.ketchProcessNameLabel:       "worker",
-					utils.ketchDeploymentVersionLabel: "4",
+					utils.KetchAppNameLabel:           "dashboard",
+					utils.KetchProcessNameLabel:       "worker",
+					utils.KetchDeploymentVersionLabel: "4",
 				}),
 				ignoreErrors: true,
 			},
@@ -383,7 +383,7 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					utils.ketchAppNameLabel: "dashboard",
+					utils.KetchAppNameLabel: "dashboard",
 				}),
 			},
 		},

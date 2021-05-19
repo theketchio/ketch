@@ -76,12 +76,12 @@ func newAppDeployCmd(cfg config, out io.Writer) *cobra.Command {
 			defer dockerSvc.Close()
 
 			svc := &deploy.Params{
-				Client:      cfg.Client(),
-				KubeClient:  cfg.KubernetesClient(),
-				Writer:      out,
-				Builder:     build.GetSourceHandler(dockerSvc),
-				RemoteImage: remote.Image,
-				Wait:        deploy.WaitForDeployment,
+				Client:     cfg.Client(),
+				KubeClient: cfg.KubernetesClient(),
+				Writer:     out,
+				Builder:    build.GetSourceHandler(dockerSvc),
+				//		RemoteImage: remote.Image,
+				Wait: deploy.WaitForDeployment,
 			}
 			return deploy.New(options.GetChangeSet(cmd.Flags())).Run(cmd.Context(), svc)
 		},
@@ -486,7 +486,7 @@ func getImageConfigFile(ctx context.Context, kubeClient kubernetes.Interface, ar
 func watchAppReconcileEvent(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
 	reason := controllers.AppReconcileReason{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 	selector := fields.Set(map[string]string{
-		"involvedObject.apiVersion": utils.v1betaPrefix,
+		"involvedObject.apiVersion": utils.V1betaPrefix,
 		"involvedObject.kind":       "App",
 		"involvedObject.name":       app.Name,
 		"reason":                    reason.String(),

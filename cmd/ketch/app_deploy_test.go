@@ -786,7 +786,7 @@ func (f *fakeAppReconcileWatcher) Push(deplomentCount int, appName, eventType, m
 		InvolvedObject: corev1.ObjectReference{
 			Kind:       "App",
 			Name:       appName,
-			APIVersion: utils.v1betaPrefix,
+			APIVersion: utils.V1betaPrefix,
 		},
 		Reason:  reason.String(),
 		Type:    eventType,

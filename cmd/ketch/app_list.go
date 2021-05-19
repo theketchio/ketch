@@ -70,7 +70,7 @@ func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.P
 	selector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
-				Key:      utils.ketchAppNameLabel,
+				Key:      utils.KetchAppNameLabel,
 				Operator: "Exists",
 			},
 		},
@@ -88,7 +88,7 @@ func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.P
 func filterAppPods(appName string, pods []corev1.Pod) []corev1.Pod {
 	var appPods []corev1.Pod
 	for _, pod := range pods {
-		if pod.Labels[utils.ketchAppNameLabel] == appName {
+		if pod.Labels[utils.KetchAppNameLabel] == appName {
 			appPods = append(appPods, pod)
 		}
 	}
