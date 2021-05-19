@@ -160,7 +160,20 @@ func TestNewCommand(t *testing.T) {
 					getFn: func(counter int, obj runtime.Object) error {
 						switch counter {
 						case 1:
-							return errors.NewNotFound(v1.Resource(""), "")
+							app, ok := obj.(*ketchv1.App)
+							require.True(t, ok)
+							app.Spec.Deployments = []ketchv1.AppDeploymentSpec{
+								{
+									Image:           "shipa/go-sample:latest",
+									Version:         1,
+									Processes:       nil,
+									KetchYaml:       nil,
+									Labels:          nil,
+									RoutingSettings: ketchv1.RoutingSettings{},
+									ExposedPorts:    nil,
+								},
+							}
+							return nil
 						case 2, 4, 6:
 							_, ok := obj.(*ketchv1.Pool)
 							require.True(t, ok)

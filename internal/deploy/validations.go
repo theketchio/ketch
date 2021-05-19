@@ -80,12 +80,12 @@ func validateDeploy(cs *ChangeSet, app *ketchv1.App) error {
 		if !isValid(err) {
 			return err
 		}
-		/*switch deps := len(app.Spec.Deployments); {
+		switch deps := len(app.Spec.Deployments); {
 		case deps == 0:
 			return fmt.Errorf("canary deployment failed. No primary deployment found for the app")
 		case deps >= 2:
 			return fmt.Errorf("canary deployment failed. Maximum number of two deployments are currently supported")
-		}*/
+		}
 		if _, err := cs.getStepInterval(); err != nil {
 			return err
 		}
