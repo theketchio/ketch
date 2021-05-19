@@ -16,15 +16,8 @@ type imageConfigRequest struct {
 	imageName       string
 	secretName      string
 	secretNamespace string
-	imageFn         RemoteImageFn
 	client          kubernetes.Interface
 }
-
-type ImageConfiger interface {
-	ConfigFile() (*registryv1.ConfigFile, error)
-}
-
-type RemoteImageFn func(ref name.Reference, options ...remote.Option) (ImageConfiger, error)
 
 type GetImageConfigFn func(ctx context.Context, args imageConfigRequest) (*registryv1.ConfigFile, error)
 
@@ -45,7 +38,7 @@ func GetImageConfig(ctx context.Context, args imageConfigRequest) (*registryv1.C
 		}
 		options = append(options, remote.WithAuthFromKeychain(keychain))
 	}
-	img, err := args.imageFn(ref, options...)
+	img, err := remote.Image(ref, options...)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get config for image %q", args.imageName)
 	}

@@ -27,13 +27,17 @@ Deploy from an image:
 )
 
 type Params struct {
-	Client     getterCreator
+	// Client gets updates and creates ketch CRDs
+	Client getterCreator
+	// Kubernetes client
 	KubeClient kubernetes.Interface
-
-	Builder        SourceBuilderFn
+	// Builder references source builder from internal/builder package
+	Builder SourceBuilderFn
+	// Function that retrieve image config
 	GetImageConfig GetImageConfigFn
-	Wait           WaitFn
-
+	// Wait is a function that will wait until it detects the a deployment is finished
+	Wait WaitFn
+	// Writer probably points to stdout or stderr, receives textual output
 	Writer io.Writer
 }
 
@@ -43,7 +47,7 @@ func NewCommand(params *Params) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "deploy APPNAME [SOURCE DIRECTORY]",
-		Short: "Deploy an app",
+		Short: "Deploy an app.",
 		Long:  appDeployHelp,
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -51,26 +55,26 @@ func NewCommand(params *Params) *cobra.Command {
 			if len(args) == 2 {
 				options.AppSourcePath = args[1]
 			}
-			return New(options.GetChangeSet(cmd.Flags())).Run(cmd.Context(), params)
+			return newRunner(options.GetChangeSet(cmd.Flags())).run(cmd.Context(), params)
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.Image, FlagImage, FlagImageShort, "", "the image that will be deployed")
-	cmd.Flags().StringVar(&options.KetchYamlFileName, FlagKetchYaml, "", "the path to ketch.yaml")
+	cmd.Flags().StringVarP(&options.Image, flagImage, flagImageShort, "", "Name of the image to be deployed.")
+	cmd.Flags().StringVar(&options.KetchYamlFileName, flagKetchYaml, "", "Path to ketch.yaml.")
 
-	cmd.Flags().StringVar(&options.ProcfileFileName, FlagProcFile, "", "the path to Procfile")
-	cmd.Flags().BoolVar(&options.StrictKetchYamlDecoding, FlagStrict, false, "strict decoding of ketch.yaml")
-	cmd.Flags().IntVar(&options.Steps, FlagSteps, 2, "number of steps to roll out the new deployment")
-	cmd.Flags().StringVar(&options.StepTimeInterval, FlagStepInterval, "", "time interval between each step. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
-	cmd.Flags().BoolVar(&options.Wait, FlagWait, false, "await for reconcile event")
-	cmd.Flags().StringVar(&options.Timeout, FlagTimeout, "20s", "timeout for await of reconcile. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h")
-	cmd.Flags().StringSliceVar(&options.SubPaths, FlagIncludeDirs, []string{"."}, "optionally include additional source paths. Additional paths must be relative to source-path")
+	cmd.Flags().StringVar(&options.ProcfileFileName, flagProcFile, "", "Path to procfile.")
+	cmd.Flags().BoolVar(&options.StrictKetchYamlDecoding, flagStrict, false, "Enforces strict decoding of ketch.yaml.")
+	cmd.Flags().IntVar(&options.Steps, flagSteps, 2, "Number of steps for a canary deployment.")
+	cmd.Flags().StringVar(&options.StepTimeInterval, flagStepInterval, "", "Time interval between canary deployment steps. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h.")
+	cmd.Flags().BoolVar(&options.Wait, flagWait, false, "If true blocks until deploy completes or a timeout occurs.")
+	cmd.Flags().StringVar(&options.Timeout, flagTimeout, "20s", "Defines the length of time to block waiting for deployment completion. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h.")
+	cmd.Flags().StringSliceVar(&options.SubPaths, flagIncludeDirs, []string{"."}, "Optionally include additional source paths. Additional paths must be relative to source-path.")
 
-	cmd.Flags().StringVarP(&options.Platform, FlagPlatform, FlagPlatformShort, "", "Platform name")
-	cmd.Flags().StringVarP(&options.Description, FlagDescription, FlagDescriptionShort, "", "App description")
-	cmd.Flags().StringSliceVarP(&options.Envs, FlagEnvironment, FlagEnvironmentShort, []string{}, "App env variables")
-	cmd.Flags().StringVarP(&options.Pool, FlagPool, FlagPoolShort, "", "Pool to deploy your app")
-	cmd.Flags().StringVarP(&options.DockerRegistrySecret, FlagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
+	cmd.Flags().StringVarP(&options.Platform, flagPlatform, flagPlatformShort, "", "Platform name.")
+	cmd.Flags().StringVarP(&options.Description, flagDescription, flagDescriptionShort, "", "App description.")
+	cmd.Flags().StringSliceVarP(&options.Envs, flagEnvironment, flagEnvironmentShort, []string{}, "App env variables.")
+	cmd.Flags().StringVarP(&options.Pool, flagPool, flagPoolShort, "", "Pool to deploy your app.")
+	cmd.Flags().StringVarP(&options.DockerRegistrySecret, flagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
 
 	return cmd
 }

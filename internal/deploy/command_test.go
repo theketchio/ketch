@@ -8,19 +8,18 @@ import (
 	"path"
 	"testing"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/build"
-	"github.com/shipa-corp/ketch/internal/docker"
+	registryv1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/stretchr/testify/require"
+	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/build"
+	"github.com/shipa-corp/ketch/internal/docker"
 )
 
 type getterCreatorMockFn func(m *mockClient, obj runtime.Object) error
@@ -140,25 +139,6 @@ func (dockerMocker) Push(ctx context.Context, req docker.BuildRequest) error {
 	return nil
 }
 
-type mockConfiger struct{}
-
-func (c mockConfiger) ConfigFile() (*registryv1.ConfigFile, error) {
-	return &registryv1.ConfigFile{
-		Architecture:  "",
-		Author:        "",
-		Container:     "",
-		Created:       registryv1.Time{},
-		DockerVersion: "",
-		History:       nil,
-		OS:            "",
-		RootFS:        registryv1.RootFS{},
-		Config: registryv1.Config{
-			Cmd: []string{"/bin/eatme"},
-		},
-		OSVersion: "",
-	}, nil
-}
-
 func getImageConfig(ctx context.Context, args imageConfigRequest) (*registryv1.ConfigFile, error) {
 	return &registryv1.ConfigFile{
 		Config: registryv1.Config{
@@ -195,6 +175,7 @@ func TestNewCommand(t *testing.T) {
 		validate  func(t *testing.T, m getterCreator)
 		wantError bool
 	}{
+		// build from source, creates app
 		{
 			name: "happy path build from source",
 			arguments: []string{
@@ -235,6 +216,7 @@ func TestNewCommand(t *testing.T) {
 				Writer:         &bytes.Buffer{},
 			},
 		},
+		// build from source, updates app
 		{
 			name: "with custom yaml path and includes",
 			arguments: []string{

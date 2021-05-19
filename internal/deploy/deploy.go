@@ -5,20 +5,19 @@ package deploy
 import (
 	"context"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/shipa-corp/ketch/internal/build"
-	"github.com/shipa-corp/ketch/internal/chart"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/build"
+	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
@@ -48,21 +47,21 @@ type getterCreator interface {
 
 type SourceBuilderFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) (*build.CreateImageFromSourceResponse, error)
 
-// Runner is concerned with managing and running the deployment.
-type Runner struct {
+// runner is concerned with managing and running the deployment.
+type runner struct {
 	params *ChangeSet
 }
 
-// New creates a Runner which will execute the deployment.
-func New(params *ChangeSet) *Runner {
-	var r Runner
+// newRunner creates a runner which will execute the deployment.
+func newRunner(params *ChangeSet) *runner {
+	var r runner
 	r.params = params
 	return &r
 }
 
-// Run executes the deployment. This includes creating the application CRD if it doesn't already exist, possibly building
+// run executes the deployment. This includes creating the application CRD if it doesn't already exist, possibly building
 // source code and creating an image and creating and applying a deployment CRD to the cluster.
-func (r Runner) Run(ctx context.Context, svc *Params) error {
+func (r runner) run(ctx context.Context, svc *Params) error {
 	app := new(ketchv1.App)
 	err := svc.Client.Get(ctx, types.NamespacedName{Name: r.params.appName}, app)
 	if apierrors.IsNotFound(err) {
@@ -391,11 +390,6 @@ func updateAppCRD(ctx context.Context, svc *Params, app *ketchv1.App, args updat
 	}
 
 	if args.steps > 1 {
-		/* if len(app.Spec.Deployments) != 1 {
-			// Shouldn't happen, it's here to avoid tests with incorrect data.
-			return nil, errors.New("canary deployment failed: the application has to contain one deployment")
-		} */
-
 		nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
 		started := metav1.NewTime(args.started)
 		app.Spec.Canary = ketchv1.CanarySpec{

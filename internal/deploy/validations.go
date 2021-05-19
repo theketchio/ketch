@@ -4,43 +4,40 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	kerrs "github.com/shipa-corp/ketch/internal/errors"
 	"github.com/shipa-corp/ketch/internal/validation"
-	"os"
 )
 
-type StatusType int
+type statusType int
 
 const (
-	MissingValue StatusType = iota
-	InvalidValue
+	missingValue statusType = iota
+	invalidValue
 )
 
-type Statuser interface {
-	Status() StatusType
+type statusError struct {
+	reason  statusType
+	message string
 }
 
-type Error struct {
-	Reason  StatusType
-	Message string
-}
+func (e statusError) Status() statusType { return e.reason }
+func (e statusError) Error() string      { return e.message }
+func (e statusError) String() string     { return e.message }
 
-func (e Error) Status() StatusType { return e.Reason }
-func (e Error) Error() string      { return e.Message }
-func (e Error) String() string     { return e.Message }
-
-func NewMissingError(flag string) error {
-	return &Error{
-		Reason:  MissingValue,
-		Message: fmt.Sprintf("%q missing", flag),
+func newMissingError(flag string) error {
+	return &statusError{
+		reason:  missingValue,
+		message: fmt.Sprintf("%q missing", flag),
 	}
 }
 
-func NewInvalidError(flag string) error {
-	return &Error{
-		Reason:  InvalidValue,
-		Message: fmt.Sprintf("%q invalid value", flag),
+func newInvalidError(flag string) error {
+	return &statusError{
+		reason:  invalidValue,
+		message: fmt.Sprintf("%q invalid value", flag),
 	}
 }
 
@@ -48,9 +45,9 @@ func isMissing(err error) bool {
 	if err == nil {
 		return false
 	}
-	var v *Error
+	var v *statusError
 	if errors.As(err, &v) {
-		if v.Status() == MissingValue {
+		if v.Status() == missingValue {
 			return true
 		}
 	}
@@ -59,9 +56,9 @@ func isMissing(err error) bool {
 
 func isValid(err error) bool {
 	if err != nil {
-		var v *Error
+		var v *statusError
 		if errors.As(err, &v) {
-			if v.Status() == InvalidValue {
+			if v.Status() == invalidValue {
 				return false
 			}
 		}
@@ -135,13 +132,13 @@ func validateCreateApp(ctx context.Context, client getter, appName string, cs *C
 func directoryExists(dir string) error {
 	fi, err := os.Stat(dir)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("%w directory doesn't exist", NewInvalidError(dir))
+		return fmt.Errorf("%w directory doesn't exist", newInvalidError(dir))
 	}
 	if err != nil {
 		return kerrs.Wrap(err, "test for directory failed")
 	}
 	if !fi.IsDir() {
-		return fmt.Errorf("%w not a directory", NewInvalidError(dir))
+		return fmt.Errorf("%w not a directory", newInvalidError(dir))
 	}
 	return nil
 }

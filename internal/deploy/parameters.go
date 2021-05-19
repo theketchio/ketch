@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path"
-	"sigs.k8s.io/yaml"
 	"time"
 
 	"github.com/spf13/pflag"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/yaml"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/errors"
@@ -19,26 +19,26 @@ import (
 )
 
 const (
-	FlagImage          = "image"
-	FlagKetchYaml      = "ketch-yaml"
-	FlagProcFile       = "procfile"
-	FlagStrict         = "strict"
-	FlagSteps          = "steps"
-	FlagStepInterval   = "step-interval"
-	FlagWait           = "wait"
-	FlagTimeout        = "timeout"
-	FlagIncludeDirs    = "include-dirs"
-	FlagPlatform       = "platform"
-	FlagDescription    = "description"
-	FlagEnvironment    = "env"
-	FlagPool           = "pool"
-	FlagRegistrySecret = "registry-secret"
+	flagImage          = "image"
+	flagKetchYaml      = "ketch-yaml"
+	flagProcFile       = "procfile"
+	flagStrict         = "strict"
+	flagSteps          = "steps"
+	flagStepInterval   = "step-interval"
+	flagWait           = "wait"
+	flagTimeout        = "timeout"
+	flagIncludeDirs    = "include-dirs"
+	flagPlatform       = "platform"
+	flagDescription    = "description"
+	flagEnvironment    = "env"
+	flagPool           = "pool"
+	flagRegistrySecret = "registry-secret"
 
-	FlagImageShort       = "i"
-	FlagPlatformShort    = "P"
-	FlagDescriptionShort = "d"
-	FlagEnvironmentShort = "e"
-	FlagPoolShort        = "o"
+	flagImageShort       = "i"
+	flagPlatformShort    = "P"
+	flagDescriptionShort = "d"
+	flagEnvironmentShort = "e"
+	flagPoolShort        = "o"
 
 	defaultYamlFile = "ketch.yaml"
 )
@@ -96,43 +96,43 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		cs.sourcePath = &o.AppSourcePath
 	}
 	m := map[string]func(c *ChangeSet){
-		FlagImage: func(c *ChangeSet) {
+		flagImage: func(c *ChangeSet) {
 			c.image = &o.Image
 		},
-		FlagKetchYaml: func(c *ChangeSet) {
+		flagKetchYaml: func(c *ChangeSet) {
 			c.ketchYamlFileName = &o.KetchYamlFileName
 		},
-		FlagProcFile: func(c *ChangeSet) {
+		flagProcFile: func(c *ChangeSet) {
 			c.procfileFileName = &o.ProcfileFileName
 		},
-		FlagSteps: func(c *ChangeSet) {
+		flagSteps: func(c *ChangeSet) {
 			c.steps = &o.Steps
 		},
-		FlagStepInterval: func(c *ChangeSet) {
+		flagStepInterval: func(c *ChangeSet) {
 			c.stepTimeInterval = &o.StepTimeInterval
 		},
-		FlagWait: func(c *ChangeSet) {
+		flagWait: func(c *ChangeSet) {
 			c.wait = &o.Wait
 		},
-		FlagTimeout: func(c *ChangeSet) {
+		flagTimeout: func(c *ChangeSet) {
 			c.timeout = &o.Timeout
 		},
-		FlagIncludeDirs: func(c *ChangeSet) {
+		flagIncludeDirs: func(c *ChangeSet) {
 			c.subPaths = &o.SubPaths
 		},
-		FlagPlatform: func(c *ChangeSet) {
+		flagPlatform: func(c *ChangeSet) {
 			c.platform = &o.Platform
 		},
-		FlagDescription: func(c *ChangeSet) {
+		flagDescription: func(c *ChangeSet) {
 			c.description = &o.Description
 		},
-		FlagEnvironment: func(c *ChangeSet) {
+		flagEnvironment: func(c *ChangeSet) {
 			c.envs = &o.Envs
 		},
-		FlagPool: func(c *ChangeSet) {
+		flagPool: func(c *ChangeSet) {
 			c.pool = &o.Pool
 		},
-		FlagRegistrySecret: func(c *ChangeSet) {
+		flagRegistrySecret: func(c *ChangeSet) {
 			c.dockerRegistrySecret = &o.DockerRegistrySecret
 		},
 	}
@@ -146,19 +146,19 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 
 func (c *ChangeSet) getProcfileName() (string, error) {
 	if c.procfileFileName == nil {
-		return "", NewMissingError(FlagProcFile)
+		return "", newMissingError(flagProcFile)
 	}
 	return *c.procfileFileName, nil
 }
 
 func (c *ChangeSet) getPlatform(ctx context.Context, client getter) (string, error) {
 	if c.platform == nil {
-		return "", NewMissingError(FlagPlatform)
+		return "", newMissingError(flagPlatform)
 	}
 	var p ketchv1.Platform
 	err := client.Get(ctx, types.NamespacedName{Name: *c.platform}, &p)
 	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("%w platform %q has not been created", NewInvalidError(FlagPlatform), *c.platform)
+		return "", fmt.Errorf("%w platform %q has not been created", newInvalidError(flagPlatform), *c.platform)
 	}
 	if err != nil {
 		return "", errors.Wrap(err, "could not fetch platform %q", *c.platform)
@@ -168,14 +168,14 @@ func (c *ChangeSet) getPlatform(ctx context.Context, client getter) (string, err
 
 func (c *ChangeSet) getDescription() (string, error) {
 	if c.description == nil {
-		return "", NewMissingError(FlagDescription)
+		return "", newMissingError(flagDescription)
 	}
 	return *c.description, nil
 }
 
 func (c *ChangeSet) getIncludeDirs() ([]string, error) {
 	if c.subPaths == nil {
-		return nil, NewMissingError(FlagIncludeDirs)
+		return nil, newMissingError(flagIncludeDirs)
 	}
 	rootDir, err := c.getSourceDirectory()
 	if err != nil {
@@ -192,21 +192,21 @@ func (c *ChangeSet) getIncludeDirs() ([]string, error) {
 
 func (c *ChangeSet) getYamlPath() (string, error) {
 	if c.ketchYamlFileName == nil {
-		return "", NewMissingError(FlagKetchYaml)
+		return "", newMissingError(flagKetchYaml)
 	}
 	stat, err := os.Stat(*c.ketchYamlFileName)
 	if err != nil {
-		return "", NewInvalidError(FlagKetchYaml)
+		return "", newInvalidError(flagKetchYaml)
 	}
 	if stat.IsDir() {
-		return "", fmt.Errorf("%w %s is not a regular file", NewInvalidError(FlagKetchYaml), *c.ketchYamlFileName)
+		return "", fmt.Errorf("%w %s is not a regular file", newInvalidError(flagKetchYaml), *c.ketchYamlFileName)
 	}
 	return *c.ketchYamlFileName, nil
 }
 
 func (c *ChangeSet) getSourceDirectory() (string, error) {
 	if c.sourcePath == nil {
-		return "", NewMissingError("source directory")
+		return "", newMissingError("source directory")
 	}
 	if err := directoryExists(*c.sourcePath); err != nil {
 		return "", err
@@ -216,12 +216,12 @@ func (c *ChangeSet) getSourceDirectory() (string, error) {
 
 func (c *ChangeSet) getPool(ctx context.Context, client getter) (string, error) {
 	if c.pool == nil {
-		return "", NewMissingError(FlagPool)
+		return "", newMissingError(flagPool)
 	}
 	var p ketchv1.Pool
 	err := client.Get(ctx, types.NamespacedName{Name: *c.pool}, &p)
 	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("%w pool %q has not been created", NewInvalidError(FlagPool), *c.pool)
+		return "", fmt.Errorf("%w pool %q has not been created", newInvalidError(flagPool), *c.pool)
 	}
 	if err != nil {
 		return "", errors.Wrap(err, "could not fetch pool %q", *c.pool)
@@ -231,34 +231,34 @@ func (c *ChangeSet) getPool(ctx context.Context, client getter) (string, error) 
 
 func (c *ChangeSet) getImage() (string, error) {
 	if c.image == nil {
-		return "", fmt.Errorf("%w %s is required", NewMissingError(FlagImage), FlagImage)
+		return "", fmt.Errorf("%w %s is required", newMissingError(flagImage), flagImage)
 	}
 	return *c.image, nil
 }
 
 func (c *ChangeSet) getSteps() (int, error) {
 	if c.steps == nil {
-		return 0, NewMissingError(FlagSteps)
+		return 0, newMissingError(flagSteps)
 	}
 	steps := *c.steps
 	if steps < minimumSteps || steps > maximumSteps {
 		return 0, fmt.Errorf("%w %s must be between %d and %d",
-			NewInvalidError(FlagSteps), FlagSteps, minimumSteps, maximumSteps)
+			newInvalidError(flagSteps), flagSteps, minimumSteps, maximumSteps)
 	}
 	if maximumSteps%steps != 0 {
 		return 0, fmt.Errorf("%w %d must be evenly divisable by %d",
-			NewInvalidError(FlagSteps), maximumSteps, steps)
+			newInvalidError(flagSteps), maximumSteps, steps)
 	}
 	return *c.steps, nil
 }
 
 func (c *ChangeSet) getStepInterval() (time.Duration, error) {
 	if c.stepTimeInterval == nil {
-		return 0, NewMissingError(FlagStepInterval)
+		return 0, newMissingError(flagStepInterval)
 	}
 	dur, err := time.ParseDuration(*c.stepTimeInterval)
 	if err != nil {
-		return 0, NewInvalidError(FlagStepInterval)
+		return 0, newInvalidError(flagStepInterval)
 	}
 	return dur, nil
 }
@@ -273,36 +273,36 @@ func (c *ChangeSet) getStepWeight() (uint8, error) {
 
 func (c *ChangeSet) getEnvironments() ([]ketchv1.Env, error) {
 	if c.envs == nil {
-		return nil, NewMissingError(FlagEnvironment)
+		return nil, newMissingError(flagEnvironment)
 	}
 	envs, err := utils.MakeEnvironments(*c.envs)
 	if err != nil {
-		return nil, NewInvalidError(FlagEnvironment)
+		return nil, newInvalidError(flagEnvironment)
 	}
 	return envs, nil
 }
 
 func (c *ChangeSet) getWait() (bool, error) {
 	if c.wait == nil {
-		return false, NewMissingError(FlagWait)
+		return false, newMissingError(flagWait)
 	}
 	return *c.wait, nil
 }
 
 func (c *ChangeSet) getTimeout() (time.Duration, error) {
 	if c.timeout == nil {
-		return 0, NewMissingError(FlagTimeout)
+		return 0, newMissingError(flagTimeout)
 	}
 	d, err := time.ParseDuration(*c.timeout)
 	if err != nil {
-		return 0, NewInvalidError(FlagTimeout)
+		return 0, newInvalidError(flagTimeout)
 	}
 	return d, nil
 }
 
 func (c *ChangeSet) getDockerRegistrySecret() (string, error) {
 	if c.dockerRegistrySecret == nil {
-		return "", NewMissingError(FlagRegistrySecret)
+		return "", newMissingError(flagRegistrySecret)
 	}
 	return *c.dockerRegistrySecret, nil
 }
