@@ -26,7 +26,9 @@ type ImageConfiger interface {
 
 type RemoteImageFn func(ref name.Reference, options ...remote.Option) (ImageConfiger, error)
 
-func getImageConfig(ctx context.Context, args imageConfigRequest) (*registryv1.ConfigFile, error) {
+type GetImageConfigFn func(ctx context.Context, args imageConfigRequest) (*registryv1.ConfigFile, error)
+
+func GetImageConfig(ctx context.Context, args imageConfigRequest) (*registryv1.ConfigFile, error) {
 	ref, err := name.ParseReference(args.imageName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse reference for image %q", args.imageName)

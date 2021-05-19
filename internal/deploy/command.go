@@ -30,9 +30,9 @@ type Params struct {
 	Client     getterCreator
 	KubeClient kubernetes.Interface
 
-	Builder     SourceBuilderFn
-	RemoteImage RemoteImageFn
-	Wait        WaitFn
+	Builder        SourceBuilderFn
+	GetImageConfig GetImageConfigFn
+	Wait           WaitFn
 
 	Writer io.Writer
 }

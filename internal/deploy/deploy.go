@@ -5,6 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -12,7 +13,6 @@ import (
 	"github.com/shipa-corp/ketch/internal/chart"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
@@ -224,10 +224,9 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 		imageName:       image,
 		secretName:      app.Spec.DockerRegistry.SecretName,
 		secretNamespace: pool.Spec.NamespaceName,
-		imageFn:         svc.RemoteImage,
 		client:          svc.KubeClient,
 	}
-	imgConfig, err := getImageConfig(ctx, imageRequest)
+	imgConfig, err := svc.GetImageConfig(ctx, imageRequest)
 	if err != nil {
 		return err
 	}
@@ -291,10 +290,9 @@ func deployFromImage(ctx context.Context, svc *Params, app *ketchv1.App, params 
 		imageName:       image,
 		secretName:      app.Spec.DockerRegistry.SecretName,
 		secretNamespace: pool.Spec.NamespaceName,
-		imageFn:         svc.RemoteImage,
 		client:          svc.KubeClient,
 	}
-	imgConfig, err := getImageConfig(ctx, imageRequest)
+	imgConfig, err := svc.GetImageConfig(ctx, imageRequest)
 	if err != nil {
 		return err
 	}
