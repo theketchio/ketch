@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -32,6 +31,7 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/mocks"
+	"github.com/shipa-corp/ketch/internal/utils"
 )
 
 func Test_watchLogs(t *testing.T) {

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 	"strings"
 	"time"
@@ -19,6 +18,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/utils"
 	"github.com/shipa-corp/ketch/internal/validation"
 )
 

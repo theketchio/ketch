@@ -2,17 +2,16 @@ package main
 
 import (
 	"context"
-	"github.com/shipa-corp/ketch/internal/docker"
 	"io"
 
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
-
-	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/shipa-corp/ketch/internal/docker"
 	"github.com/shipa-corp/ketch/internal/templates"
 )
 
