@@ -33,6 +33,8 @@ const (
 	flagEnvironment    = "env"
 	flagPool           = "pool"
 	flagRegistrySecret = "registry-secret"
+	flagBuilder        = "builder"
+	flagBuildPacks     = "build-packs"
 
 	flagImageShort       = "i"
 	flagPlatformShort    = "P"
@@ -64,7 +66,9 @@ type Options struct {
 	Envs                 []string
 	DockerRegistrySecret string
 	// this goes bye bye
-	Platform string
+	Platform   string
+	Builder    string
+	BuildPacks []string
 }
 
 type ChangeSet struct {
@@ -85,6 +89,8 @@ type ChangeSet struct {
 	envs                 *[]string
 	pool                 *string
 	dockerRegistrySecret *string
+	builder              *string
+	buildPacks           *[]string
 }
 
 func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
@@ -134,6 +140,12 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		},
 		flagRegistrySecret: func(c *ChangeSet) {
 			c.dockerRegistrySecret = &o.DockerRegistrySecret
+		},
+		flagBuilder: func(c *ChangeSet) {
+			c.builder = &o.Builder
+		},
+		flagBuildPacks: func(c *ChangeSet) {
+			c.buildPacks = &o.BuildPacks
 		},
 	}
 	for k, f := range m {
@@ -305,6 +317,20 @@ func (c *ChangeSet) getDockerRegistrySecret() (string, error) {
 		return "", newMissingError(flagRegistrySecret)
 	}
 	return *c.dockerRegistrySecret, nil
+}
+
+func (c *ChangeSet) getBuilder() (string, error) {
+	if c.builder == nil {
+		return "", newMissingError(flagBuilder)
+	}
+	return *c.builder, nil
+}
+
+func (c *ChangeSet) getBuildPacks() ([]string, error) {
+	if c.buildPacks == nil {
+		return nil, newMissingError(flagBuildPacks)
+	}
+	return *c.buildPacks, nil
 }
 
 func (c *ChangeSet) getKetchYaml() (*ketchv1.KetchYamlData, error) {

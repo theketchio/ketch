@@ -71,6 +71,8 @@ func NewCommand(params *Params) *cobra.Command {
 	cmd.Flags().StringSliceVar(&options.SubPaths, flagIncludeDirs, []string{"."}, "Optionally include additional source paths. Additional paths must be relative to source-path.")
 
 	cmd.Flags().StringVarP(&options.Platform, flagPlatform, flagPlatformShort, "", "Platform name.")
+	cmd.Flags().StringVar(&options.Builder, flagBuilder, "heroku/buildpacks:18", "Builder to use when building from source.")
+	cmd.Flags().StringSliceVar(&options.BuildPacks, flagBuildPacks, nil, "A list of build packs")
 	cmd.Flags().StringVarP(&options.Description, flagDescription, flagDescriptionShort, "", "App description.")
 	cmd.Flags().StringSliceVarP(&options.Envs, flagEnvironment, flagEnvironmentShort, []string{}, "App env variables.")
 	cmd.Flags().StringVarP(&options.Pool, flagPool, flagPoolShort, "", "Pool to deploy your app.")
