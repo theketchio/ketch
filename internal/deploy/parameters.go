@@ -31,14 +31,14 @@ const (
 	flagPlatform       = "platform"
 	flagDescription    = "description"
 	flagEnvironment    = "env"
-	flagPool           = "pool"
+	flagFramework      = "framework"
 	flagRegistrySecret = "registry-secret"
 
 	flagImageShort       = "i"
 	flagPlatformShort    = "P"
 	flagDescriptionShort = "d"
 	flagEnvironmentShort = "e"
-	flagPoolShort        = "o"
+	flagFrameworkShort   = "o"
 
 	defaultYamlFile = "ketch.yaml"
 )
@@ -59,7 +59,7 @@ type Options struct {
 	AppSourcePath           string
 	SubPaths                []string
 
-	Pool                 string
+	Framework            string
 	Description          string
 	Envs                 []string
 	DockerRegistrySecret string
@@ -83,7 +83,7 @@ type ChangeSet struct {
 	platform             *string
 	description          *string
 	envs                 *[]string
-	pool                 *string
+	framework            *string
 	dockerRegistrySecret *string
 }
 
@@ -129,8 +129,8 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		flagEnvironment: func(c *ChangeSet) {
 			c.envs = &o.Envs
 		},
-		flagPool: func(c *ChangeSet) {
-			c.pool = &o.Pool
+		flagFramework: func(c *ChangeSet) {
+			c.framework = &o.Framework
 		},
 		flagRegistrySecret: func(c *ChangeSet) {
 			c.dockerRegistrySecret = &o.DockerRegistrySecret
@@ -214,19 +214,19 @@ func (c *ChangeSet) getSourceDirectory() (string, error) {
 	return *c.sourcePath, nil
 }
 
-func (c *ChangeSet) getPool(ctx context.Context, client getter) (string, error) {
-	if c.pool == nil {
-		return "", newMissingError(flagPool)
+func (c *ChangeSet) getFramework(ctx context.Context, client getter) (string, error) {
+	if c.framework == nil {
+		return "", newMissingError(flagFramework)
 	}
-	var p ketchv1.Pool
-	err := client.Get(ctx, types.NamespacedName{Name: *c.pool}, &p)
+	var p ketchv1.Framework
+	err := client.Get(ctx, types.NamespacedName{Name: *c.framework}, &p)
 	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("%w pool %q has not been created", newInvalidError(flagPool), *c.pool)
+		return "", fmt.Errorf("%w framework %q has not been created", newInvalidError(flagFramework), *c.framework)
 	}
 	if err != nil {
-		return "", errors.Wrap(err, "could not fetch pool %q", *c.pool)
+		return "", errors.Wrap(err, "could not fetch framework %q", *c.framework)
 	}
-	return *c.pool, nil
+	return *c.framework, nil
 }
 
 func (c *ChangeSet) getImage() (string, error) {

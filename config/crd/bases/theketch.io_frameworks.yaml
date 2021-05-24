@@ -6,7 +6,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: pools.theketch.io
+  name: frameworks.theketch.io
 spec:
   additionalPrinterColumns:
   - JSONPath: .status.phase
@@ -23,16 +23,16 @@ spec:
     type: string
   group: theketch.io
   names:
-    kind: Pool
-    listKind: PoolList
-    plural: pools
-    singular: pool
+    kind: Framework
+    listKind: FrameworkList
+    plural: frameworks
+    singular: framework
   scope: Cluster
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Pool is the Schema for the pools API
+      description: Framework is the Schema for the frameworks API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -47,7 +47,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: PoolSpec defines the desired state of Pool
+          description: FrameworkSpec defines the desired state of Framework
           properties:
             appQuotaLimit:
               type: integer
@@ -63,7 +63,7 @@ spec:
                   type: string
                 type:
                   description: IngressControllerType is a type of an ingress controller
-                    for this pool.
+                    for this framework.
                   enum:
                   - traefik
                   - istio
@@ -79,7 +79,7 @@ spec:
           - namespace
           type: object
         status:
-          description: PoolStatus defines the observed state of Pool
+          description: FrameworkStatus defines the observed state of Framework
           properties:
             apps:
               items:

@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestPool_HasApp(t *testing.T) {
+func TestFramework_HasApp(t *testing.T) {
 	tests := []struct {
 		name    string
 		appName string
@@ -12,13 +12,13 @@ func TestPool_HasApp(t *testing.T) {
 		want    bool
 	}{
 		{
-			name:    "pool has the app",
+			name:    "framework has the app",
 			apps:    []string{"ketch", "theketch"},
 			appName: "ketch",
 			want:    true,
 		},
 		{
-			name:    "pool has no app",
+			name:    "framework has no app",
 			apps:    []string{"ketch", "theketch"},
 			appName: "dashboard",
 			want:    false,
@@ -26,8 +26,8 @@ func TestPool_HasApp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Pool{
-				Status: PoolStatus{
+			p := &Framework{
+				Status: FrameworkStatus{
 					Apps: tt.apps,
 				},
 			}

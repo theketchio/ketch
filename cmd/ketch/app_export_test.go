@@ -81,18 +81,18 @@ func Test_appExport(t *testing.T) {
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
-			Pool: "gke",
+			Framework: "gke",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
 		},
 	}
 
-	gke := &ketchv1.Pool{
+	gke := &ketchv1.Framework{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "gke",
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "ketch-gke",
 			IngressController: ketchv1.IngressControllerSpec{
 				IngressType: ketchv1.IstioIngressControllerType,
@@ -123,15 +123,15 @@ func Test_appExport(t *testing.T) {
 				appName:   "dashboard",
 				directory: directory1,
 			},
-			chartNew: func(application *ketchv1.App, pool *ketchv1.Pool, opts ...chart.Option) (*chart.ApplicationChart, error) {
+			chartNew: func(application *ketchv1.App, framework *ketchv1.Framework, opts ...chart.Option) (*chart.ApplicationChart, error) {
 				require.Equal(t, "dashboard", application.Name)
-				require.Equal(t, "gke", pool.Name)
+				require.Equal(t, "gke", framework.Name)
 				return &chart.ApplicationChart{}, nil
 			},
 			wantOut: "Successfully exported!\n",
 		},
 		{
-			name: "no pool",
+			name: "no framework",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{dashboard},
 			},
@@ -139,7 +139,7 @@ func Test_appExport(t *testing.T) {
 				appName:   "dashboard",
 				directory: directory1,
 			},
-			wantErr: `failed to get pool: pools.theketch.io "gke" not found`,
+			wantErr: `failed to get framework: frameworks.theketch.io "gke" not found`,
 		},
 		{
 			name: "no app",

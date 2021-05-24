@@ -1,20 +1,24 @@
-# permissions for end users to view pools.
+# permissions for end users to edit frameworks.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: pool-viewer-role
+  name: framework-editor-role
 rules:
 - apiGroups:
   - theketch.io
   resources:
-  - pools
+  - frameworks
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - theketch.io
   resources:
-  - pools/status
+  - frameworks/status
   verbs:
   - get

@@ -9,8 +9,8 @@ metadata:
   name: apps.theketch.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.pool
-    name: Pool
+  - JSONPath: .spec.Framework
+    name: Framework
     type: string
   - JSONPath: .spec.description
     name: Description
@@ -43,6 +43,10 @@ spec:
         spec:
           description: AppSpec defines the desired state of App.
           properties:
+            Framework:
+              description: Framework is a name of a Framework used to run the application.
+              minLength: 1
+              type: string
             canary:
               description: Canary contains a configuration which will be required
                 for canary deployments.
@@ -491,47 +495,17 @@ spec:
               description: Platform is the name of the platform that is used to build
                 source code.
               type: string
-            pool:
-              description: Pool is a name of a pool used to run the application.
-              minLength: 1
-              type: string
             version:
               type: string
           required:
+          - Framework
           - deployments
           - ingress
-          - pool
           type: object
         status:
           description: AppStatus represents information about the status of an application.
           properties:
-            conditions:
-              description: Conditions of App resource.
-              items:
-                description: AppCondition contains details for the current condition
-                  of this app.
-                properties:
-                  lastTransitionTime:
-                    description: LastTransitionTime is the timestamp corresponding
-                      to the last status.
-                    format: date-time
-                    type: string
-                  message:
-                    description: A human readable message indicating details about
-                      why the application is in this condition.
-                    type: string
-                  status:
-                    description: Status of the condition.
-                    type: string
-                  type:
-                    description: Type of the condition.
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
-            pool:
+            Framework:
               description: 'ObjectReference contains enough information to let you
                 inspect or modify the referred object. --- New uses of this type are
                 discouraged because of difficulty describing its usage when embedded
@@ -589,6 +563,32 @@ spec:
                   description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                   type: string
               type: object
+            conditions:
+              description: Conditions of App resource.
+              items:
+                description: AppCondition contains details for the current condition
+                  of this app.
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime is the timestamp corresponding
+                      to the last status.
+                    format: date-time
+                    type: string
+                  message:
+                    description: A human readable message indicating details about
+                      why the application is in this condition.
+                    type: string
+                  status:
+                    description: Status of the condition.
+                    type: string
+                  type:
+                    description: Type of the condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
           type: object
       type: object
   version: v1beta1

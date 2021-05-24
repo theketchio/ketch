@@ -20,7 +20,7 @@ import (
 
 var (
 	appInfoTemplate = `Application: {{ .App.Name }}
-Pool: {{ .App.Spec.Pool }} 
+Framework: {{ .App.Spec.Framework }}
 {{- if .App.Spec.Platform }}
 Platform: {{ .App.Spec.Platform }}
 {{- end }}
@@ -32,7 +32,7 @@ Description: {{ .App.Spec.Description }}
 Address: {{ $address }}
 {{- end }}
 {{- else }}
-The default cname hasn't assigned yet because "{{ .App.Spec.Pool }}" pool doesn't have ingress service endpoint.
+The default cname hasn't assigned yet because "{{ .App.Spec.Framework }}" framework doesn't have ingress service endpoint.
 {{- end }}
 {{- if .App.Spec.DockerRegistry.SecretName }}
 Secret name to pull application's images: {{ .App.Spec.DockerRegistry.SecretName }}
@@ -87,9 +87,9 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.name}, &app); err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
-	pool := &ketchv1.Pool{}
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, pool); err != nil {
-		return fmt.Errorf("failed to get pool: %w", err)
+	framework := &ketchv1.Framework{}
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, framework); err != nil {
+		return fmt.Errorf("failed to get framework: %w", err)
 	}
 
 	buf := bytes.Buffer{}
@@ -123,7 +123,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	w.Flush()
 	infoContext := appInfoContext{
 		App:         app,
-		Cnames:      app.CNames(pool),
+		Cnames:      app.CNames(framework),
 		Table:       table.String(),
 		NoProcesses: noProcesses,
 	}

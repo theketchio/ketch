@@ -58,7 +58,7 @@ func newRootCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command
 	}
 	cmd.AddCommand(newAppCmd(cfg, out, docker))
 	cmd.AddCommand(newCnameCmd(cfg, out))
-	cmd.AddCommand(newPoolCmd(cfg, out))
+	cmd.AddCommand(newFrameworkCmd(cfg, out))
 	cmd.AddCommand(newUnitCmd(cfg, out))
 	cmd.AddCommand(newEnvCmd(cfg, out))
 	cmd.AddCommand(newPlatformCmd(cfg, out))

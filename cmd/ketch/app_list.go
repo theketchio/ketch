@@ -37,13 +37,13 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 	if err := cfg.Client().List(ctx, &apps); err != nil {
 		return fmt.Errorf("failed to list apps: %w", err)
 	}
-	pools := ketchv1.PoolList{}
-	if err := cfg.Client().List(ctx, &pools); err != nil {
-		return fmt.Errorf("failed to list pools: %w", err)
+	frameworks := ketchv1.FrameworkList{}
+	if err := cfg.Client().List(ctx, &frameworks); err != nil {
+		return fmt.Errorf("failed to list frameworks: %w", err)
 	}
-	poolsByName := make(map[string]ketchv1.Pool, len(pools.Items))
-	for _, pool := range pools.Items {
-		poolsByName[pool.Name] = pool
+	frameworksByName := make(map[string]ketchv1.Framework, len(frameworks.Items))
+	for _, framework := range frameworks.Items {
+		frameworksByName[framework.Name] = framework
 	}
 	allPods, err := allAppsPods(ctx, cfg, apps.Items)
 	if err != nil {
@@ -54,9 +54,9 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 	for _, item := range apps.Items {
 		pods := filterAppPods(item.Name, allPods.Items)
 
-		pool := poolsByName[item.Spec.Pool]
-		urls := strings.Join(item.CNames(&pool), " ")
-		line := []string{item.Name, item.Spec.Pool, appState(pods), urls, item.Spec.Platform, item.Spec.Description}
+		framework := frameworksByName[item.Spec.Framework]
+		urls := strings.Join(item.CNames(&framework), " ")
+		line := []string{item.Name, item.Spec.Framework, appState(pods), urls, item.Spec.Platform, item.Spec.Description}
 		fmt.Fprintln(w, strings.Join(line, "\t"))
 	}
 	w.Flush()

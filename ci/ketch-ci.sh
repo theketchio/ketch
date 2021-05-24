@@ -19,7 +19,7 @@ REG_SECRET=""
 KETCH_YAML=""
 PROCFILE=""
 
-# if true, ketch will try to create app and pool for the deployment
+# if true, ketch will try to create app and framework for the deployment
 RESOURCE_CREATION=true
 
 # set colors for printing texts
@@ -32,25 +32,25 @@ function usage() {
     echo -e "${RED}👉 $1${CLEAR}\n";
   fi
 
-  echo -e "Usage: $0 [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]\n"
+  echo -e "Usage: $0 [-t --ketch-tag] [-o --framework] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]\n"
   echo "  -t, --ketch-tag                 Ketch version. Default is latest."
-  echo "  -o, --pool                      Pool where your application should be deployed."
+  echo "  -o, --framework                      Framework where your application should be deployed."
   echo "  -a, --app                       App Name."
   echo "  -e, --env                       Application environment variables."
   echo "  -ig, --ingress                  Ingress type. Default is Traefik."
   echo "  --endpoint                      Ingress IP address."
   echo "  -i, --image                     The image that should be used with the application."
-  echo "  --registry-secret               A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool."
+  echo "  --registry-secret               A name of a Secret with docker credentials. This secret must be created in the same namespace of the framework."
   echo "  --ketch-yaml                    The path to the ketch.yaml file."
   echo "  --procfile	                  The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
-  echo "  --skip-resource-creation        If set, ketch will NOT create app and pool for the deployment. Useful when resources already exist."
+  echo "  --skip-resource-creation        If set, ketch will NOT create app and framework for the deployment. Useful when resources already exist."
   exit 1
 }
 
 # parse params and set variables with custom user inputs
 while [[ "$#" > 0 ]]; do case $1 in
     -t|--ketch-tag) KETCH_TAG="$2"; shift;shift;;
-    -o|--pool) POOL="$2"; shift;shift;;
+    -o|--framework) POOL="$2"; shift;shift;;
     -ig|--ingress) INGRESS_TYPE="$2"; shift;shift;;
     --endpoint) INGRESS_ENDPOINT="$2"; shift;shift;;
     -a|--app) APP_NAME="$2"; shift;shift;;
@@ -69,17 +69,17 @@ if [ -z "$APP_NAME" ]; then usage "App Name required"; fi;
 if [ -z "$DOCKER_IMAGE" ]; then usage "Image for the app is required"; fi;
 
 # set default ketch tag if not set by user
-if [ -z "$KETCH_TAG" ]; then 
+if [ -z "$KETCH_TAG" ]; then
     KETCH_TAG=$(curl -s https://api.github.com/repos/shipa-corp/ketch/releases/latest | grep -Eo '"tag_name":.*[^\\]",' | head -n 1 | sed 's/[," ]//g' | cut -d ':' -f 2)
 fi
 
 # set default ingress type if not set by user
-if [ -z  "$INGRESS_TYPE"  ]; then 
+if [ -z  "$INGRESS_TYPE"  ]; then
     INGRESS_TYPE="traefik"
 fi
 
 # Ensure that required resource has atleast N number of pods in running state
-# usage: ensure_resource <name> <pod count> 
+# usage: ensure_resource <name> <pod count>
 function ensure_resource() {
   local retries=5
 
@@ -131,12 +131,12 @@ ensure_resource 'ketch-controller-manager' 1
 
 if [ "$RESOURCE_CREATION" = true ] ; then
     # validate addtional required params
-    if [ -z "$POOL" ]; then usage "Pool name required"; fi;
+    if [ -z "$POOL" ]; then usage "Framework name required"; fi;
     if [ -z "$INGRESS_ENDPOINT" ]; then usage "Ingress endpoint required"; fi;
 
-    # Add a pool with ingress Traefik (default), replace ingress endpoint address by your ingress IP address
-    echo "creating pool for deployment ..."
-    POOL_CMD="ketch pool add ${POOL} --ingress-service-endpoint ${INGRESS_ENDPOINT}" 
+    # Add a framework with ingress Traefik (default), replace ingress endpoint address by your ingress IP address
+    echo "creating framework for deployment ..."
+    POOL_CMD="ketch framework add ${POOL} --ingress-service-endpoint ${INGRESS_ENDPOINT}"
 
     if [ ! -z "$INGRESS_TYPE" ]; then
         POOL_CMD+=" --ingress-type ${INGRESS_TYPE}"
@@ -147,7 +147,7 @@ if [ "$RESOURCE_CREATION" = true ] ; then
 
     # Create app
     echo "creating app for deployment ..."
-    APP_CMD="ketch app create ${APP_NAME} --pool ${POOL}" 
+    APP_CMD="ketch app create ${APP_NAME} --framework ${POOL}"
 
     if [ ! -z "$APP_ENV" ]; then
         APP_CMD+=" --env ${APP_ENV}"
@@ -165,7 +165,7 @@ fi
 
 # Deploy app
 echo "deploying app ..."
-DEP_CMD="ketch app deploy ${APP_NAME} -i ${DOCKER_IMAGE}" 
+DEP_CMD="ketch app deploy ${APP_NAME} -i ${DOCKER_IMAGE}"
 
 if [ ! -z "$KETCH_YAML" ]; then
     DEP_CMD+=" --ketch-yaml ${KETCH_YAML}"

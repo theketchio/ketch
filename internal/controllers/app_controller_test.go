@@ -53,11 +53,11 @@ func (h *helm) DeleteChart(appName string) error {
 func TestAppReconciler_Reconcile(t *testing.T) {
 
 	defaultObjects := []runtime.Object{
-		&ketchv1.Pool{
+		&ketchv1.Framework{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "working-pool",
+				Name: "working-framework",
 			},
-			Spec: ketchv1.PoolSpec{
+			Spec: ketchv1.FrameworkSpec{
 				NamespaceName: "hello",
 				AppQuotaLimit: 100,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -65,11 +65,11 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 				},
 			},
 		},
-		&ketchv1.Pool{
+		&ketchv1.Framework{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "second-pool",
+				Name: "second-framework",
 			},
-			Spec: ketchv1.PoolSpec{
+			Spec: ketchv1.FrameworkSpec{
 				NamespaceName: "second-namespace",
 				AppQuotaLimit: 1,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -83,7 +83,7 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			},
 			Spec: ketchv1.AppSpec{
 				Deployments: []ketchv1.AppDeploymentSpec{},
-				Pool:        "second-pool",
+				Framework:   "second-framework",
 			},
 		},
 	}
@@ -110,18 +110,18 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 		wantConditionMessage string
 	}{
 		{
-			name: "app linked to nonexisting pool",
+			name: "app linked to nonexisting framework",
 			app: ketchv1.App{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "app-1",
 				},
 				Spec: ketchv1.AppSpec{
 					Deployments: []ketchv1.AppDeploymentSpec{},
-					Pool:        "non-existing-pool",
+					Framework:   "non-existing-framework",
 				},
 			},
 			wantConditionStatus:  v1.ConditionFalse,
-			wantConditionMessage: `pool "non-existing-pool" is not found`,
+			wantConditionMessage: `framework "non-existing-framework" is not found`,
 		},
 		{
 			name: "running application",
@@ -131,20 +131,20 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 				},
 				Spec: ketchv1.AppSpec{
 					Deployments: []ketchv1.AppDeploymentSpec{},
-					Pool:        "working-pool",
+					Framework:   "working-framework",
 				},
 			},
 			wantConditionStatus: v1.ConditionTrue,
 		},
 		{
-			name: "create an app linked to a pool without available slots to run the app",
+			name: "create an app linked to a framework without available slots to run the app",
 			app: ketchv1.App{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "app-3",
 				},
 				Spec: ketchv1.AppSpec{
 					Deployments: []ketchv1.AppDeploymentSpec{},
-					Pool:        "second-pool",
+					Framework:   "second-framework",
 				},
 			},
 			wantConditionStatus:  v1.ConditionFalse,
@@ -158,7 +158,7 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 				},
 				Spec: ketchv1.AppSpec{
 					Deployments: []ketchv1.AppDeploymentSpec{},
-					Pool:        "working-pool",
+					Framework:   "working-framework",
 				},
 			},
 			wantConditionStatus:  v1.ConditionFalse,

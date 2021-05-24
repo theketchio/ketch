@@ -12,16 +12,16 @@ const (
 Roll out a new version of an application with an image.
 
 Deploy from source code. <source> is path to source code. The image in this case is required
-and will be built using the selected source code and platform and will be used to deploy the app. 
-  ketch app deploy <app name> <source> -i myregistry/myimage:latest 
+and will be built using the selected source code and platform and will be used to deploy the app.
+  ketch app deploy <app name> <source> -i myregistry/myimage:latest
 
-  Ketch looks for Procfile and ketch.yaml inside the source directory by default 
+  Ketch looks for Procfile and ketch.yaml inside the source directory by default
   but you can provide a custom path with --procfile or --ketch-yaml.
 
 Deploy from an image:
   ketch app deploy <app name> -i myregistry/myimage:latest
 
-  Ketch uses the image's cmd and entrypoint but you can redefine what exactly to run with --procfile. 
+  Ketch uses the image's cmd and entrypoint but you can redefine what exactly to run with --procfile.
 
 `
 )
@@ -73,8 +73,8 @@ func NewCommand(params *Params) *cobra.Command {
 	cmd.Flags().StringVarP(&options.Platform, flagPlatform, flagPlatformShort, "", "Platform name.")
 	cmd.Flags().StringVarP(&options.Description, flagDescription, flagDescriptionShort, "", "App description.")
 	cmd.Flags().StringSliceVarP(&options.Envs, flagEnvironment, flagEnvironmentShort, []string{}, "App env variables.")
-	cmd.Flags().StringVarP(&options.Pool, flagPool, flagPoolShort, "", "Pool to deploy your app.")
-	cmd.Flags().StringVarP(&options.DockerRegistrySecret, flagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.")
+	cmd.Flags().StringVarP(&options.Framework, flagFramework, flagFrameworkShort, "", "Framework to deploy your app.")
+	cmd.Flags().StringVarP(&options.DockerRegistrySecret, flagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the framework.")
 
 	return cmd
 }

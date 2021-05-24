@@ -22,7 +22,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(&Pool{}, &PoolList{})
+	SchemeBuilder.Register(&Framework{}, &FrameworkList{})
 }
 
 // +kubebuilder:object:root=true
@@ -33,26 +33,26 @@ func init() {
 // +kubebuilder:printcolumn:name="apps",type=string,JSONPath=`.status.apps`
 // +kubebuilder:printcolumn:name="quota",type=string,JSONPath=`.spec.appQuotaLimit`
 
-// Pool is the Schema for the pools API
-type Pool struct {
+// Framework is the Schema for the frameworks API
+type Framework struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PoolSpec   `json:"spec,omitempty"`
-	Status PoolStatus `json:"status,omitempty"`
+	Spec   FrameworkSpec   `json:"spec,omitempty"`
+	Status FrameworkStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// PoolList contains a list of Pool
-type PoolList struct {
+// FrameworkList contains a list of Framework
+type FrameworkList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Pool `json:"items"`
+	Items           []Framework `json:"items"`
 }
 
-// PoolSpec defines the desired state of Pool
-type PoolSpec struct {
+// FrameworkSpec defines the desired state of Framework
+type FrameworkSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	NamespaceName string `json:"namespace"`
 
@@ -61,16 +61,16 @@ type PoolSpec struct {
 	IngressController IngressControllerSpec `json:"ingressController,omitempty"`
 }
 
-type PoolPhase string
+type FrameworkPhase string
 
 const (
-	PoolCreated PoolPhase = "Created"
-	PoolFailed  PoolPhase = "Failed"
+	FrameworkCreated FrameworkPhase = "Created"
+	FrameworkFailed  FrameworkPhase = "Failed"
 )
 
 // +kubebuilder:validation:Enum=traefik;istio
 
-// IngressControllerType is a type of an ingress controller for this pool.
+// IngressControllerType is a type of an ingress controller for this framework.
 type IngressControllerType string
 
 func (t IngressControllerType) String() string { return string(t) }
@@ -88,16 +88,16 @@ type IngressControllerSpec struct {
 	ClusterIssuer   string                `json:"clusterIssuer,omitempty"`
 }
 
-// PoolStatus defines the observed state of Pool
-type PoolStatus struct {
-	Phase   PoolPhase `json:"phase,omitempty"`
-	Message string    `json:"message,omitempty"`
+// FrameworkStatus defines the observed state of Framework
+type FrameworkStatus struct {
+	Phase   FrameworkPhase `json:"phase,omitempty"`
+	Message string         `json:"message,omitempty"`
 
 	Namespace *v1.ObjectReference `json:"namespace,omitempty"`
 	Apps      []string            `json:"apps,omitempty"`
 }
 
-func (p *Pool) HasApp(name string) bool {
+func (p *Framework) HasApp(name string) bool {
 	for _, appName := range p.Status.Apps {
 		if appName == name {
 			return true

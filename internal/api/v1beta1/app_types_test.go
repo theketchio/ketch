@@ -540,15 +540,15 @@ func TestApp_DefaultCname(t *testing.T) {
 		name                 string
 		appName              string
 		generateDefaultCname bool
-		pool                 *Pool
+		framework            *Framework
 		want                 *string
 	}{
 		{
 			name:                 "cname with default domain",
 			appName:              "app-2",
 			generateDefaultCname: true,
-			pool: &Pool{
-				Spec: PoolSpec{
+			framework: &Framework{
+				Spec: FrameworkSpec{
 					IngressController: IngressControllerSpec{
 						ServiceEndpoint: "20.20.20.20",
 					},
@@ -560,14 +560,14 @@ func TestApp_DefaultCname(t *testing.T) {
 			name:                 "no service endpoint - no default cname",
 			appName:              "app-1",
 			generateDefaultCname: true,
-			pool:                 &Pool{},
+			framework:            &Framework{},
 		},
 		{
 			name:                 "do not generate default cname - no default cname",
 			appName:              "app-1",
 			generateDefaultCname: false,
-			pool: &Pool{
-				Spec: PoolSpec{
+			framework: &Framework{
+				Spec: FrameworkSpec{
 					IngressController: IngressControllerSpec{
 						ServiceEndpoint: "20.20.20.20",
 					},
@@ -587,7 +587,7 @@ func TestApp_DefaultCname(t *testing.T) {
 					},
 				},
 			}
-			got := app.DefaultCname(tt.pool)
+			got := app.DefaultCname(tt.framework)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("DefaultCname() mismatch (-want +got):\n%s", diff)
 			}
@@ -596,15 +596,15 @@ func TestApp_DefaultCname(t *testing.T) {
 }
 
 func TestApp_CNames(t *testing.T) {
-	pool := Pool{
-		Spec: PoolSpec{
+	framework := Framework{
+		Spec: FrameworkSpec{
 			IngressController: IngressControllerSpec{
 				ServiceEndpoint: "10.20.30.40",
 			},
 		},
 	}
-	poolWithClusterIssuer := Pool{
-		Spec: PoolSpec{
+	frameworkWithClusterIssuer := Framework{
+		Spec: FrameworkSpec{
 			IngressController: IngressControllerSpec{
 				ServiceEndpoint: "10.20.30.40",
 				ClusterIssuer:   "letsencrypt",
@@ -614,40 +614,40 @@ func TestApp_CNames(t *testing.T) {
 	tests := []struct {
 		name                 string
 		generateDefaultCname bool
-		pool                 Pool
+		framework            Framework
 		cnames               []string
 		want                 []string
 	}{
 		{
 			name:                 "with default cname",
 			generateDefaultCname: true,
-			pool:                 pool,
+			framework:            framework,
 			cnames:               []string{"theketch.io", "app.theketch.io"},
 			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud", "http://theketch.io", "http://app.theketch.io"},
 		},
 		{
-			name:                 "with default cname and pool with cluster issuer",
+			name:                 "with default cname and framework with cluster issuer",
 			generateDefaultCname: true,
-			pool:                 poolWithClusterIssuer,
+			framework:            frameworkWithClusterIssuer,
 			cnames:               []string{"theketch.io", "app.theketch.io"},
 			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud", "https://theketch.io", "https://app.theketch.io"},
 		},
 		{
 			name:                 "without default cname",
 			generateDefaultCname: false,
-			pool:                 pool,
+			framework:            framework,
 			cnames:               []string{"theketch.io", "app.theketch.io"},
 			want:                 []string{"http://theketch.io", "http://app.theketch.io"},
 		},
 		{
 			name:                 "empty cnames",
-			pool:                 pool,
+			framework:            framework,
 			generateDefaultCname: false,
 			want:                 []string{},
 		},
 		{
 			name:                 "empty cnames with default cname",
-			pool:                 pool,
+			framework:            framework,
 			generateDefaultCname: true,
 			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud"},
 		},
@@ -665,7 +665,7 @@ func TestApp_CNames(t *testing.T) {
 					},
 				},
 			}
-			got := app.CNames(&tt.pool)
+			got := app.CNames(&tt.framework)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("CNames() mismatch (-want +got):\n%s", diff)
 			}

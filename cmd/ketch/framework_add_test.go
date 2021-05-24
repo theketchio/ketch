@@ -17,7 +17,7 @@ import (
 	"github.com/shipa-corp/ketch/internal/mocks"
 )
 
-func Test_addPool(t *testing.T) {
+func Test_addFramework(t *testing.T) {
 	clusterIssuerLe := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "cert-manager.io/v1",
@@ -33,11 +33,11 @@ func Test_addPool(t *testing.T) {
 	tests := []struct {
 		name    string
 		cfg     config
-		options poolAddOptions
+		options frameworkAddOptions
 
-		wantPoolSpec ketchv1.PoolSpec
-		wantOut      string
-		wantErr      string
+		wantFrameworkSpec ketchv1.FrameworkSpec
+		wantOut           string
+		wantErr           string
 	}{
 		{
 			name: "default class name for istio is istio",
@@ -45,7 +45,7 @@ func Test_addPool(t *testing.T) {
 				CtrlClientObjects:    []runtime.Object{},
 				DynamicClientObjects: []runtime.Object{clusterIssuerLe},
 			},
-			options: poolAddOptions{
+			options: frameworkAddOptions{
 				name:                   "hello",
 				appQuotaLimit:          5,
 				namespace:              "gke",
@@ -54,7 +54,7 @@ func Test_addPool(t *testing.T) {
 				ingressClusterIssuer:   "le-production",
 			},
 
-			wantPoolSpec: ketchv1.PoolSpec{
+			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "gke",
 				AppQuotaLimit: 5,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -72,7 +72,7 @@ func Test_addPool(t *testing.T) {
 				CtrlClientObjects:    []runtime.Object{},
 				DynamicClientObjects: []runtime.Object{clusterIssuerLe},
 			},
-			options: poolAddOptions{
+			options: frameworkAddOptions{
 				name:                   "hello",
 				appQuotaLimit:          5,
 				namespace:              "gke",
@@ -83,7 +83,7 @@ func Test_addPool(t *testing.T) {
 				ingressClusterIssuer:   "le-production",
 			},
 
-			wantPoolSpec: ketchv1.PoolSpec{
+			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "gke",
 				AppQuotaLimit: 5,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -100,7 +100,7 @@ func Test_addPool(t *testing.T) {
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{},
 			},
-			options: poolAddOptions{
+			options: frameworkAddOptions{
 				name:                   "aws",
 				appQuotaLimit:          5,
 				ingressClassName:       "traefik",
@@ -108,7 +108,7 @@ func Test_addPool(t *testing.T) {
 				ingressType:            traefik,
 			},
 
-			wantPoolSpec: ketchv1.PoolSpec{
+			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "ketch-aws",
 				AppQuotaLimit: 5,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -125,7 +125,7 @@ func Test_addPool(t *testing.T) {
 				CtrlClientObjects:    []runtime.Object{},
 				DynamicClientObjects: []runtime.Object{},
 			},
-			options: poolAddOptions{
+			options: frameworkAddOptions{
 				name:                 "hello",
 				ingressClusterIssuer: "le-production",
 			},
@@ -136,7 +136,7 @@ func Test_addPool(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := addPool(context.Background(), tt.cfg, tt.options, out)
+			err := addFramework(context.Background(), tt.cfg, tt.options, out)
 			if len(tt.wantErr) > 0 {
 				require.NotNil(t, err)
 				require.Equal(t, tt.wantErr, err.Error())
@@ -144,27 +144,27 @@ func Test_addPool(t *testing.T) {
 			}
 			require.Equal(t, out.String(), tt.wantOut)
 
-			gotPool := ketchv1.Pool{}
-			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.options.name}, &gotPool)
+			gotFramework := ketchv1.Framework{}
+			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.options.name}, &gotFramework)
 			require.Nil(t, err)
-			require.Equal(t, tt.wantPoolSpec, gotPool.Spec)
+			require.Equal(t, tt.wantFrameworkSpec, gotFramework.Spec)
 		})
 	}
 }
 
-func Test_newPoolAddCmd(t *testing.T) {
+func Test_newFrameworkAddCmd(t *testing.T) {
 	pflag.CommandLine = pflag.NewFlagSet("ketch", pflag.ExitOnError)
 
 	tests := []struct {
-		name    string
-		args    []string
-		addPool addPoolFn
-		wantErr bool
+		name         string
+		args         []string
+		addFramework addFrameworkFn
+		wantErr      bool
 	}{
 		{
 			name: "class name is not set",
 			args: []string{"ketch", "gke", "--ingress-type", "istio"},
-			addPool: func(ctx context.Context, cfg config, options poolAddOptions, out io.Writer) error {
+			addFramework: func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
 				require.False(t, options.ingressClassNameSet)
 				require.Equal(t, "gke", options.name)
 				return nil
@@ -173,7 +173,7 @@ func Test_newPoolAddCmd(t *testing.T) {
 		{
 			name: "class name is set",
 			args: []string{"ketch", "gke", "--ingress-type", "istio", "--ingress-class-name", "custom-istio"},
-			addPool: func(ctx context.Context, cfg config, options poolAddOptions, out io.Writer) error {
+			addFramework: func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
 				require.True(t, options.ingressClassNameSet)
 				require.Equal(t, "gke", options.name)
 				require.Equal(t, "custom-istio", options.ingressClassName)
@@ -184,7 +184,7 @@ func Test_newPoolAddCmd(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			os.Args = tt.args
-			cmd := newPoolAddCmd(nil, nil, tt.addPool)
+			cmd := newFrameworkAddCmd(nil, nil, tt.addFramework)
 			err := cmd.Execute()
 			if tt.wantErr {
 				require.NotNil(t, err)

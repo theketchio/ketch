@@ -22,11 +22,11 @@ func TestNew(t *testing.T) {
 
 	const chartDirectory = "./testdata/charts/"
 
-	poolWithClusterIssuer := &ketchv1.Pool{
+	frameworkWithClusterIssuer := &ketchv1.Framework{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "pool",
+			Name: "framework",
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "ketch-gke",
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       "ingress-class",
@@ -35,11 +35,11 @@ func TestNew(t *testing.T) {
 			},
 		},
 	}
-	poolWithoutClusterIssuer := &ketchv1.Pool{
+	frameworkWithoutClusterIssuer := &ketchv1.Framework{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "pool",
+			Name: "framework",
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "ketch-gke",
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       "gke",
@@ -72,7 +72,7 @@ func TestNew(t *testing.T) {
 			Env: []ketchv1.Env{
 				{Name: "VAR", Value: "VALUE"},
 			},
-			Pool: "pool",
+			Framework: "framework",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 				Cnames:               []string{"theketch.io", "app.theketch.io"},
@@ -83,7 +83,7 @@ func TestNew(t *testing.T) {
 	tests := []struct {
 		name        string
 		application *ketchv1.App
-		pool        *ketchv1.Pool
+		framework   *ketchv1.Framework
 		opts        []Option
 
 		wantYamlsFilename string
@@ -96,7 +96,7 @@ func TestNew(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       dashboard,
-			pool:              poolWithClusterIssuer,
+			framework:         frameworkWithClusterIssuer,
 			wantYamlsFilename: "dashboard-istio-cluster-issuer",
 		},
 		{
@@ -106,7 +106,7 @@ func TestNew(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       dashboard,
-			pool:              poolWithoutClusterIssuer,
+			framework:         frameworkWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-istio",
 		},
 		{
@@ -116,7 +116,7 @@ func TestNew(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       dashboard,
-			pool:              poolWithClusterIssuer,
+			framework:         frameworkWithClusterIssuer,
 			wantYamlsFilename: "dashboard-traefik-cluster-issuer",
 		},
 		{
@@ -126,13 +126,13 @@ func TestNew(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       dashboard,
-			pool:              poolWithoutClusterIssuer,
+			framework:         frameworkWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-traefik",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := New(tt.application, tt.pool, tt.opts...)
+			got, err := New(tt.application, tt.framework, tt.opts...)
 			if tt.wantErr {
 				require.Nil(t, err, "New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -145,7 +145,7 @@ func TestNew(t *testing.T) {
 				Version: "0.0.1",
 				AppName: tt.application.Name,
 			}
-			client := HelmClient{cfg: &action.Configuration{KubeClient: &fake.PrintingKubeClient{}, Releases: storage.Init(driver.NewMemory())}, namespace: tt.pool.Spec.NamespaceName}
+			client := HelmClient{cfg: &action.Configuration{KubeClient: &fake.PrintingKubeClient{}, Releases: storage.Init(driver.NewMemory())}, namespace: tt.framework.Spec.NamespaceName}
 
 			release, err := client.UpdateChart(*got, chartConfig, func(install *action.Install) {
 				install.DryRun = true

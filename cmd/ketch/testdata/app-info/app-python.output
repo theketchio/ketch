@@ -1,7 +1,7 @@
 Application: app-python
-Pool: gke
+Framework: gke
 Platform: python
-The default cname hasn't assigned yet because "gke" pool doesn't have ingress service endpoint.
+The default cname hasn't assigned yet because "gke" framework doesn't have ingress service endpoint.
 
 No environment variables.
 

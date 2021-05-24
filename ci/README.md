@@ -1,6 +1,6 @@
 # ketch-ci : Deployment Script for CI/CD
 
-This script can be used to deploy your apps right from your CI/CD pipelines using [Ketch](theketch.io). 
+This script can be used to deploy your apps right from your CI/CD pipelines using [Ketch](theketch.io).
 
 ### Prerequisites
 
@@ -9,22 +9,22 @@ The ingress controller (Traefik or Istio), cluster issuer, and cert-manager shou
 ### Usage
 
 ```
-Usage: ./ketch-ci.sh [-t --ketch-tag] [-o --pool] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]
+Usage: ./ketch-ci.sh [-t --ketch-tag] [-o --framework] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]
 ```
 
 | Flags | Descriptions |
 | ------ | ------ |
 |  -t, --ketch-tag  | Ketch version. Default is latest. |
-|  -o, --pool        |     Pool where your application should be deployed.|
+|  -o, --framework        |     Framework where your application should be deployed.|
 |  -a, --app         |     Application Name.|
 | -e, --env          |     Application environment variables.|
 | -ig, --ingress   |     Ingress type. Default is Traefik. |
 | --endpoint       |      Ingress IP address.|
 |  -i, --image      |     The image that should be used with the application.|
-|  --registry-secret  |    A name of a Secret with docker credentials. This secret must be created in the same namespace of the pool.|
+|  --registry-secret  |    A name of a Secret with docker credentials. This secret must be created in the same namespace of the framework.|
 |  --ketch-yaml        |   The path to the ketch.yaml file.|
 |  --procfile          |   The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image.
-|  --skip-resource-creation       | If set, ketch will NOT create app and pool for the deployment. Useful when resources already exist. |
+|  --skip-resource-creation       | If set, ketch will NOT create app and framework for the deployment. Useful when resources already exist. |
 
 
 Examples on how to use it with various CI providers are given below.
@@ -41,7 +41,7 @@ jobs:
     - stage: build
       script: ./build.sh     # build and push docker images
     - stage: deploy
-      script: ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+      script: ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o myframework --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
 
 #### Circle CI
@@ -55,7 +55,7 @@ deployment:
   production:
     branch: "master"
     commands:
-      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o myframework --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
 
 #### Gitlab CI
@@ -91,5 +91,5 @@ production:
     - branches
 
     script:
-      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o mypool --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o myframework --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```

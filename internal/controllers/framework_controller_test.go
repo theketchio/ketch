@@ -14,14 +14,14 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
-func TestPoolReconciler_Reconcile(t *testing.T) {
+func TestFrameworkReconciler_Reconcile(t *testing.T) {
 	defaultObjects := []runtime.Object{
-		&ketchv1.Pool{
+		&ketchv1.Framework{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "default-pool",
+				Name: "default-framework",
 			},
-			Spec: ketchv1.PoolSpec{
+			Spec: ketchv1.FrameworkSpec{
 				NamespaceName: "default-namespace",
 				AppQuotaLimit: 100,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -36,59 +36,59 @@ func TestPoolReconciler_Reconcile(t *testing.T) {
 	defer teardown(ctx)
 	tests := []struct {
 		name                     string
-		pool                     ketchv1.Pool
-		wantStatusPhase          ketchv1.PoolPhase
+		framework                ketchv1.Framework
+		wantStatusPhase          ketchv1.FrameworkPhase
 		wantStatusMessage        string
 		wantNamespaceAnnotations map[string]string
 	}{
 		{
-			name: "namespace is used by another pool",
-			pool: ketchv1.Pool{
+			name: "namespace is used by another framework",
+			framework: ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool-2",
+					Name: "framework-2",
 				},
-				Spec: ketchv1.PoolSpec{
+				Spec: ketchv1.FrameworkSpec{
 					NamespaceName: "default-namespace",
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: ketchv1.IstioIngressControllerType,
 					},
 				},
 			},
-			wantStatusPhase:   ketchv1.PoolFailed,
-			wantStatusMessage: "Target namespace is already used by another pool",
+			wantStatusPhase:   ketchv1.FrameworkFailed,
+			wantStatusMessage: "Target namespace is already used by another framework",
 		},
 		{
 			name: "istio controller - everything is ok",
-			pool: ketchv1.Pool{
+			framework: ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool-3",
+					Name: "framework-3",
 				},
-				Spec: ketchv1.PoolSpec{
+				Spec: ketchv1.FrameworkSpec{
 					NamespaceName: "another-namespace-3",
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: ketchv1.IstioIngressControllerType,
 					},
 				},
 			},
-			wantStatusPhase: ketchv1.PoolCreated,
+			wantStatusPhase: ketchv1.FrameworkCreated,
 			wantNamespaceAnnotations: map[string]string{
 				"istio-injection": "enabled",
 			},
 		},
 		{
 			name: "traefik controller - everything is ok",
-			pool: ketchv1.Pool{
+			framework: ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool-4",
+					Name: "framework-4",
 				},
-				Spec: ketchv1.PoolSpec{
+				Spec: ketchv1.FrameworkSpec{
 					NamespaceName: "another-namespace-4",
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: ketchv1.TraefikIngressControllerType,
 					},
 				},
 			},
-			wantStatusPhase: ketchv1.PoolCreated,
+			wantStatusPhase: ketchv1.FrameworkCreated,
 			wantNamespaceAnnotations: map[string]string{
 				"istio-injection": "disabled",
 			},
@@ -97,31 +97,31 @@ func TestPoolReconciler_Reconcile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			err := ctx.k8sClient.Create(context.TODO(), &tt.pool)
+			err := ctx.k8sClient.Create(context.TODO(), &tt.framework)
 			assert.Nil(t, err)
 
-			resultPool := ketchv1.Pool{}
+			resultFramework := ketchv1.Framework{}
 			for {
 				time.Sleep(250 * time.Millisecond)
-				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.pool.Name}, &resultPool)
+				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.framework.Name}, &resultFramework)
 				assert.Nil(t, err)
-				if len(resultPool.Status.Phase) > 0 {
+				if len(resultFramework.Status.Phase) > 0 {
 					break
 				}
 			}
 
-			assert.Equal(t, tt.wantStatusPhase, resultPool.Status.Phase)
-			assert.Equal(t, tt.wantStatusMessage, resultPool.Status.Message)
+			assert.Equal(t, tt.wantStatusPhase, resultFramework.Status.Phase)
+			assert.Equal(t, tt.wantStatusMessage, resultFramework.Status.Message)
 
-			if tt.wantStatusPhase == ketchv1.PoolCreated {
-				assert.NotNil(t, resultPool.Status.Namespace.Name)
-				assert.NotNil(t, resultPool.Status.Namespace.UID)
+			if tt.wantStatusPhase == ketchv1.FrameworkCreated {
+				assert.NotNil(t, resultFramework.Status.Namespace.Name)
+				assert.NotNil(t, resultFramework.Status.Namespace.UID)
 
 				gotNamespace := v1.Namespace{}
-				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.pool.Spec.NamespaceName}, &gotNamespace)
+				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.framework.Spec.NamespaceName}, &gotNamespace)
 				assert.Equal(t, tt.wantNamespaceAnnotations, gotNamespace.Labels)
 			} else {
-				assert.Nil(t, resultPool.Status.Namespace)
+				assert.Nil(t, resultFramework.Status.Namespace)
 			}
 		})
 	}

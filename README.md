@@ -1,7 +1,7 @@
 ![Ketch](https://i.imgur.com/TVe46Dm.png)
 
 
-[![Build Status](https://travis-ci.com/shipa-corp/ketch.svg?token=qcHta8a4Eyd9eGNDTuSN&branch=main)](https://travis-ci.com/shipa-corp/ketch) 
+[![Build Status](https://travis-ci.com/shipa-corp/ketch.svg?token=qcHta8a4Eyd9eGNDTuSN&branch=main)](https://travis-ci.com/shipa-corp/ketch)
 [![Slack](https://img.shields.io/badge/chat-on%20slack-6A5DAB)](https://shipa-io.slack.com/archives/C01E4FMEY9K)
 
 Think applications not yamls :)
@@ -18,14 +18,14 @@ Ketch is an application delivery framework that facilitates the deployment and m
   * [Office Hours](#office-hours)
   * [Developer Guide](./CONTRIBUTING.md)
 
-## Architecture Diagram 
+## Architecture Diagram
 ![Architecture](./img/ketch-architecture.png)
 
 ## Getting Started
 
-### Download and Install Ketch 
+### Download and Install Ketch
 The latest Ketch release can be found [here](https://github.com/shipa-corp/ketch/releases). Use the following commands
-to install Ketch, 
+to install Ketch,
 
 Install latest at /usr/local/bin default location
 
@@ -47,9 +47,9 @@ At present, Ketch supports Istio and Traefik ingress controllers.
 
 Here is how you can install Traefik:
 
-Use [Helm](https://helm.sh/docs/intro/install/) to install Traefik. 
+Use [Helm](https://helm.sh/docs/intro/install/) to install Traefik.
 
-```bash 
+```bash
 helm repo add traefik https://helm.traefik.io/traefik
 helm repo update
 helm install traefik traefik/traefik
@@ -60,7 +60,7 @@ Or you can install Istio:
 ```bash
 curl -Ls https://istio.io/downloadIstio | ISTIO_VERSION=1.9.0 sh -
 export PATH=$PWD/istio-1.9.0/bin:$PATH
-istioctl install --set profile=demo 
+istioctl install --set profile=demo
 ```
 
 ### Install Cert Manager.
@@ -74,34 +74,34 @@ kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.2.1/ke
 
 Thats it!
 
-## Using Ketch 
+## Using Ketch
 
 Learn more about Ketch at [Ketch documentation](https://learn.theketch.io/docs)
 
 ### Quick Start
-Deploying apps is easy once you've installed Ketch.  First, create a pool. Then create app(s) adding them to the pool and finally 
-deploy the app(s).  The following example illustrates these steps. 
+Deploying apps is easy once you've installed Ketch.  First, create a framework. Then create app(s) adding them to the framework and finally
+deploy the app(s).  The following example illustrates these steps.
 
 ```bash
-# Add a pool with ingress Traefik (default), replace ingress IP address by your ingress IP address
-ketch pool add mypool  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
+# Add a framework with ingress Traefik (default), replace ingress IP address by your ingress IP address
+ketch framework add myframework  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
 
 # Create app
-ketch app create bulletinboard --pool mypool       
+ketch app create bulletinboard --framework myframework       
 
 # Deploy app
-ketch app deploy bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0 
+ketch app deploy bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0
 
 # Check app status
-ketch app list 
+ketch app list
 
-NAME             POOL        STATE        ADDRESSES                                      PLATFORM    DESCRIPTION
-bulletinboard    mypool      1 running    http://bulletinboard.35.247.8.23.shipa.cloud
+NAME             FRAMEWORK        STATE        ADDRESSES                                      PLATFORM    DESCRIPTION
+bulletinboard    myframework      1 running    http://bulletinboard.35.247.8.23.shipa.cloud
 ```
-After you deploy your application, you can access it at the address associated with it using the `ketch app list`, in 
-this example `bulletinboard.35.247.8.23.shipa.cloud`. 
+After you deploy your application, you can access it at the address associated with it using the `ketch app list`, in
+this example `bulletinboard.35.247.8.23.shipa.cloud`.
 
-### Usage 
+### Usage
 For details see https://theketch.io.
 
 ```bash
@@ -115,7 +115,7 @@ Available Commands:
   env         Manage an app's environment variables
   help        Help about any command
   platform    Manage platforms
-  pool        Manage pools
+  framework        Manage frameworks
   unit        Manage an app's units
 
 Flags:
@@ -128,7 +128,7 @@ Use "ketch [command] --help" for more information about a command.
 ## Get Involved
 
 * Discuss Ketch on [slack](https://join.slack.com/t/shipaco/shared_invite/zt-mqy8plp1-DxFKP102VJtUn5q9tzom9Q) or our [dev mailing list](https://groups.google.com/g/ketch-dev)
-* Join [office hours](#office-hours) 
+* Join [office hours](#office-hours)
 
 ## Office Hours
 Ketch office hours aim is to listen from the community, share ideas, experiences and ask questions. In this meeting Ketch maintainers are going to look for new ideas, feature requests, answer any questions related to uses of Ketch, contributing to Ketch or any other questions/suggestions.
@@ -141,4 +141,3 @@ Ketch office hours takes place every other Wednesday at 4:30pm UTC/8:30am PST. S
 
 
 ## Developer Guide [See Contributing](./CONTRIBUTING.md)
-

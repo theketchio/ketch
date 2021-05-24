@@ -5,6 +5,6 @@ resources:
   kind: App
   version: v1beta1
 - group: resources
-  kind: Pool
+  kind: Framework
   version: v1beta1
 version: "2"

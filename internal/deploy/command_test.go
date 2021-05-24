@@ -30,9 +30,9 @@ type mockClient struct {
 	create funcMap
 	update funcMap
 
-	app      *ketchv1.App
-	platform *ketchv1.Platform
-	pool     *ketchv1.Pool
+	app       *ketchv1.App
+	platform  *ketchv1.Platform
+	framework *ketchv1.Framework
 
 	getCounter    int
 	createCounter int
@@ -47,15 +47,15 @@ func newMockClient() *mockClient {
 		app: &ketchv1.App{
 			Spec: ketchv1.AppSpec{
 				Description: "foo",
-				Pool:        "initialpool",
+				Framework:   "initialframework",
 				Platform:    "initialplatform",
 			},
 		},
-		pool: &ketchv1.Pool{
+		framework: &ketchv1.Framework{
 			TypeMeta:   metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{},
-			Spec:       ketchv1.PoolSpec{},
-			Status:     ketchv1.PoolStatus{},
+			Spec:       ketchv1.FrameworkSpec{},
+			Status:     ketchv1.FrameworkStatus{},
 		},
 		platform: &ketchv1.Platform{
 			TypeMeta:   metav1.TypeMeta{},
@@ -79,8 +79,8 @@ func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj runtime.Obje
 	case *ketchv1.Platform:
 		*v = *m.platform
 		return nil
-	case *ketchv1.Pool:
-		*v = *m.pool
+	case *ketchv1.Framework:
+		*v = *m.framework
 		return nil
 	}
 	panic("unhandled type")
@@ -100,8 +100,8 @@ func (m *mockClient) Create(_ context.Context, obj runtime.Object, _ ...client.C
 	case *ketchv1.Platform:
 		m.platform = v
 		return nil
-	case *ketchv1.Pool:
-		m.pool = v
+	case *ketchv1.Framework:
+		m.framework = v
 		return nil
 	}
 	panic("unhandled type")
@@ -121,8 +121,8 @@ func (m *mockClient) Update(ctx context.Context, obj runtime.Object, opts ...cli
 	case *ketchv1.Platform:
 		m.platform = v
 		return nil
-	case *ketchv1.Pool:
-		m.pool = v
+	case *ketchv1.Framework:
+		m.framework = v
 		return nil
 	}
 	panic("unhandled type")
@@ -153,12 +153,12 @@ kubernetes:
     web:
       ports:
         - name: apache-http # an optional name for the port
-          protocol: TCP 
+          protocol: TCP
           port: 80 # The port that is going to be exposed on the router.
           target_port: 9999 # The port on which the application listens on.
     worker:
       ports:
-        - name: http 
+        - name: http
           protocol: TCP
           port: 80
     worker-2:
@@ -182,7 +182,7 @@ func TestNewCommand(t *testing.T) {
 				"myapp",
 				"src",
 				"--platform", "go",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,zip=zap",
 			},
@@ -196,7 +196,7 @@ func TestNewCommand(t *testing.T) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
 				require.Equal(t, "go", mock.app.Spec.Platform)
-				require.Equal(t, "mypool", mock.app.Spec.Pool)
+				require.Equal(t, "myframework", mock.app.Spec.Framework)
 				require.Len(t, mock.app.Spec.Deployments, 1)
 				require.Len(t, mock.app.Spec.Deployments[0].KetchYaml.Kubernetes.Processes, 3)
 				require.Len(t, mock.app.Spec.Env, 2)
@@ -223,7 +223,7 @@ func TestNewCommand(t *testing.T) {
 				"myapp",
 				"src",
 				"--platform", "go",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,zip=zap",
 				"--ketch-yaml", "config/ketch.yaml",
@@ -244,7 +244,7 @@ func TestNewCommand(t *testing.T) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
 				require.Equal(t, "go", mock.app.Spec.Platform)
-				require.Equal(t, "mypool", mock.app.Spec.Pool)
+				require.Equal(t, "myframework", mock.app.Spec.Framework)
 				require.Len(t, mock.app.Spec.Deployments, 1)
 				require.Len(t, mock.app.Spec.Deployments[0].KetchYaml.Kubernetes.Processes, 3)
 				require.Len(t, mock.app.Spec.Env, 2)
@@ -271,7 +271,7 @@ func TestNewCommand(t *testing.T) {
 				"--steps", "4",
 				"--step-interval", "1h",
 				"--platform", "go",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -282,7 +282,7 @@ func TestNewCommand(t *testing.T) {
 			validate: func(t *testing.T, m getterCreator) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
-				require.Equal(t, mock.app.Spec.Pool, "mypool")
+				require.Equal(t, mock.app.Spec.Framework, "myframework")
 
 			},
 			params: &Params{
@@ -313,7 +313,7 @@ func TestNewCommand(t *testing.T) {
 			name: "happy path build from image",
 			arguments: []string{
 				"myapp",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -344,7 +344,7 @@ func TestNewCommand(t *testing.T) {
 				"myapp",
 				"src",
 				"--platform", "go",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -373,7 +373,7 @@ func TestNewCommand(t *testing.T) {
 				"myapp",
 				"src",
 				"--platform", "go",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,bobb=dobbs",
 			},
@@ -405,7 +405,7 @@ func TestNewCommand(t *testing.T) {
 				"myapp",
 				"src",
 				"--platform", "go",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,bobbdobbs",
 			},

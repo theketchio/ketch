@@ -12,13 +12,13 @@ import (
 	"github.com/shipa-corp/ketch/internal/mocks"
 )
 
-func Test_poolList(t *testing.T) {
-	poolA := &ketchv1.Pool{
+func Test_frameworkList(t *testing.T) {
+	frameworkA := &ketchv1.Framework{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "pool-a",
+			Name: "framework-a",
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "a",
 			AppQuotaLimit: 30,
 			IngressController: ketchv1.IngressControllerSpec{
@@ -29,12 +29,12 @@ func Test_poolList(t *testing.T) {
 			},
 		},
 	}
-	poolB := &ketchv1.Pool{
+	frameworkB := &ketchv1.Framework{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "pool-b",
+			Name: "framework-b",
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "b",
 			AppQuotaLimit: 30,
 			IngressController: ketchv1.IngressControllerSpec{
@@ -55,24 +55,24 @@ func Test_poolList(t *testing.T) {
 		{
 			name: "update service endpoint",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{poolA, poolB},
+				CtrlClientObjects: []runtime.Object{frameworkA, frameworkB},
 			},
-			wantOut: `NAME      STATUS    NAMESPACE    INGRESS TYPE    INGRESS CLASS NAME    CLUSTER ISSUER    APPS
-pool-a              a            istio           istio                 letsencrypt       0/30
-pool-b              b            traefik         classname-b           letsencrypt       0/30
+			wantOut: `NAME           STATUS    NAMESPACE    INGRESS TYPE    INGRESS CLASS NAME    CLUSTER ISSUER    APPS
+framework-a              a            istio           istio                 letsencrypt       0/30
+framework-b              b            traefik         classname-b           letsencrypt       0/30
 `,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := poolList(context.Background(), tt.cfg, out)
+			err := frameworkList(context.Background(), tt.cfg, out)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("poolList() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("frameworkList() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if gotOut := out.String(); gotOut != tt.wantOut {
-				t.Errorf("poolList() gotOut = %v, want %v", gotOut, tt.wantOut)
+				t.Errorf("frameworkList() gotOut = \n%v\n, want \n%v\n", gotOut, tt.wantOut)
 			}
 		})
 	}

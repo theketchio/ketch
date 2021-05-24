@@ -194,7 +194,7 @@ rules:
 - apiGroups:
   - theketch.io
   resources:
-  - pools
+  - frameworks
   verbs:
   - create
   - delete
@@ -206,7 +206,7 @@ rules:
 - apiGroups:
   - theketch.io
   resources:
-  - pools/status
+  - frameworks/status
   verbs:
   - get
   - patch

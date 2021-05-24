@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
 	// +kubebuilder:scaffold:imports
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -74,9 +75,9 @@ func setup(reader templates.Reader, helm Helm, objects []runtime.Object) (*testi
 	if err != nil {
 		return nil, err
 	}
-	err = (&PoolReconciler{
+	err = (&FrameworkReconciler{
 		Client: k8sManager.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Pool"),
+		Log:    ctrl.Log.WithName("controllers").WithName("Framework"),
 	}).SetupWithManager(k8sManager)
 	if err != nil {
 		return nil, err
@@ -97,7 +98,7 @@ func setup(reader templates.Reader, helm Helm, objects []runtime.Object) (*testi
 	for _, obj := range objects {
 		var name string
 		switch x := obj.(type) {
-		case *ketchv1.Pool:
+		case *ketchv1.Framework:
 			name = x.Name
 		case *ketchv1.App:
 			name = x.Name
@@ -107,9 +108,9 @@ func setup(reader templates.Reader, helm Helm, objects []runtime.Object) (*testi
 			return nil, err
 		}
 		switch x := obj.(type) {
-		case *ketchv1.Pool:
-			if x.Status.Phase != ketchv1.PoolCreated {
-				return nil, fmt.Errorf("failed to create %v pool", x.Name)
+		case *ketchv1.Framework:
+			if x.Status.Phase != ketchv1.FrameworkCreated {
+				return nil, fmt.Errorf("failed to create %v framework", x.Name)
 			}
 		case *ketchv1.App:
 			if len(x.Status.Conditions) == 0 {

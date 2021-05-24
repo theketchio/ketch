@@ -1,6 +1,6 @@
 Application: dashboard
-Pool: gke
-The default cname hasn't assigned yet because "gke" pool doesn't have ingress service endpoint.
+Framework: gke
+The default cname hasn't assigned yet because "gke" framework doesn't have ingress service endpoint.
 
 No environment variables.
 
