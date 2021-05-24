@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 	"strings"
 	"text/tabwriter"

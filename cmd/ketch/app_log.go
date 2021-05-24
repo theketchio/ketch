@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 	"strings"
 	"time"

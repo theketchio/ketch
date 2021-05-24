@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/shipa-corp/ketch/internal/docker"
 	"io"
 
 	"github.com/spf13/cobra"

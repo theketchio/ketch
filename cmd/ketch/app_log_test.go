@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 	"io/ioutil"
 	"net/http"

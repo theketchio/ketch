@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/shipa-corp/ketch/internal/build"
-	"github.com/shipa-corp/ketch/internal/deploy"
-	"github.com/shipa-corp/ketch/internal/docker"
 	"io"
 	"strings"
 

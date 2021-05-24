@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/shipa-corp/ketch/internal/utils"
 	"io"
 	"strings"
 	"text/tabwriter"
