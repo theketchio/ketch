@@ -92,12 +92,13 @@ func createApp(ctx context.Context, client getterCreator, params *ChangeSet) (*k
 		GenerateDefaultCname: true,
 	}
 
-	plat, err := params.getPlatform(ctx, client)
+	// TODO: update to builder
+	/*plat, err := params.getPlatform(ctx, client)
 	if err := assign(err, func() {
 		app.Spec.Platform = plat
 	}); err != nil {
 		return nil, err
-	}
+	}*/
 
 	pool, err := params.getPool(ctx, client)
 	if err := assign(err, func() {
@@ -164,13 +165,14 @@ func maybeUpdateApp(ctx context.Context, client getterCreator, params *ChangeSet
 		return nil, err
 	}
 
-	platform, err := params.getPlatform(ctx, client)
+	// TODO: update to builder
+	/*platform, err := params.getPlatform(ctx, client)
 	if err := assign(err, func() {
 		app.Spec.Platform = platform
 		changed = true
 	}); err != nil {
 		return nil, err
-	}
+	}*/
 
 	if changed {
 		if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -190,10 +192,11 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 	if err != nil {
 		return err
 	}
-	var platform ketchv1.Platform
+
+	/*var platform ketchv1.Platform
 	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Platform}, &platform); err != nil {
 		return errors.Wrap(err, "failed to get platform %q", app.Spec.Platform)
-	}
+	}*/
 
 	var pool ketchv1.Pool
 	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
@@ -201,37 +204,22 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 	}
 
 	builder, _ := params.getBuilder()
-	//buildPacks, _ := params.getBuildPacks()
+	buildPacks, _ := params.getBuildPacks()
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
-	includeDirs, _ := params.getIncludeDirs()
-
-	log.Println("calling builder")
 
 	resp, err := svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
-			Image:         image,
-			AppName:       params.appName,
-			PlatformImage: builder,
+			Image:      image,
+			AppName:    params.appName,
+			Builder:    builder,
+			BuildPacks: buildPacks,
 		},
 		build.WithWorkingDirectory(sourcePath),
-		build.WithSourcePaths(includeDirs...),
 		build.MaybeWithBuildHooks(ketchYaml),
 	)
 
-	/*resp, err := svc.Builder(
-		ctx,
-		&build.CreateImageFromSourceRequest{
-			Image:         image,
-			AppName:       params.appName,
-			PlatformImage: platform.Spec.Image,
-		},
-		build.WithOutput(svc.Writer),
-		build.WithWorkingDirectory(sourcePath),
-		build.WithSourcePaths(includeDirs...),
-		build.MaybeWithBuildHooks(ketchYaml),
-	)*/
 	if err != nil {
 		return errors.Wrap(err, "build from source failed")
 	}
@@ -291,10 +279,12 @@ func deployFromImage(ctx context.Context, svc *Params, app *ketchv1.App, params 
 	if err != nil {
 		return err
 	}
-	var platform ketchv1.Platform
+
+	// TODO: adapt to builder
+	/*var platform ketchv1.Platform
 	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Platform}, &platform); err != nil {
 		return errors.Wrap(err, "failed to get platform %q", app.Spec.Platform)
-	}
+	}*/
 
 	var pool ketchv1.Pool
 	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {

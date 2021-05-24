@@ -104,11 +104,6 @@ func validateSourceDeploy(cs *ChangeSet, app *ketchv1.App) error {
 		return err
 	}
 
-	_, err := cs.getIncludeDirs()
-	if !isMissing(err) && !isValid(err) {
-		return err
-	}
-
 	return validateDeploy(cs, app)
 }
 

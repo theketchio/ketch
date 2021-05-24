@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/shipa-corp/ketch/internal/docker"
 	"github.com/shipa-corp/ketch/internal/templates"
 )
 
@@ -46,7 +45,7 @@ type resourceGetDeleter interface {
 }
 
 // RootCmd represents the base command when called without any subcommands
-func newRootCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command {
+func newRootCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "ketch",
 		Short:   "Manage your applications and your cloud resources",
@@ -56,7 +55,7 @@ func newRootCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command
 			return cmd.Usage()
 		},
 	}
-	cmd.AddCommand(newAppCmd(cfg, out, docker))
+	cmd.AddCommand(newAppCmd(cfg, out))
 	cmd.AddCommand(newCnameCmd(cfg, out))
 	cmd.AddCommand(newPoolCmd(cfg, out))
 	cmd.AddCommand(newUnitCmd(cfg, out))

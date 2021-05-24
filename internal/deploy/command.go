@@ -68,9 +68,7 @@ func NewCommand(params *Params) *cobra.Command {
 	cmd.Flags().StringVar(&options.StepTimeInterval, flagStepInterval, "", "Time interval between canary deployment steps. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h.")
 	cmd.Flags().BoolVar(&options.Wait, flagWait, false, "If true blocks until deploy completes or a timeout occurs.")
 	cmd.Flags().StringVar(&options.Timeout, flagTimeout, "20s", "Defines the length of time to block waiting for deployment completion. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h.")
-	cmd.Flags().StringSliceVar(&options.SubPaths, flagIncludeDirs, []string{"."}, "Optionally include additional source paths. Additional paths must be relative to source-path.")
 
-	cmd.Flags().StringVarP(&options.Platform, flagPlatform, flagPlatformShort, "", "Platform name.")
 	cmd.Flags().StringVar(&options.Builder, flagBuilder, "heroku/buildpacks:18", "Builder to use when building from source.")
 	cmd.Flags().StringSliceVar(&options.BuildPacks, flagBuildPacks, nil, "A list of build packs")
 	cmd.Flags().StringVarP(&options.Description, flagDescription, flagDescriptionShort, "", "App description.")

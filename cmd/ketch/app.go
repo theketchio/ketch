@@ -14,10 +14,9 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/deploy"
-	"github.com/shipa-corp/ketch/internal/docker"
 )
 
-func newAppCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command {
+func newAppCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "app",
 		Short: "Manage applications",
@@ -27,6 +26,7 @@ func newAppCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command 
 		},
 	}
 
+	// TODO: wrapper around the client
 	buildLogger := logging.New(out)
 	//buildLogger.Infof("building from source %q", options.appPath)
 	builder, err := pack.NewClient(pack.WithLogger(buildLogger))
@@ -36,10 +36,9 @@ func newAppCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command 
 	}
 
 	params := &deploy.Params{
-		Client:     cfg.Client(),
-		KubeClient: cfg.KubernetesClient(),
-		//Builder:        build.GetSourceHandler(docker),
-		Builder:        build.GetSourceHandlerPack(builder),
+		Client:         cfg.Client(),
+		KubeClient:     cfg.KubernetesClient(),
+		Builder:        build.GetSourceHandler(builder),
 		GetImageConfig: deploy.GetImageConfig,
 		Wait:           deploy.WaitForDeployment,
 		Writer:         out,
