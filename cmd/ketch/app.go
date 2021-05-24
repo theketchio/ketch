@@ -12,6 +12,9 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/build"
+	"github.com/shipa-corp/ketch/internal/deploy"
+	"github.com/shipa-corp/ketch/internal/docker"
 )
 
 func newAppCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command {

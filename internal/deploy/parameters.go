@@ -147,6 +147,7 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		flagBuildPacks: func(c *ChangeSet) {
 			c.buildPacks = &o.BuildPacks
 		},
+
 	}
 	for k, f := range m {
 		if flags.Changed(k) {

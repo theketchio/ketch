@@ -252,7 +252,7 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 	updateRequest.nextScheduledTime = time.Now().Add(interval)
 	updateRequest.started = time.Now()
 
-	if app, err = updateAppCRD(ctx, svc, app, updateRequest); err != nil {
+	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		return errors.Wrap(err, "deploy from source failed")
 	}
 
@@ -315,7 +315,7 @@ func deployFromImage(ctx context.Context, svc *Params, app *ketchv1.App, params 
 	updateRequest.nextScheduledTime = time.Now().Add(interval)
 	updateRequest.started = time.Now()
 
-	if app, err = updateAppCRD(ctx, svc, app, updateRequest); err != nil {
+	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		return errors.Wrap(err, "deploy from image failed[")
 	}
 
@@ -358,67 +358,69 @@ type updateAppCRDRequest struct {
 	stepTimeInterval  time.Duration
 }
 
-func updateAppCRD(ctx context.Context, svc *Params, app *ketchv1.App, args updateAppCRDRequest) (*ketchv1.App, error) {
-	processes := make([]ketchv1.ProcessSpec, 0, len(args.procFile.Processes))
-	for _, processName := range args.procFile.SortedNames() {
-		cmd := args.procFile.Processes[processName]
-		processes = append(processes, ketchv1.ProcessSpec{
-			Name: processName,
-			Cmd:  cmd,
-		})
-	}
-	exposedPorts := make([]ketchv1.ExposedPort, 0, len(args.configFile.Config.ExposedPorts))
-	for port := range args.configFile.Config.ExposedPorts {
-		exposedPort, err := ketchv1.NewExposedPort(port)
-		if err != nil {
-			// Shouldn't happen
-			return nil, err
-		}
-		exposedPorts = append(exposedPorts, *exposedPort)
-	}
-
-	// default deployment spec for an app
-	deploymentSpec := ketchv1.AppDeploymentSpec{
-		Image:     args.image,
-		Version:   ketchv1.DeploymentVersion(app.Spec.DeploymentsCount + 1),
-		Processes: processes,
-		KetchYaml: args.ketchYaml,
-		RoutingSettings: ketchv1.RoutingSettings{
-			Weight: defaultTrafficWeight,
-		},
-		ExposedPorts: exposedPorts,
-	}
-
-	if args.steps > 1 {
-		nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
-		started := metav1.NewTime(args.started)
-		app.Spec.Canary = ketchv1.CanarySpec{
-			Steps:             args.steps,
-			StepWeight:        args.stepWeight,
-			StepTimeInteval:   args.stepTimeInterval,
-			NextScheduledTime: &nextScheduledTime,
-			CurrentStep:       1,
-			Active:            true,
-			Started:           &started,
+func updateAppCRD(ctx context.Context, svc *Params, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
+	var updated ketchv1.App
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if err := svc.Client.Get(ctx, types.NamespacedName{Name: appName}, &updated); err != nil {
+			return errors.Wrap(err, "could not get app to deploy %q", appName)
 		}
 
-		// set initial weight for canary deployment to zero.
-		// App controller will update the weight once all pods for canary will be on running state.
-		deploymentSpec.RoutingSettings.Weight = 0
+		processes := make([]ketchv1.ProcessSpec, 0, len(args.procFile.Processes))
+		for _, processName := range args.procFile.SortedNames() {
+			cmd := args.procFile.Processes[processName]
+			processes = append(processes, ketchv1.ProcessSpec{
+				Name: processName,
+				Cmd:  cmd,
+			})
+		}
+		exposedPorts := make([]ketchv1.ExposedPort, 0, len(args.configFile.Config.ExposedPorts))
+		for port := range args.configFile.Config.ExposedPorts {
+			exposedPort, err := ketchv1.NewExposedPort(port)
+			if err != nil {
+				// Shouldn't happen
+				return err
+			}
+			exposedPorts = append(exposedPorts, *exposedPort)
+		}
 
-		// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
-		app.Spec.Deployments = append(app.Spec.Deployments, deploymentSpec)
-	} else {
-		app.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
-	}
+		// default deployment spec for an app
+		deploymentSpec := ketchv1.AppDeploymentSpec{
+			Image:     args.image,
+			Version:   ketchv1.DeploymentVersion(updated.Spec.DeploymentsCount + 1),
+			Processes: processes,
+			KetchYaml: args.ketchYaml,
+			RoutingSettings: ketchv1.RoutingSettings{
+				Weight: defaultTrafficWeight,
+			},
+			ExposedPorts: exposedPorts,
+		}
 
-	app.Spec.DeploymentsCount += 1
+		if args.steps > 1 {
+			nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
+			started := metav1.NewTime(args.started)
+			updated.Spec.Canary = ketchv1.CanarySpec{
+				Steps:             args.steps,
+				StepWeight:        args.stepWeight,
+				StepTimeInteval:   args.stepTimeInterval,
+				NextScheduledTime: &nextScheduledTime,
+				CurrentStep:       1,
+				Active:            true,
+				Started:           &started,
+			}
 
-	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return svc.Client.Update(ctx, app)
-	}); err != nil {
-		return app, errors.Wrap(err, "deploy from source failed")
-	}
+			// set initial weight for canary deployment to zero.
+			// App controller will update the weight once all pods for canary will be on running state.
+			deploymentSpec.RoutingSettings.Weight = 0
 
-	return app, nil
+			// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
+			updated.Spec.Deployments = append(updated.Spec.Deployments, deploymentSpec)
+		} else {
+			updated.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
+		}
+
+		updated.Spec.DeploymentsCount += 1
+
+		return svc.Client.Update(ctx, &updated)
+	})
+	return &updated, err
 }
