@@ -5,6 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -199,11 +200,27 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 		return errors.Wrap(err, "failed to get pool %q", app.Spec.Pool)
 	}
 
+	builder, _ := params.getBuilder()
+	//buildPacks, _ := params.getBuildPacks()
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
 	includeDirs, _ := params.getIncludeDirs()
 
+	log.Println("calling builder")
+
 	resp, err := svc.Builder(
+		ctx,
+		&build.CreateImageFromSourceRequest{
+			Image:         image,
+			AppName:       params.appName,
+			PlatformImage: builder,
+		},
+		build.WithWorkingDirectory(sourcePath),
+		build.WithSourcePaths(includeDirs...),
+		build.MaybeWithBuildHooks(ketchYaml),
+	)
+
+	/*resp, err := svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
 			Image:         image,
@@ -214,10 +231,11 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 		build.WithWorkingDirectory(sourcePath),
 		build.WithSourcePaths(includeDirs...),
 		build.MaybeWithBuildHooks(ketchYaml),
-	)
+	)*/
 	if err != nil {
 		return errors.Wrap(err, "build from source failed")
 	}
+	log.Println(resp)
 
 	imageRequest := imageConfigRequest{
 		imageName:       image,

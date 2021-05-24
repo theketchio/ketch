@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"strings"
 
+	"github.com/buildpacks/pack"
+	"github.com/buildpacks/pack/logging"
 	"github.com/spf13/cobra"
 	apiv1 "k8s.io/api/core/v1"
 
@@ -24,10 +27,19 @@ func newAppCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command 
 		},
 	}
 
+	buildLogger := logging.New(out)
+	//buildLogger.Infof("building from source %q", options.appPath)
+	builder, err := pack.NewClient(pack.WithLogger(buildLogger))
+	if err != nil {
+		log.Fatal(err)
+		// return fmt.Errorf("could not create builder: %w", err)
+	}
+
 	params := &deploy.Params{
-		Client:         cfg.Client(),
-		KubeClient:     cfg.KubernetesClient(),
-		Builder:        build.GetSourceHandler(docker),
+		Client:     cfg.Client(),
+		KubeClient: cfg.KubernetesClient(),
+		//Builder:        build.GetSourceHandler(docker),
+		Builder:        build.GetSourceHandlerPack(builder),
 		GetImageConfig: deploy.GetImageConfig,
 		Wait:           deploy.WaitForDeployment,
 		Writer:         out,
