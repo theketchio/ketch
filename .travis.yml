@@ -61,6 +61,7 @@ jobs:
         - kubectl cluster-info
         # TODO - create actual test
         - make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
+        - make install-kustomize KUSTOMIZE_INSTALL_DIR=/tmp/kustomize
         - make install
         - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
         - cd cmd/ketch && go build -o ketch .
