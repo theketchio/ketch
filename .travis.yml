@@ -73,10 +73,14 @@ jobs:
         - kubectl cluster-info
         - make install
         - make ketch
+        # cert-manager
         - kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.yaml
+        # traefik
         - helm repo add traefik https://helm.traefik.io/traefik
         - helm repo update
-        - helm install traefik traefik/traefik
-        - kubectl get pods -A 
+        - helm install traefik traefik/traefik --wait
+        # wait for cert-manager = ready
+        - kubectl wait --for=condition=Ready=true pod -n cert-manager --all
+        - kubectl get pods -A
         - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
         - ./bin/ketch --version
