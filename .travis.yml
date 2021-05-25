@@ -78,7 +78,7 @@ jobs:
         # istio
         - curl -Ls https://istio.io/downloadIstio | ISTIO_VERSION=1.9.0 sh -
         - export PATH=$PWD/istio-1.9.0/bin:$PATH
-        - istioctl install --set profile=demo
+        - istioctl install --set profile=demo -y
         # wait for containers
         - kubectl wait --for=condition=Ready=true pod -n cert-manager --all
         - kubectl wait --for=condition=Ready=true pod -n istio-system --all
