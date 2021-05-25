@@ -42,7 +42,7 @@ jobs:
     - stage: integration
       sudo: required
       dist: xenial
-
+      go: "1.16"
       before_script:
         - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.20.1/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
         - curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.16.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
@@ -60,8 +60,7 @@ jobs:
         - kubectl cluster-info
         # TODO - create actual test
         - make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
-        - make controller-gen
-        # - make install
-        # - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
-        # - cd cmd/ketch && go build -o ketch .
-        # - ./ketch --version
+        - make install
+        - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
+        - cd cmd/ketch && go build -o ketch .
+        - ./ketch --version
