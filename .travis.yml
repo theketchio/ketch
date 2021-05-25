@@ -75,12 +75,15 @@ jobs:
         - make ketch
         # cert-manager
         - kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.yaml
-        # traefik
-        - helm repo add traefik https://helm.traefik.io/traefik
-        - helm repo update
-        - helm install traefik traefik/traefik --wait
-        # wait for cert-manager = ready
+        # istio
+        - curl -Ls https://istio.io/downloadIstio | ISTIO_VERSION=1.9.0 sh -
+        - export PATH=$PWD/istio-1.9.0/bin:$PATH
+        - istioctl install --set profile=demo
+        # wait for containers
         - kubectl wait --for=condition=Ready=true pod -n cert-manager --all
+        - kubectl wait --for=condition=Ready=true pod -n istio-system --all
+        - kubectl wait --for=condition=Ready=true pod -n istio-operator --all
+
         - kubectl get pods -A
         - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
         - ./bin/ketch --version
