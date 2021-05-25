@@ -63,6 +63,7 @@ jobs:
       script:
         - kubectl cluster-info
         - make install
+        - make ketch
+        - kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.yaml
         - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
-        - cd cmd/ketch && go build -o ketch .
-        - ./ketch --version
+        - ./bin/ketch --version
