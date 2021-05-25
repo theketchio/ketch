@@ -61,7 +61,6 @@ jobs:
         # Kubebuiler & Kustomize
         - make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
         - make install-kustomize KUSTOMIZE_INSTALL_DIR=/tmp
-        # Path
         - export PATH=$PATH:/tmp
         # Helm
         - curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
@@ -82,8 +81,11 @@ jobs:
         # wait for containers
         - kubectl wait --for=condition=Ready=true pod -n cert-manager --all
         - kubectl wait --for=condition=Ready=true pod -n istio-system --all
-        - kubectl wait --for=condition=Ready=true pod -n istio-operator --all
-
         - kubectl get pods -A
+        # deploy
         - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
+        # test - TODO - create integration test pkg with real coverage and assertions
         - ./bin/ketch --version
+        - ./bin/ketch pool add testpool
+        - ./bin/ketch pool list
+        - ./bin/ketch pool remove testpool
