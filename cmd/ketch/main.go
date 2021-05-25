@@ -10,6 +10,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
 var (
@@ -21,7 +22,13 @@ func main() {
 	// Remove any flags that were added by libraries automatically.
 	pflag.CommandLine = pflag.NewFlagSet("ketch", pflag.ExitOnError)
 
-	cmd := newRootCmd(&configuration.Configuration{}, os.Stdout)
+	out := os.Stdout
+	packSvc, err := pack.New(out)
+	if err != nil {
+		log.Fatalf("couldn't create pack service %q", err)
+	}
+
+	cmd := newRootCmd(&configuration.Configuration{}, out, packSvc)
 	if err := cmd.Execute(); err != nil {
 		log.Fatalf("execution failed %q", err)
 	}

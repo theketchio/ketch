@@ -5,7 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/shipa-corp/ketch/internal/chart"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -18,7 +18,6 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
-	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
@@ -46,7 +45,7 @@ type getterCreator interface {
 	updater
 }
 
-type SourceBuilderFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) (*build.CreateImageFromSourceResponse, error)
+type SourceBuilderFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) error
 
 // runner is concerned with managing and running the deployment.
 type runner struct {
@@ -208,7 +207,7 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
 
-	resp, err := svc.Builder(
+	if err := svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
 			Image:      image,
@@ -217,13 +216,9 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 			BuildPacks: buildPacks,
 		},
 		build.WithWorkingDirectory(sourcePath),
-		build.MaybeWithBuildHooks(ketchYaml),
-	)
-
-	if err != nil {
-		return errors.Wrap(err, "build from source failed")
+	); err != nil {
+		return err
 	}
-	log.Println(resp)
 
 	imageRequest := imageConfigRequest{
 		imageName:       image,
@@ -236,11 +231,9 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 		return err
 	}
 
-	procfile := resp.Procfile
-	if procfile == nil {
-		if procfile, err = makeProcfile(imgConfig, params); err != nil {
-			return err
-		}
+	procfile, err := makeProcfile(imgConfig, params)
+	if err != nil {
+		return err
 	}
 
 	var updateRequest updateAppCRDRequest
@@ -250,9 +243,9 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 	updateRequest.steps = steps
 	stepWeight, _ := params.getStepWeight()
 	updateRequest.stepWeight = stepWeight
-	updateRequest.procFile = procfile
 	updateRequest.ketchYaml = ketchYaml
 	updateRequest.configFile = imgConfig
+	updateRequest.procFile = procfile
 	interval, _ := params.getStepInterval()
 	updateRequest.stepTimeInterval = interval
 	updateRequest.nextScheduledTime = time.Now().Add(interval)

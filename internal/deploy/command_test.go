@@ -19,7 +19,7 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
-	"github.com/shipa-corp/ketch/internal/docker"
+	packService "github.com/shipa-corp/ketch/internal/pack"
 )
 
 type getterCreatorMockFn func(m *mockClient, obj runtime.Object) error
@@ -128,14 +128,9 @@ func (m *mockClient) Update(ctx context.Context, obj runtime.Object, opts ...cli
 	panic("unhandled type")
 }
 
-type dockerMocker struct{}
+type packMocker struct{}
 
-func (dockerMocker) Build(ctx context.Context, req docker.BuildRequest) (*docker.BuildResponse, error) {
-	return &docker.BuildResponse{
-		ImageURI: "shipa/someimage:latest",
-	}, nil
-}
-func (dockerMocker) Push(ctx context.Context, req docker.BuildRequest) error {
+func (packMocker) BuildAndPushImage(ctx context.Context, req packService.BuildRequest) error {
 	return nil
 }
 
@@ -181,7 +176,6 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--platform", "go",
 				"--pool", "mypool",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,zip=zap",
@@ -195,7 +189,6 @@ func TestNewCommand(t *testing.T) {
 			validate: func(t *testing.T, m getterCreator) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
-				require.Equal(t, "go", mock.app.Spec.Platform)
 				require.Equal(t, "mypool", mock.app.Spec.Pool)
 				require.Len(t, mock.app.Spec.Deployments, 1)
 				require.Len(t, mock.app.Spec.Deployments[0].KetchYaml.Kubernetes.Processes, 3)
@@ -210,7 +203,7 @@ func TestNewCommand(t *testing.T) {
 					return m
 				}(),
 				KubeClient:     fake.NewSimpleClientset(),
-				Builder:        build.GetSourceHandler(&dockerMocker{}),
+				Builder:        build.GetSourceHandler(&packMocker{}),
 				GetImageConfig: getImageConfig,
 				Wait:           nil,
 				Writer:         &bytes.Buffer{},
@@ -222,12 +215,10 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--platform", "go",
 				"--pool", "mypool",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,zip=zap",
 				"--ketch-yaml", "config/ketch.yaml",
-				"--include-dirs", "include1,include2",
 				"--registry-secret", "supersecret",
 			},
 			setup: func(t *testing.T) {
@@ -243,7 +234,6 @@ func TestNewCommand(t *testing.T) {
 			validate: func(t *testing.T, m getterCreator) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
-				require.Equal(t, "go", mock.app.Spec.Platform)
 				require.Equal(t, "mypool", mock.app.Spec.Pool)
 				require.Len(t, mock.app.Spec.Deployments, 1)
 				require.Len(t, mock.app.Spec.Deployments[0].KetchYaml.Kubernetes.Processes, 3)
@@ -257,7 +247,7 @@ func TestNewCommand(t *testing.T) {
 					return m
 				}(),
 				KubeClient:     fake.NewSimpleClientset(),
-				Builder:        build.GetSourceHandler(&dockerMocker{}),
+				Builder:        build.GetSourceHandler(&packMocker{}),
 				GetImageConfig: getImageConfig,
 				Wait:           nil,
 				Writer:         &bytes.Buffer{},
@@ -270,7 +260,6 @@ func TestNewCommand(t *testing.T) {
 				"src",
 				"--steps", "4",
 				"--step-interval", "1h",
-				"--platform", "go",
 				"--pool", "mypool",
 				"--image", "shipa/go-sample:latest",
 			},
@@ -303,7 +292,7 @@ func TestNewCommand(t *testing.T) {
 				}(),
 
 				KubeClient:     fake.NewSimpleClientset(),
-				Builder:        build.GetSourceHandler(&dockerMocker{}),
+				Builder:        build.GetSourceHandler(&packMocker{}),
 				GetImageConfig: getImageConfig,
 				Wait:           nil,
 				Writer:         &bytes.Buffer{},
@@ -331,7 +320,7 @@ func TestNewCommand(t *testing.T) {
 				}(),
 
 				KubeClient:     fake.NewSimpleClientset(),
-				Builder:        build.GetSourceHandler(&dockerMocker{}),
+				Builder:        build.GetSourceHandler(&packMocker{}),
 				GetImageConfig: getImageConfig,
 				Wait:           nil,
 				Writer:         &bytes.Buffer{},
@@ -343,7 +332,6 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--platform", "go",
 				"--pool", "mypool",
 				"--image", "shipa/go-sample:latest",
 			},
@@ -361,7 +349,7 @@ func TestNewCommand(t *testing.T) {
 				}(),
 
 				KubeClient:     fake.NewSimpleClientset(),
-				Builder:        build.GetSourceHandler(&dockerMocker{}),
+				Builder:        build.GetSourceHandler(&packMocker{}),
 				GetImageConfig: getImageConfig,
 				Wait:           nil,
 				Writer:         &bytes.Buffer{},
@@ -372,7 +360,6 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--platform", "go",
 				"--pool", "mypool",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,bobb=dobbs",
@@ -392,7 +379,7 @@ func TestNewCommand(t *testing.T) {
 				}(),
 
 				KubeClient:     fake.NewSimpleClientset(),
-				Builder:        build.GetSourceHandler(&dockerMocker{}),
+				Builder:        build.GetSourceHandler(&packMocker{}),
 				GetImageConfig: getImageConfig,
 				Wait:           nil,
 				Writer:         &bytes.Buffer{},
@@ -404,7 +391,6 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--platform", "go",
 				"--pool", "mypool",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,bobbdobbs",
@@ -423,7 +409,7 @@ func TestNewCommand(t *testing.T) {
 					return m
 				}(),
 				KubeClient:     fake.NewSimpleClientset(),
-				Builder:        build.GetSourceHandler(&dockerMocker{}),
+				Builder:        build.GetSourceHandler(&packMocker{}),
 				GetImageConfig: getImageConfig,
 				Wait:           nil,
 				Writer:         &bytes.Buffer{},

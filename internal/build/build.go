@@ -3,26 +3,13 @@ package build
 
 import (
 	"context"
-	"io"
-	"log"
 	"os"
 
-	"github.com/buildpacks/pack"
-	packConfig "github.com/buildpacks/pack/config"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	// "github.com/shipa-corp/ketch/internal/archive"
-	"github.com/shipa-corp/ketch/internal/chart"
-	//	"github.com/shipa-corp/ketch/internal/docker"
 	"github.com/shipa-corp/ketch/internal/errors"
-)
-
-const (
-	archiveFileName     = "archive.tar.gz"
-	archiveFileLocation = "/home/application/" + archiveFileName
-	defaultProcessType  = "web"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
 type resourceGetter interface {
@@ -30,7 +17,7 @@ type resourceGetter interface {
 }
 
 type builder interface {
-	Build(ctx context.Context, opts pack.BuildOptions) error
+	BuildAndPushImage(ctx context.Context, request pack.BuildRequest) error
 }
 
 // CreateImageFromSourceRequest contains fields used to build an image from source code.
@@ -41,24 +28,14 @@ type CreateImageFromSourceRequest struct {
 	// Image is the name of the image that will be built from source code.
 	Image string
 	// Builder is the name of the pack builder used to build code
-	Builder    string
+	Builder string
+	// BuildPacks list of build packs to include in the build
 	BuildPacks []string
 	// source code paths, relative to the working directory. Use WithSourcePaths to override.
 	//sourcePaths []string
 	// defaults to current working directory, use WithWorkingDirectory to override. Typically the
 	// working directory would be the root of the source code that will be built.
 	workingDir string
-	// defaults to stdout, override use WithOutput.
-	out io.Writer
-	// optional build hooks from ketch.yaml.
-	hooks []string
-}
-
-// CreateImageFromSourceResponse is returned from the build handler function and contains the
-// fully qualified image name that was built.
-type CreateImageFromSourceResponse struct {
-	ImageURI string
-	Procfile *chart.Procfile
 }
 
 // Option is the signature of options used in GetSourceHandler
@@ -71,171 +48,31 @@ func WithWorkingDirectory(workingDirectory string) Option {
 	}
 }
 
-// WithOutput override stdout to receive build messages
-func WithOutput(w io.Writer) Option {
-	return func(o *CreateImageFromSourceRequest) {
-		o.out = w
-	}
-}
-
-// MaybeWithBuildHooks sets build hooks if they are read from ketch.yaml
-func MaybeWithBuildHooks(v *ketchv1.KetchYamlData) Option {
-	var hooks []string
-	if v != nil {
-		if v.Hooks != nil {
-			hooks = v.Hooks.Build
-		}
-	}
-	return func(o *CreateImageFromSourceRequest) {
-		o.hooks = hooks
-	}
-}
-
 // GetSourceHandler returns a build function. It takes a pack client as an argument.
-func GetSourceHandler(packCLI builder) func(context.Context, *CreateImageFromSourceRequest, ...Option) (*CreateImageFromSourceResponse, error) {
-	return func(ctx context.Context, req *CreateImageFromSourceRequest, opts ...Option) (*CreateImageFromSourceResponse, error) {
-		log.Println("in the builder")
+func GetSourceHandler(packCLI builder) func(context.Context, *CreateImageFromSourceRequest, ...Option) error {
+	return func(ctx context.Context, req *CreateImageFromSourceRequest, opts ...Option) error {
 		// default to current working directory
 		wd, err := os.Getwd()
 		if err != nil {
-			return nil, errors.Wrap(err, "could not get working directory")
+			return errors.Wrap(err, "could not get working directory")
 		}
 
 		req.workingDir = wd
-		// build output default to stdout
-		req.out = os.Stdout
 
 		for _, opt := range opts {
 			opt(req)
 		}
 
-		buildOptions := pack.BuildOptions{
-			Image:              req.Image,
-			Builder:            req.Builder,
-			Registry:           "",
-			AppPath:            req.workingDir,
-			RunImage:           "",
-			AdditionalMirrors:  nil,
-			Env:                nil,
-			Publish:            true,
-			ClearCache:         false,
-			TrustBuilder:       true,
-			Buildpacks:         req.BuildPacks,
-			ProxyConfig:        nil,
-			ContainerConfig:    pack.ContainerConfig{},
-			DefaultProcessType: defaultProcessType,
-			FileFilter:         nil,
-			PullPolicy:         packConfig.PullIfNotPresent,
+		packRequest := pack.BuildRequest{
+			Image:      req.Image,
+			Builder:    req.Builder,
+			WorkingDir: req.workingDir,
+			BuildPacks: req.BuildPacks,
 		}
-		if err := packCLI.Build(ctx, buildOptions); err != nil {
-			return nil, err
-		}
-		log.Println("success!! image should be built")
-		/*buildCtx, err := newBuildContext()
-		if err != nil {
-			return nil, err
-		}
-		defer buildCtx.close()
-
-		// prepare the build directory with an archive containing sources and a docker file
-		if err := buildCtx.prepare(req.PlatformImage, req.workingDir, req.sourcePaths, req.hooks); err != nil {
-			return nil, err
+		if err := packCLI.BuildAndPushImage(ctx, packRequest); err != nil {
+			return errors.Wrap(err, "could not build image from source")
 		}
 
-		buildReq := docker.BuildRequest{
-			Image:          req.Image,
-			BuildDirectory: buildCtx.BuildDir(),
-			Out:            req.out,
-		}
-		// create an image that contains our built source
-		buildResponse, err := dockerCli.Build(ctx, buildReq)
-		if err != nil {
-			return nil, err
-		}
-
-		var procfile *chart.Procfile
-		if len(buildResponse.Procfile) > 0 {
-			procfile, err = chart.ParseProcfile(buildResponse.Procfile)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// push the image to target registry
-		err = dockerCli.Push(ctx, buildReq)
-		if err != nil {
-			return nil, err
-		}*/
-
-		var procfile *chart.Procfile
-
-		response := &CreateImageFromSourceResponse{
-			ImageURI: req.Image,
-			Procfile: procfile,
-		}
-		return response, nil
+		return nil
 	}
 }
-
-// GetSourceHandler returns a build function. It takes a docker client, and a k8s client as arguments.
-/*func GetSourceHandler(dockerCli builder) func(context.Context, *CreateImageFromSourceRequest, ...Option) (*CreateImageFromSourceResponse, error) {
-	return func(ctx context.Context, req *CreateImageFromSourceRequest, opts ...Option) (*CreateImageFromSourceResponse, error) {
-		// default to current working directory
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, errors.Wrap(err, "could not get working directory")
-		}
-
-		req.workingDir = wd
-		// build output default to stdout
-		req.out = os.Stdout
-
-		req.sourcePaths = archive.DefaultSourcePaths()
-
-		for _, opt := range opts {
-			opt(req)
-		}
-
-		buildCtx, err := newBuildContext()
-		if err != nil {
-			return nil, err
-		}
-		defer buildCtx.close()
-
-		// prepare the build directory with an archive containing sources and a docker file
-		if err := buildCtx.prepare(req.PlatformImage, req.workingDir, req.sourcePaths, req.hooks); err != nil {
-			return nil, err
-		}
-
-		buildReq := docker.BuildRequest{
-			Image:          req.Image,
-			BuildDirectory: buildCtx.BuildDir(),
-			Out:            req.out,
-		}
-		// create an image that contains our built source
-		buildResponse, err := dockerCli.Build(ctx, buildReq)
-		if err != nil {
-			return nil, err
-		}
-
-		var procfile *chart.Procfile
-		if len(buildResponse.Procfile) > 0 {
-			procfile, err = chart.ParseProcfile(buildResponse.Procfile)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// push the image to target registry
-		err = dockerCli.Push(ctx, buildReq)
-		if err != nil {
-			return nil, err
-		}
-
-		response := &CreateImageFromSourceResponse{
-			ImageURI: buildResponse.ImageURI,
-			Procfile: procfile,
-		}
-		return response, nil
-	}
-}*/

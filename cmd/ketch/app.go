@@ -3,20 +3,18 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
-	"github.com/buildpacks/pack"
-	"github.com/buildpacks/pack/logging"
 	"github.com/spf13/cobra"
 	apiv1 "k8s.io/api/core/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/deploy"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
-func newAppCmd(cfg config, out io.Writer) *cobra.Command {
+func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "app",
 		Short: "Manage applications",
@@ -26,19 +24,10 @@ func newAppCmd(cfg config, out io.Writer) *cobra.Command {
 		},
 	}
 
-	// TODO: wrapper around the client
-	buildLogger := logging.New(out)
-	//buildLogger.Infof("building from source %q", options.appPath)
-	builder, err := pack.NewClient(pack.WithLogger(buildLogger))
-	if err != nil {
-		log.Fatal(err)
-		// return fmt.Errorf("could not create builder: %w", err)
-	}
-
 	params := &deploy.Params{
 		Client:         cfg.Client(),
 		KubeClient:     cfg.KubernetesClient(),
-		Builder:        build.GetSourceHandler(builder),
+		Builder:        build.GetSourceHandler(packSvc),
 		GetImageConfig: deploy.GetImageConfig,
 		Wait:           deploy.WaitForDeployment,
 		Writer:         out,
