@@ -57,5 +57,10 @@ jobs:
         - docker build -t shipasoftware/ketch:$TRAVIS_COMMIT .
         - docker push shipasoftware/ketch:$TRAVIS_COMMIT
       script:
-        - kubectl cluster-info
+        - kubectl cluster-info dump
         # TODO - create actual test
+        - make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
+        - make install
+        - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
+        - cd cmd/ketch && go build -o ketch .
+        - ./ketch --version
