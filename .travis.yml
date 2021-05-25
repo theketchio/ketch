@@ -57,11 +57,11 @@ jobs:
         - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
         - docker build -t shipasoftware/ketch:$TRAVIS_COMMIT .
         - docker push shipasoftware/ketch:$TRAVIS_COMMIT
-      script:
-        - kubectl cluster-info
-        # TODO - create actual test
         - make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
         - make install-kustomize KUSTOMIZE_INSTALL_DIR=/tmp
+        - export PATH=$PATH:/tmp
+      script:
+        - kubectl cluster-info
         - make install
         - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
         - cd cmd/ketch && go build -o ketch .
