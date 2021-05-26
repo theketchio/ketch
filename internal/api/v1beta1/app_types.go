@@ -163,7 +163,7 @@ type AppStatus struct {
 	// Conditions of App resource.
 	Conditions []AppCondition `json:"conditions,omitempty"`
 
-	Framework *v1.ObjectReference `json:"Framework,omitempty"`
+	Framework *v1.ObjectReference `json:"framework,omitempty"`
 }
 
 // CanarySpec represents configuration for a canary deployment.
