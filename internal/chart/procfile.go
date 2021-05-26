@@ -2,6 +2,7 @@ package chart
 
 import (
 	"errors"
+	"io/ioutil"
 	"regexp"
 	"sort"
 	"strings"
@@ -19,6 +20,15 @@ var (
 type Procfile struct {
 	Processes           map[string][]string
 	RoutableProcessName string
+}
+
+// NewProcfile creates a Procfile from a file.
+func NewProcfile(fileName string) (*Procfile, error) {
+	content, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+	return ParseProcfile(string(content))
 }
 
 func (p *Procfile) IsRoutable(processName string) bool {

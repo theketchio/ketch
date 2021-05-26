@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/utils"
 )
 
 const appListHelp = `
@@ -69,7 +70,7 @@ func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.P
 	selector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
-				Key:      ketchAppNameLabel,
+				Key:      utils.KetchAppNameLabel,
 				Operator: "Exists",
 			},
 		},
@@ -87,7 +88,7 @@ func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.P
 func filterAppPods(appName string, pods []corev1.Pod) []corev1.Pod {
 	var appPods []corev1.Pod
 	for _, pod := range pods {
-		if pod.Labels[ketchAppNameLabel] == appName {
+		if pod.Labels[utils.KetchAppNameLabel] == appName {
 			appPods = append(appPods, pod)
 		}
 	}
