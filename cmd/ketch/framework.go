@@ -8,6 +8,8 @@ import (
 
 const frameworkHelp = `
 Manage frameworks.
+
+NOTE: "pool" has been deprecated and replaced with "framework". The functionality is the same.
 `
 
 func newFrameworkCmd(cfg config, out io.Writer) *cobra.Command {
