@@ -86,6 +86,6 @@ jobs:
         - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
         # test - TODO - create integration test pkg with real coverage and assertions
         - ./bin/ketch --version
-        - ./bin/ketch pool add testpool
+        - ./bin/ketch pool add mypool
         - ./bin/ketch pool list
-        - ./bin/ketch pool remove testpool
+        - ./bin/ketch pool remove mypool
