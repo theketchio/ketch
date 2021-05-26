@@ -17,9 +17,10 @@ import (
 	"github.com/shipa-corp/ketch/internal/utils"
 )
 
-type WaitFn func(ctx context.Context, svc *Params, app *ketchv1.App, timeout time.Duration) error
 
-func WaitForDeployment(ctx context.Context, svc *Params, app *ketchv1.App, timeout time.Duration) error {
+type WaitFn func(ctx context.Context, svc *Services, app *ketchv1.App, timeout time.Duration) error
+
+func WaitForDeployment(ctx context.Context, svc *Services, app *ketchv1.App, timeout time.Duration) error {
 	tctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 

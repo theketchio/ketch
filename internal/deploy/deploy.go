@@ -5,7 +5,6 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"github.com/shipa-corp/ketch/internal/chart"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -18,6 +17,7 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
+	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
@@ -27,48 +27,31 @@ const (
 	maximumSteps         = 100
 )
 
-type getter interface {
+// Client represents go sdk k8s client operations that we need.
+type Client interface {
 	Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error
-}
-
-type creator interface {
 	Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error
-}
-
-type updater interface {
 	Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error
 }
 
-type getterCreator interface {
-	getter
-	creator
-	updater
-}
+type SourceBuilderFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) (*build.CreateImageFromSourceResponse, error)
 
-type SourceBuilderFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) error
-
-// runner is concerned with managing and running the deployment.
-type runner struct {
+// Runner is concerned with managing and running the deployment.
+type Runner struct {
 	params *ChangeSet
 }
 
-// newRunner creates a runner which will execute the deployment.
-func newRunner(params *ChangeSet) *runner {
-	var r runner
+// New creates a Runner which will execute the deployment.
+func New(params *ChangeSet) *Runner {
+	var r Runner
 	r.params = params
 	return &r
 }
 
-// run executes the deployment. This includes creating the application CRD if it doesn't already exist, possibly building
+// Run executes the deployment. This includes creating the application CRD if it doesn't already exist, possibly building
 // source code and creating an image and creating and applying a deployment CRD to the cluster.
-func (r runner) run(ctx context.Context, svc *Params) error {
-	app := new(ketchv1.App)
-	err := svc.Client.Get(ctx, types.NamespacedName{Name: r.params.appName}, app)
-	if apierrors.IsNotFound(err) {
-		app, err = createApp(ctx, svc.Client, r.params)
-	} else if err == nil {
-		app, err = maybeUpdateApp(ctx, svc.Client, r.params, app)
-	}
+func (r Runner) Run(ctx context.Context, svc *Services) error {
+	app, err := getUpdatedApp(ctx, svc.Client, r.params)
 	if err != nil {
 		return err
 	}
@@ -80,147 +63,147 @@ func (r runner) run(ctx context.Context, svc *Params) error {
 	return deployFromImage(ctx, svc, app, r.params)
 }
 
-func createApp(ctx context.Context, client getterCreator, params *ChangeSet) (*ketchv1.App, error) {
-	if err := validateCreateApp(ctx, client, params.appName, params); err != nil {
-		return nil, err
-	}
+type appUpdater func(ctx context.Context, app *ketchv1.App, changed bool) error
+
+func getAppWithUpdater(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.App, appUpdater, error) {
 	var app ketchv1.App
-	app.ObjectMeta.Name = params.appName
-	app.Spec.Deployments = []ketchv1.AppDeploymentSpec{}
-	app.Spec.Ingress = ketchv1.IngressSpec{
-		GenerateDefaultCname: true,
-	}
-
-	// TODO: update to builder
-	/*plat, err := params.getPlatform(ctx, client)
-	if err := assign(err, func() {
-		app.Spec.Platform = plat
-	}); err != nil {
-		return nil, err
-	}*/
-
-	pool, err := params.getPool(ctx, client)
-	if err := assign(err, func() {
-		app.Spec.Pool = pool
-	}); err != nil {
-		return nil, err
-	}
-
-	description, _ := params.getDescription()
-	app.Spec.Description = description
-
-	envs, err := params.getEnvironments()
-	if err := assign(err, func() {
-		app.Spec.Env = envs
-	}); err != nil {
-		return nil, err
-	}
-
-	secret, err := params.getDockerRegistrySecret()
-	app.Spec.DockerRegistry = ketchv1.DockerRegistrySpec{
-		SecretName: secret,
-	}
-
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return client.Create(ctx, &app)
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create app %q", params.appName)
-	}
-	return &app, nil
-}
-
-func maybeUpdateApp(ctx context.Context, client getterCreator, params *ChangeSet, app *ketchv1.App) (*ketchv1.App, error) {
-	var changed bool
-	desc, err := params.getDescription()
-	if err := assign(err, func() {
-		app.Spec.Description = desc
-		changed = true
-	}); err != nil {
-		return nil, err
-	}
-
-	envs, err := params.getEnvironments()
-	if err := assign(err, func() {
-		app.Spec.Env = envs
-		changed = true
-	}); err != nil {
-		return nil, err
-	}
-
-	pool, err := params.getPool(ctx, client)
-	if err := assign(err, func() {
-		app.Spec.Pool = pool
-		changed = true
-	}); err != nil {
-		return nil, err
-	}
-
-	secret, err := params.getDockerRegistrySecret()
-	if err := assign(err, func() {
-		app.Spec.DockerRegistry.SecretName = secret
-		changed = true
-	}); err != nil {
-		return nil, err
-	}
-
-	// TODO: update to builder
-	/*platform, err := params.getPlatform(ctx, client)
-	if err := assign(err, func() {
-		app.Spec.Platform = platform
-		changed = true
-	}); err != nil {
-		return nil, err
-	}*/
-
-	if changed {
-		if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			return client.Update(ctx, app)
-		}); err != nil {
-			return nil, err
+	err := client.Get(ctx, types.NamespacedName{Name: cs.appName}, &app)
+	if apierrors.IsNotFound(err) {
+		if err = validateCreateApp(ctx, client, cs.appName, cs); err != nil {
+			return nil, nil, err
 		}
+
+		return &app, func(ctx context.Context, app *ketchv1.App, _ bool) error {
+			app.ObjectMeta.Name = cs.appName
+			app.Spec.Deployments = []ketchv1.AppDeploymentSpec{}
+			app.Spec.Ingress = ketchv1.IngressSpec{
+				GenerateDefaultCname: true,
+			}
+			return client.Create(ctx, app)
+		}, nil
 	}
-	return app, nil
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &app, func(ctx context.Context, app *ketchv1.App, changed bool) error {
+		if !changed {
+			return nil
+		}
+		return client.Update(ctx, app)
+	}, nil
+
 }
 
-func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params *ChangeSet) error {
-	if err := validateSourceDeploy(params, app); err != nil {
-		return err
-	}
+func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.App, error) {
+	var app *ketchv1.App
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var changed bool
+		a, updater, err := getAppWithUpdater(ctx, client, cs)
+		if err != nil {
+			return err
+		}
+		app = a
+
+		if cs.sourcePath != nil {
+			if err := validateSourceDeploy(cs); err != nil {
+				return err
+			}
+			builder := cs.getBuilder(app.Spec)
+			if builder != app.Spec.Builder {
+				app.Spec.Builder = builder
+				changed = true
+			}
+			buildPacks, err := cs.getBuildPacks()
+			if err := assign(err, func() error {
+				app.Spec.BuildPacks = buildPacks
+				changed = true
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		if err := validateDeploy(cs, app); err != nil {
+			return err
+		}
+
+		pool, err := cs.getPool(ctx, client)
+		if err := assign(err, func() error {
+			if app.Spec.Pool != "" && pool != app.Spec.Pool {
+				return fmt.Errorf("can't change pool once app has been created")
+			}
+			app.Spec.Pool = pool
+			changed = true
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		desc, err := cs.getDescription()
+		if err := assign(err, func() error {
+			app.Spec.Description = desc
+			changed = true
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		envs, err := cs.getEnvironments()
+		if err := assign(err, func() error {
+			app.Spec.Env = envs
+			changed = true
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		secret, err := cs.getDockerRegistrySecret()
+		if err := assign(err, func() error {
+			app.Spec.DockerRegistry.SecretName = secret
+			changed = true
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		return updater(ctx, app, changed)
+	})
+	return app, err
+}
+
+func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
 	ketchYaml, err := params.getKetchYaml()
 	if err != nil {
 		return err
 	}
 
-	/*var platform ketchv1.Platform
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Platform}, &platform); err != nil {
-		return errors.Wrap(err, "failed to get platform %q", app.Spec.Platform)
-	}*/
-
 	var pool ketchv1.Pool
 	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
-		return errors.Wrap(err, "failed to get pool %q", app.Spec.Pool)
+		return errors.Wrap(err, "failed to get pool %s", app.Spec.Pool)
 	}
 
-	builder, _ := params.getBuilder()
-	buildPacks, _ := params.getBuildPacks()
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
+	includeDirs, _ := params.getIncludeDirs()
 
-	if err := svc.Builder(
+	resp, err := svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
 			Image:      image,
 			AppName:    params.appName,
-			Builder:    builder,
-			BuildPacks: buildPacks,
+			Builder:    app.Spec.Builder,
+			BuildPacks: app.Spec.BuildPacks,
 		},
+		build.WithOutput(svc.Writer),
 		build.WithWorkingDirectory(sourcePath),
-	); err != nil {
-		return err
+		build.WithSourcePaths(includeDirs...),
+		build.MaybeWithBuildHooks(ketchYaml),
+	)
+	if err != nil {
+		return errors.Wrap(err, "build from source failed")
 	}
 
-	imageRequest := imageConfigRequest{
+	imageRequest := ImageConfigRequest{
 		imageName:       image,
 		secretName:      app.Spec.DockerRegistry.SecretName,
 		secretNamespace: pool.Spec.NamespaceName,
@@ -264,20 +247,12 @@ func deployFromSource(ctx context.Context, svc *Params, app *ketchv1.App, params
 	return nil
 }
 
-func deployFromImage(ctx context.Context, svc *Params, app *ketchv1.App, params *ChangeSet) error {
-	if err := validateDeploy(params, app); err != nil {
-		return err
-	}
+
+func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
 	ketchYaml, err := params.getKetchYaml()
 	if err != nil {
 		return err
 	}
-
-	// TODO: adapt to builder
-	/*var platform ketchv1.Platform
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Platform}, &platform); err != nil {
-		return errors.Wrap(err, "failed to get platform %q", app.Spec.Platform)
-	}*/
 
 	var pool ketchv1.Pool
 	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
@@ -286,7 +261,7 @@ func deployFromImage(ctx context.Context, svc *Params, app *ketchv1.App, params 
 
 	image, _ := params.getImage()
 
-	imageRequest := imageConfigRequest{
+	imageRequest := ImageConfigRequest{
 		imageName:       image,
 		secretName:      app.Spec.DockerRegistry.SecretName,
 		secretNamespace: pool.Spec.NamespaceName,
@@ -317,7 +292,7 @@ func deployFromImage(ctx context.Context, svc *Params, app *ketchv1.App, params 
 	updateRequest.started = time.Now()
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
-		return errors.Wrap(err, "deploy from image failed[")
+		return errors.Wrap(err, "deploy from image failed")
 	}
 
 	wait, _ := params.getWait()
@@ -359,7 +334,7 @@ type updateAppCRDRequest struct {
 	stepTimeInterval  time.Duration
 }
 
-func updateAppCRD(ctx context.Context, svc *Params, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
+func updateAppCRD(ctx context.Context, svc *Services, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
 	var updated ketchv1.App
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		if err := svc.Client.Get(ctx, types.NamespacedName{Name: appName}, &updated); err != nil {

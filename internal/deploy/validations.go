@@ -99,15 +99,14 @@ func validateDeploy(cs *ChangeSet, app *ketchv1.App) error {
 	return nil
 }
 
-func validateSourceDeploy(cs *ChangeSet, app *ketchv1.App) error {
+func validateSourceDeploy(cs *ChangeSet) error {
 	if _, err := cs.getSourceDirectory(); err != nil {
 		return err
 	}
-
-	return validateDeploy(cs, app)
+	return nil
 }
 
-func validateCreateApp(ctx context.Context, client getter, appName string, cs *ChangeSet) error {
+func validateCreateApp(ctx context.Context, client Client, appName string, cs *ChangeSet) error {
 	if !validation.ValidateName(appName) {
 		return fmt.Errorf("app name %q is not valid. name must start with "+
 			"a letter follow by up to 39 lower case numbers letters and dashes",
@@ -138,13 +137,12 @@ func directoryExists(dir string) error {
 	return nil
 }
 
-func assign(err error, f func()) error {
+func assign(err error, f func() error) error {
 	if isMissing(err) {
 		return nil
 	}
 	if isValid(err) {
-		f()
-		return nil
+		return f()
 	}
 	return err
 }

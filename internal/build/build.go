@@ -31,8 +31,6 @@ type CreateImageFromSourceRequest struct {
 	Builder string
 	// BuildPacks list of build packs to include in the build
 	BuildPacks []string
-	// source code paths, relative to the working directory. Use WithSourcePaths to override.
-	//sourcePaths []string
 	// defaults to current working directory, use WithWorkingDirectory to override. Typically the
 	// working directory would be the root of the source code that will be built.
 	workingDir string

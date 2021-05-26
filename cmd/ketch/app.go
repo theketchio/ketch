@@ -24,7 +24,7 @@ func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client) *cobra.Command {
 		},
 	}
 
-	params := &deploy.Params{
+	params := &deploy.Services{
 		Client:         cfg.Client(),
 		KubeClient:     cfg.KubernetesClient(),
 		Builder:        build.GetSourceHandler(packSvc),
@@ -33,7 +33,7 @@ func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client) *cobra.Command {
 		Writer:         out,
 	}
 
-	cmd.AddCommand(deploy.NewCommand(params))
+	cmd.AddCommand(newAppDeployCmd(params))
 	cmd.AddCommand(newAppListCmd(cfg, out))
 	cmd.AddCommand(newAppLogCmd(cfg, out, appLog))
 	cmd.AddCommand(newAppRemoveCmd(cfg, out, appRemove))
