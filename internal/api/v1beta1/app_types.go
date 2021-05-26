@@ -423,13 +423,13 @@ func (app *App) Start(selector Selector) error {
 }
 
 // CNames returns all CNAMEs to access the application including a default cname.
-func (app *App) CNames(Framework *Framework) []string {
+func (app *App) CNames(framework *Framework) []string {
 	scheme := "http"
-	if len(Framework.Spec.IngressController.ClusterIssuer) > 0 {
+	if len(framework.Spec.IngressController.ClusterIssuer) > 0 {
 		scheme = "https"
 	}
 	cnames := []string{}
-	defaultCname := app.DefaultCname(Framework)
+	defaultCname := app.DefaultCname(framework)
 	if defaultCname != nil {
 		cnames = append(cnames, fmt.Sprintf("http://%s", *defaultCname))
 	}
@@ -441,17 +441,17 @@ func (app *App) CNames(Framework *Framework) []string {
 
 // DefaultCname returns a default cname to access the application.
 // A default cname uses the following format: <app name>.<Framework's ServiceEndpoint>.shipa.cloud.
-func (app *App) DefaultCname(Framework *Framework) *string {
-	if Framework == nil {
+func (app *App) DefaultCname(framework *Framework) *string {
+	if framework == nil {
 		return nil
 	}
 	if !app.Spec.Ingress.GenerateDefaultCname {
 		return nil
 	}
-	if len(Framework.Spec.IngressController.ServiceEndpoint) == 0 {
+	if len(framework.Spec.IngressController.ServiceEndpoint) == 0 {
 		return nil
 	}
-	url := fmt.Sprintf("%s.%s.%s", app.Name, Framework.Spec.IngressController.ServiceEndpoint, ShipaCloudDomain)
+	url := fmt.Sprintf("%s.%s.%s", app.Name, framework.Spec.IngressController.ServiceEndpoint, ShipaCloudDomain)
 	return &url
 }
 
