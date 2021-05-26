@@ -12,9 +12,10 @@ Manage frameworks.
 
 func newFrameworkCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "framework",
-		Short: "Manage frameworks",
-		Long:  frameworkHelp,
+		Use:     "framework",
+		Aliases: []string{"pool"},
+		Short:   "Manage frameworks",
+		Long:    frameworkHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Usage()
 		},

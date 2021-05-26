@@ -43,7 +43,7 @@ spec:
         spec:
           description: AppSpec defines the desired state of App.
           properties:
-            framework:
+            Framework:
               description: Framework is a name of a Framework used to run the application.
               minLength: 1
               type: string
@@ -498,40 +498,14 @@ spec:
             version:
               type: string
           required:
-          - framework
+          - Framework
           - deployments
           - ingress
           type: object
         status:
           description: AppStatus represents information about the status of an application.
           properties:
-            conditions:
-              description: Conditions of App resource.
-              items:
-                description: AppCondition contains details for the current condition
-                  of this app.
-                properties:
-                  lastTransitionTime:
-                    description: LastTransitionTime is the timestamp corresponding
-                      to the last status.
-                    format: date-time
-                    type: string
-                  message:
-                    description: A human readable message indicating details about
-                      why the application is in this condition.
-                    type: string
-                  status:
-                    description: Status of the condition.
-                    type: string
-                  type:
-                    description: Type of the condition.
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
-            framework:
+            Framework:
               description: 'ObjectReference contains enough information to let you
                 inspect or modify the referred object. --- New uses of this type are
                 discouraged because of difficulty describing its usage when embedded
@@ -589,6 +563,32 @@ spec:
                   description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                   type: string
               type: object
+            conditions:
+              description: Conditions of App resource.
+              items:
+                description: AppCondition contains details for the current condition
+                  of this app.
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime is the timestamp corresponding
+                      to the last status.
+                    format: date-time
+                    type: string
+                  message:
+                    description: A human readable message indicating details about
+                      why the application is in this condition.
+                    type: string
+                  status:
+                    description: Status of the condition.
+                    type: string
+                  type:
+                    description: Type of the condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
           type: object
       type: object
   version: v1beta1
