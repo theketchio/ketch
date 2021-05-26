@@ -12,16 +12,16 @@ import (
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
-type imageConfigRequest struct {
+type ImageConfigRequest struct {
 	imageName       string
 	secretName      string
 	secretNamespace string
 	client          kubernetes.Interface
 }
 
-type GetImageConfigFn func(ctx context.Context, args imageConfigRequest) (*registryv1.ConfigFile, error)
+type GetImageConfigFn func(ctx context.Context, args ImageConfigRequest) (*registryv1.ConfigFile, error)
 
-func GetImageConfig(ctx context.Context, args imageConfigRequest) (*registryv1.ConfigFile, error) {
+func GetImageConfig(ctx context.Context, args ImageConfigRequest) (*registryv1.ConfigFile, error) {
 	ref, err := name.ParseReference(args.imageName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse reference for image %q", args.imageName)

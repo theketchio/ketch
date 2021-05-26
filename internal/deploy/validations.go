@@ -112,7 +112,7 @@ func validateSourceDeploy(cs *ChangeSet, app *ketchv1.App) error {
 	return validateDeploy(cs, app)
 }
 
-func validateCreateApp(ctx context.Context, client getter, appName string, cs *ChangeSet) error {
+func validateCreateApp(ctx context.Context, client Client, appName string, cs *ChangeSet) error {
 	if !validation.ValidateName(appName) {
 		return fmt.Errorf("app name %q is not valid. name must start with "+
 			"a letter follow by up to 39 lower case numbers letters and dashes",
