@@ -33,6 +33,7 @@ import (
 	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/shipa-corp/ketch/internal/templates"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -44,7 +45,6 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = ketchv1.AddToScheme(scheme)
-	//utilruntime.Must(resourcesv1beta1.AddToScheme(scheme))
 	utilruntime.Must(resourcesv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }

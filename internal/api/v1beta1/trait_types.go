@@ -27,7 +27,7 @@ import (
 // TraitSpec defines the desired state of Trait
 type TraitSpec struct {
 	AppliesToWorkloads []string      `json:"appliesToWorkloads"`
-	ConflictsWith      []string      `json:"conflictsWith"'`
+	ConflictsWith      []string      `json:"conflictsWith"`
 	DefinitionRef      DefinitionRef `json:"definitionRef"`
 }
 
@@ -45,7 +45,7 @@ type TraitStatus struct {
 	ConfigMapRef string `json:"configMapRef,omitempty"`
 	// LatestRevision of the component definition
 	// +optional
-	LatestRevision *common.Revision `json:"latestRevision,omitempty"`
+	LatestRevision *Revision `json:"latestRevision,omitempty"`
 }
 
 // TOOD - move to common types
