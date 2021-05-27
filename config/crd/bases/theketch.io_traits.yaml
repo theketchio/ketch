@@ -62,11 +62,26 @@ spec:
           description: TraitStatus defines the observed state of Trait
           properties:
             configMapRef:
-              description: ConfigMapRef refer to a ConfigMap which contains OpenAPI
-                V3 JSON schema of Component parameters.
+              description: ConditionedStatus reflects the observed status of a resource
+                runtimev1.ConditionedStatus `json:",inline"` ConfigMapRef refer to
+                a ConfigMap which contains OpenAPI V3 JSON schema of Component parameters.
               type: string
             latestRevision:
               description: LatestRevision of the component definition
+              properties:
+                name:
+                  type: string
+                revision:
+                  format: int64
+                  type: integer
+                revisionHash:
+                  description: RevisionHash record the hash value of the spec of ApplicationRevision
+                    object.
+                  type: string
+              required:
+              - name
+              - revision
+              type: object
           type: object
       type: object
   version: v1beta1

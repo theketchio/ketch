@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,10 +49,36 @@ type ComponentReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.6.4/pkg/reconcile
 func (r *ComponentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
+	ctx := context.Background()
 	_ = r.Log.WithValues("component", req.NamespacedName)
 
-	// your logic here
+	var component ketchv1.Component
+	if err := r.Get(ctx, req.NamespacedName, &component); err != nil {
+		if apierrors.IsNotFound(err) {
+			err = nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	// this is a placeholder for finalizer here in the future
+	if component.DeletionTimestamp != nil {
+		return ctrl.Result{}, nil
+	}
+
+	// TODO - copied from: https://github.com/oam-dev/kubevela/blob/master/pkg/controller/core.oam.dev/v1alpha2/core/components/componentdefinition/componentdefinition_controller.go#L59
+	// refresh package discover - what does this mean?
+	// generate DefinitionRevision from component
+	// if isNew DefinitionRevision, create/update component Revision & clean up Revision & return
+	// store component in configMap
+	// create/update component Revision
+	// update component Status
+	// clean up component Revision
+
+	// Why not just:
+	// generate DefinitionRevision from component
+	// create/update component Revision
+	// update component Status
+	// clean up component Revision
 
 	return ctrl.Result{}, nil
 }
