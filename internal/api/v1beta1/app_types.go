@@ -23,6 +23,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/shipa-corp/ketch/internal/templates"
 )
@@ -187,6 +188,13 @@ type CanarySpec struct {
 	Started *metav1.Time `json:"started,omitempty"`
 }
 
+type ComponentLink struct {
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Properties runtime.RawExtension `json:"properties"`
+	// Traits?
+}
+
 // AppSpec defines the desired state of App.
 type AppSpec struct {
 	Version *string `json:"version,omitempty"`
@@ -196,6 +204,8 @@ type AppSpec struct {
 
 	// Canary contains a configuration which will be required for canary deployments.
 	Canary CanarySpec `json:"canary,omitempty"`
+
+	Components []ComponentLink `json:"components"`
 
 	// Deployments is a list of running deployments.
 	Deployments []AppDeploymentSpec `json:"deployments"`
