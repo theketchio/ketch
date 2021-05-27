@@ -43,6 +43,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = ketchv1.AddToScheme(scheme)
+	//utilruntime.Must(resourcesv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -117,6 +118,14 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Pool")
 			os.Exit(1)
 		}
+	}
+	if err = (&controllers.ComponentReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Component"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Component")
+		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
 
