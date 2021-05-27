@@ -80,6 +80,21 @@ spec:
                   minimum: 0
                   type: integer
               type: object
+            components:
+              items:
+                properties:
+                  name:
+                    type: string
+                  properties:
+                    type: object
+                  type:
+                    type: string
+                required:
+                - name
+                - properties
+                - type
+                type: object
+              type: array
             deployments:
               description: Deployments is a list of running deployments.
               items:

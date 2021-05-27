@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	resourcesv1beta1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/shipa-corp/ketch/internal/templates"
@@ -44,6 +45,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = ketchv1.AddToScheme(scheme)
 	//utilruntime.Must(resourcesv1beta1.AddToScheme(scheme))
+	utilruntime.Must(resourcesv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -125,6 +127,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Component")
+		os.Exit(1)
+	}
+	if err = (&controllers.TraitReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Trait"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Trait")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

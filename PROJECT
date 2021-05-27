@@ -10,4 +10,7 @@ resources:
 - group: resources
   kind: Component
   version: v1beta1
+- group: resources
+  kind: Trait
+  version: v1beta1
 version: "2"

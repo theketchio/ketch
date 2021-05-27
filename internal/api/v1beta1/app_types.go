@@ -189,8 +189,8 @@ type CanarySpec struct {
 }
 
 type ComponentLink struct {
-	Name       string `json:"name"`
-	Type       string `json:"type"`
+	Name       string               `json:"name"`
+	Type       string               `json:"type"`
 	Properties runtime.RawExtension `json:"properties"`
 	// Traits?
 }
@@ -205,7 +205,7 @@ type AppSpec struct {
 	// Canary contains a configuration which will be required for canary deployments.
 	Canary CanarySpec `json:"canary,omitempty"`
 
-	Components []ComponentLink `json:"components"`
+	Components []ComponentLink `json:"components,omitempty"`
 
 	// Deployments is a list of running deployments.
 	Deployments []AppDeploymentSpec `json:"deployments"`

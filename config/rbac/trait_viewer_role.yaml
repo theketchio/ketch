@@ -1,0 +1,20 @@
+# permissions for end users to view traits.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: trait-viewer-role
+rules:
+- apiGroups:
+  - resources.theketch.io
+  resources:
+  - traits
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - resources.theketch.io
+  resources:
+  - traits/status
+  verbs:
+  - get
