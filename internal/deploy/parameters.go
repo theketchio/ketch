@@ -30,15 +30,14 @@ const (
 	FlagStepInterval   = "step-interval"
 	FlagWait           = "wait"
 	FlagTimeout        = "timeout"
-	FlagIncludeDirs    = "include-dirs"
-	FlagPlatform       = "platform"
 	FlagDescription    = "description"
 	FlagEnvironment    = "env"
 	FlagPool           = "pool"
 	FlagRegistrySecret = "registry-secret"
+	FlagBuilder        = "builder"
+	FlagBuildPacks     = "build-packs"
 
 	FlagImageShort       = "i"
-	FlagPlatformShort    = "P"
 	FlagDescriptionShort = "d"
 	FlagEnvironmentShort = "e"
 	FlagPoolShort        = "o"
@@ -143,12 +142,6 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		FlagTimeout: func(c *ChangeSet) {
 			c.timeout = &o.Timeout
 		},
-		FlagIncludeDirs: func(c *ChangeSet) {
-			c.subPaths = &o.SubPaths
-		},
-		FlagPlatform: func(c *ChangeSet) {
-			c.platform = &o.Platform
-		},
 		FlagDescription: func(c *ChangeSet) {
 			c.description = &o.Description
 		},
@@ -160,6 +153,12 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		},
 		FlagRegistrySecret: func(c *ChangeSet) {
 			c.dockerRegistrySecret = &o.DockerRegistrySecret
+		},
+		FlagBuilder: func(c *ChangeSet) {
+			c.builder = &o.Builder
+		},
+		FlagBuildPacks: func(c *ChangeSet) {
+			c.buildPacks = &o.BuildPacks
 		},
 	}
 	for k, f := range m {
@@ -177,43 +176,11 @@ func (c *ChangeSet) getProcfileName() (string, error) {
 	return *c.procfileFileName, nil
 }
 
-func (c *ChangeSet) getPlatform(ctx context.Context, client Client) (string, error) {
-	if c.platform == nil {
-		return "", newMissingError(FlagPlatform)
-	}
-	var p ketchv1.Platform
-	err := client.Get(ctx, types.NamespacedName{Name: *c.platform}, &p)
-	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("%w platform %q has not been created", newInvalidError(FlagPlatform), *c.platform)
-	}
-	if err != nil {
-		return "", errors.Wrap(err, "could not fetch platform %q", *c.platform)
-	}
-	return *c.platform, nil
-}
-
 func (c *ChangeSet) getDescription() (string, error) {
 	if c.description == nil {
 		return "", newMissingError(FlagDescription)
 	}
 	return *c.description, nil
-}
-
-func (c *ChangeSet) getIncludeDirs() ([]string, error) {
-	if c.subPaths == nil {
-		return nil, newMissingError(FlagIncludeDirs)
-	}
-	rootDir, err := c.getSourceDirectory()
-	if err != nil {
-		return nil, err
-	}
-	paths := *c.subPaths
-	for _, p := range paths {
-		if err := directoryExists(path.Join(rootDir, p)); err != nil {
-			return nil, err
-		}
-	}
-	return paths, nil
 }
 
 func (c *ChangeSet) getYamlPath() (string, error) {
@@ -247,7 +214,7 @@ func (c *ChangeSet) getPool(ctx context.Context, client Client) (string, error) 
 	var p ketchv1.Pool
 	err := client.Get(ctx, types.NamespacedName{Name: *c.pool}, &p)
 	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("%w pool %q has not been created", newInvalidError(flagPool), *c.pool)
+		return "", fmt.Errorf("%w pool %q has not been created", newInvalidError(FlagPool), *c.pool)
 	}
 	if err != nil {
 		return "", errors.Wrap(err, "could not fetch pool %q", *c.pool)

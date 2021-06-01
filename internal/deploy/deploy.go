@@ -34,7 +34,7 @@ type Client interface {
 	Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error
 }
 
-type SourceBuilderFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) (*build.CreateImageFromSourceResponse, error)
+type SourceBuilderFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) error
 
 // Runner is concerned with managing and running the deployment.
 type Runner struct {
@@ -184,9 +184,8 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
-	includeDirs, _ := params.getIncludeDirs()
 
-	resp, err := svc.Builder(
+	if err := svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
 			Image:      image,
@@ -194,13 +193,9 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 			Builder:    app.Spec.Builder,
 			BuildPacks: app.Spec.BuildPacks,
 		},
-		build.WithOutput(svc.Writer),
 		build.WithWorkingDirectory(sourcePath),
-		build.WithSourcePaths(includeDirs...),
-		build.MaybeWithBuildHooks(ketchYaml),
-	)
-	if err != nil {
-		return errors.Wrap(err, "build from source failed")
+	); err != nil {
+		return err
 	}
 
 	imageRequest := ImageConfigRequest{
@@ -246,7 +241,6 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 
 	return nil
 }
-
 
 func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
 	ketchYaml, err := params.getKetchYaml()

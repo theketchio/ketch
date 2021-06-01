@@ -12,14 +12,12 @@ import (
 	"github.com/shipa-corp/ketch/internal/errors"
 )
 
-
 type ImageConfigRequest struct {
 	imageName       string
 	secretName      string
 	secretNamespace string
 	client          kubernetes.Interface
 }
-
 
 type GetImageConfigFn func(ctx context.Context, args ImageConfigRequest) (*registryv1.ConfigFile, error)
 
