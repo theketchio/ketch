@@ -56,11 +56,10 @@ type WorkloadGVK struct {
 }
 
 type Parameter struct {
-	Name         string   `json:"name"`
-	TemplateName string   `json:"templateName"`
-	Required     bool     `json:"required"`
-	Type         string   `json:"type"`
-	Paths        []string `json:"fieldPaths"`
+	Name     string   `json:"name"`
+	Required bool     `json:"required"`
+	Type     string   `json:"type"`
+	Paths    []string `json:"fieldPaths"`
 }
 
 type Schematic struct {
