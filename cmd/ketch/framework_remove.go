@@ -22,7 +22,7 @@ Remove an existing framework.
 func newFrameworkRemoveCmd(cfg config, out io.Writer) *cobra.Command {
 	options := frameworkRemoveOptions{}
 	cmd := &cobra.Command{
-		Use:   "remove POOL",
+		Use:   "remove FRAMEWORK",
 		Short: "Remove an existing framework.",
 		Long:  frameworkRemoveHelp,
 		Args:  cobra.ExactValidArgs(1),

@@ -9,7 +9,7 @@ set -o pipefail
 
 # Set variables
 KETCH_TAG=""
-POOL=""
+FRAMEWORK=""
 INGRESS_TYPE=""
 INGRESS_ENDPOINT=""
 APP_NAME=""
@@ -50,7 +50,7 @@ function usage() {
 # parse params and set variables with custom user inputs
 while [[ "$#" > 0 ]]; do case $1 in
     -t|--ketch-tag) KETCH_TAG="$2"; shift;shift;;
-    -o|--framework) POOL="$2"; shift;shift;;
+    -o|--framework) FRAMEWORK="$2"; shift;shift;;
     -ig|--ingress) INGRESS_TYPE="$2"; shift;shift;;
     --endpoint) INGRESS_ENDPOINT="$2"; shift;shift;;
     -a|--app) APP_NAME="$2"; shift;shift;;
@@ -131,23 +131,23 @@ ensure_resource 'ketch-controller-manager' 1
 
 if [ "$RESOURCE_CREATION" = true ] ; then
     # validate addtional required params
-    if [ -z "$POOL" ]; then usage "Framework name required"; fi;
+    if [ -z "$FRAMEWORK" ]; then usage "Framework name required"; fi;
     if [ -z "$INGRESS_ENDPOINT" ]; then usage "Ingress endpoint required"; fi;
 
     # Add a framework with ingress Traefik (default), replace ingress endpoint address by your ingress IP address
     echo "creating framework for deployment ..."
-    POOL_CMD="ketch framework add ${POOL} --ingress-service-endpoint ${INGRESS_ENDPOINT}"
+    FRAMEWORK_CMD="ketch framework add ${FRAMEWORK} --ingress-service-endpoint ${INGRESS_ENDPOINT}"
 
     if [ ! -z "$INGRESS_TYPE" ]; then
-        POOL_CMD+=" --ingress-type ${INGRESS_TYPE}"
+        FRAMEWORK_CMD+=" --ingress-type ${INGRESS_TYPE}"
     fi
 
-    echo "CMD: ${POOL_CMD}"
-    eval "${POOL_CMD}"
+    echo "CMD: ${FRAMEWORK_CMD}"
+    eval "${FRAMEWORK_CMD}"
 
     # Create app
     echo "creating app for deployment ..."
-    APP_CMD="ketch app create ${APP_NAME} --framework ${POOL}"
+    APP_CMD="ketch app create ${APP_NAME} --framework ${FRAMEWORK}"
 
     if [ ! -z "$APP_ENV" ]; then
         APP_CMD+=" --env ${APP_ENV}"

@@ -39,7 +39,7 @@ type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOp
 func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) *cobra.Command {
 	options := frameworkAddOptions{}
 	cmd := &cobra.Command{
-		Use:   "add POOL",
+		Use:   "add FRAMEWORK",
 		Args:  cobra.ExactValidArgs(1),
 		Short: "Add a new framework.",
 		Long:  frameworkAddHelp,

@@ -50,7 +50,7 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 		return fmt.Errorf("failed to list apps pods: %w", err)
 	}
 	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
-	fmt.Fprintln(w, "NAME\tPOOL\tSTATE\tADDRESSES\tBUILDER\tDESCRIPTION")
+	fmt.Fprintln(w, "NAME\tFRAMEWORK\tSTATE\tADDRESSES\tBUILDER\tDESCRIPTION")
 	for _, item := range apps.Items {
 		pods := filterAppPods(item.Name, allPods.Items)
 

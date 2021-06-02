@@ -19,7 +19,7 @@ Update a framework.
 func newFrameworkUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 	options := frameworkUpdateOptions{}
 	cmd := &cobra.Command{
-		Use:   "update POOL",
+		Use:   "update FRAMEWORK",
 		Args:  cobra.ExactValidArgs(1),
 		Short: "Update a framework.",
 		Long:  frameworkUpdateHelp,
