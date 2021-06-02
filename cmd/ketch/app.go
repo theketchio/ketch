@@ -11,10 +11,10 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/build"
 	"github.com/shipa-corp/ketch/internal/deploy"
-	"github.com/shipa-corp/ketch/internal/docker"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
-func newAppCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command {
+func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "app",
 		Short: "Manage applications",
@@ -27,7 +27,7 @@ func newAppCmd(cfg config, out io.Writer, docker *docker.Client) *cobra.Command 
 	params := &deploy.Services{
 		Client:         cfg.Client(),
 		KubeClient:     cfg.KubernetesClient(),
-		Builder:        build.GetSourceHandler(docker),
+		Builder:        build.GetSourceHandler(packSvc),
 		GetImageConfig: deploy.GetImageConfig,
 		Wait:           deploy.WaitForDeployment,
 		Writer:         out,

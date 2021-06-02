@@ -216,8 +216,11 @@ type AppSpec struct {
 	// DockerRegistry contains docker registry configuration of the application.
 	DockerRegistry DockerRegistrySpec `json:"dockerRegisty,omitempty"`
 
-	// Platform is the name of the platform that is used to build source code.
-	Platform string `json:"platform,omitempty"`
+	// Builder is the name of the builder used to build source code.
+	Builder string `json:"builder,omitempty"`
+
+	// BuildPacks is a list of build packs to use when building from source.
+	BuildPacks []string `json:"buildPacks,omitempty"`
 }
 
 // +kubebuilder:object:root=true

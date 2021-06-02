@@ -50,13 +50,13 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 		return fmt.Errorf("failed to list apps pods: %w", err)
 	}
 	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
-	fmt.Fprintln(w, "NAME\tPOOL\tSTATE\tADDRESSES\tPLATFORM\tDESCRIPTION")
+	fmt.Fprintln(w, "NAME\tPOOL\tSTATE\tADDRESSES\tBUILDER\tDESCRIPTION")
 	for _, item := range apps.Items {
 		pods := filterAppPods(item.Name, allPods.Items)
 
 		pool := poolsByName[item.Spec.Pool]
 		urls := strings.Join(item.CNames(&pool), " ")
-		line := []string{item.Name, item.Spec.Pool, appState(pods), urls, item.Spec.Platform, item.Spec.Description}
+		line := []string{item.Name, item.Spec.Pool, appState(pods), urls, item.Spec.Builder, item.Spec.Description}
 		fmt.Fprintln(w, strings.Join(line, "\t"))
 	}
 	w.Flush()
