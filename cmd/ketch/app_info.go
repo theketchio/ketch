@@ -15,13 +15,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/utils"
 )
 
 var (
 	appInfoTemplate = `Application: {{ .App.Name }}
 Pool: {{ .App.Spec.Pool }} 
-{{- if .App.Spec.Platform }}
-Platform: {{ .App.Spec.Platform }}
+{{- if .App.Spec.Builder }}
+Builder: {{ .App.Spec.Builder }}
 {{- end }}
 {{- if .App.Spec.Description }}
 Description: {{ .App.Spec.Description }}
@@ -96,7 +97,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	table := &bytes.Buffer{}
 	w := tabwriter.NewWriter(table, 0, 4, 4, ' ', 0)
 	appPods, err := cfg.KubernetesClient().CoreV1().Pods(app.Namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf(`%s=%s`, ketchAppNameLabel, app.Name),
+		LabelSelector: fmt.Sprintf(`%s=%s`, utils.KetchAppNameLabel, app.Name),
 	})
 	if err != nil {
 		return err
@@ -136,8 +137,8 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 func filterProcessDeploymentPods(appPods []corev1.Pod, version, process string) []corev1.Pod {
 	var pods []corev1.Pod
 	for _, pod := range appPods {
-		deploymentVersion := pod.Labels[ketchDeploymentVersionLabel]
-		processName := pod.Labels[ketchProcessNameLabel]
+		deploymentVersion := pod.Labels[utils.KetchDeploymentVersionLabel]
+		processName := pod.Labels[utils.KetchProcessNameLabel]
 		if deploymentVersion == version && processName == process {
 			pods = append(pods, pod)
 		}

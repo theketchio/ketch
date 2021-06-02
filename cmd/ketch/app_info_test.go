@@ -35,7 +35,7 @@ func Test_appInfo(t *testing.T) {
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
-			Platform: "python",
+			Builder: "python",
 		},
 	}
 	goApp := &ketchv1.App{
@@ -157,7 +157,7 @@ func Test_appInfo(t *testing.T) {
 			wantOutputFilename: "./testdata/app-info/go-app-secret-name.output",
 		},
 		{
-			name: "app with platform",
+			name: "app with builder",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{gke, appPython},
 			},
@@ -195,6 +195,7 @@ func Test_appInfo(t *testing.T) {
 				require.NotNil(t, err, "appInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			require.Nil(t, err)
 			wantOut, err := ioutil.ReadFile(tt.wantOutputFilename)
 			require.Nil(t, err)
 			require.Equal(t, string(wantOut), out.String())

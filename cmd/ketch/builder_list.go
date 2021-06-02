@@ -79,12 +79,13 @@ func getUserBuilders(cfg config) []BuilderListEntry {
 }
 
 func writeBuilders(cfg config, out io.Writer) {
-	tw := tabwriter.NewWriter(out, 10, 10, 5, ' ', tabwriter.TabIndent)
+	tw := tabwriter.NewWriter(out, 10, 10, 5, ' ', 0)
 
 	builderList = append(builderList, getUserBuilders(cfg)...)
 
+	fmt.Fprintln(tw, "VENDOR\tIMAGE\tDESCRIPTION")
 	for _, builder := range builderList {
-		fmt.Fprintf(tw, "\t%s:\t%s\t%s\t\n", builder.Vendor, builder.Image, builder.Description)
+		fmt.Fprintf(tw, "%s:\t%s\t%s\t\n", builder.Vendor, builder.Image, builder.Description)
 	}
 
 	tw.Flush()
