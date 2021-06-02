@@ -34,7 +34,7 @@ type Client interface {
 	Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error
 }
 
-type SourceBuilderFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) (*build.CreateImageFromSourceResponse, error)
+type SourceBuilderFn func(context.Context, *build.CreateImageFromSourceRequest, ...build.Option) error
 
 // Runner is concerned with managing and running the deployment.
 type Runner struct {
@@ -72,6 +72,7 @@ func getAppWithUpdater(ctx context.Context, client Client, cs *ChangeSet) (*ketc
 		if err = validateCreateApp(ctx, client, cs.appName, cs); err != nil {
 			return nil, nil, err
 		}
+
 		return &app, func(ctx context.Context, app *ketchv1.App, _ bool) error {
 			app.ObjectMeta.Name = cs.appName
 			app.Spec.Deployments = []ketchv1.AppDeploymentSpec{}
@@ -104,41 +105,63 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 		}
 		app = a
 
-		plat, err := cs.getPlatform(ctx, client)
-		if err := assign(err, func() {
-			app.Spec.Platform = plat
-			changed = true
-		}); err != nil {
+		if cs.sourcePath != nil {
+			if err := validateSourceDeploy(cs); err != nil {
+				return err
+			}
+			builder := cs.getBuilder(app.Spec)
+			if builder != app.Spec.Builder {
+				app.Spec.Builder = builder
+				changed = true
+			}
+			buildPacks, err := cs.getBuildPacks()
+			if err := assign(err, func() error {
+				app.Spec.BuildPacks = buildPacks
+				changed = true
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		if err := validateDeploy(cs, app); err != nil {
 			return err
 		}
 
 		framework, err := cs.getFramework(ctx, client)
-		if err := assign(err, func() {
+		if err := assign(err, func() error {
+			if app.Spec.Framework != "" && framework != app.Spec.Framework {
+				return fmt.Errorf("can't change framework once app has been created")
+			}
 			app.Spec.Framework = framework
+			changed = true
+			return nil
 		}); err != nil {
 			return err
 		}
 
 		desc, err := cs.getDescription()
-		if err := assign(err, func() {
+		if err := assign(err, func() error {
 			app.Spec.Description = desc
 			changed = true
+			return nil
 		}); err != nil {
 			return err
 		}
 
 		envs, err := cs.getEnvironments()
-		if err := assign(err, func() {
+		if err := assign(err, func() error {
 			app.Spec.Env = envs
 			changed = true
+			return nil
 		}); err != nil {
 			return err
 		}
 
 		secret, err := cs.getDockerRegistrySecret()
-		if err := assign(err, func() {
+		if err := assign(err, func() error {
 			app.Spec.DockerRegistry.SecretName = secret
 			changed = true
+			return nil
 		}); err != nil {
 			return err
 		}
@@ -149,16 +172,9 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 }
 
 func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
-	if err := validateSourceDeploy(params, app); err != nil {
-		return err
-	}
 	ketchYaml, err := params.getKetchYaml()
 	if err != nil {
 		return err
-	}
-	var platform ketchv1.Platform
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Platform}, &platform); err != nil {
-		return errors.Wrap(err, "failed to get platform %s", app.Spec.Platform)
 	}
 
 	var framework ketchv1.Framework
@@ -168,22 +184,18 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
-	includeDirs, _ := params.getIncludeDirs()
 
-	resp, err := svc.Builder(
+	if err := svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
-			Image:         image,
-			AppName:       params.appName,
-			PlatformImage: platform.Spec.Image,
+			Image:      image,
+			AppName:    params.appName,
+			Builder:    app.Spec.Builder,
+			BuildPacks: app.Spec.BuildPacks,
 		},
-		build.WithOutput(svc.Writer),
 		build.WithWorkingDirectory(sourcePath),
-		build.WithSourcePaths(includeDirs...),
-		build.MaybeWithBuildHooks(ketchYaml),
-	)
-	if err != nil {
-		return errors.Wrap(err, "build from source failed")
+	); err != nil {
+		return err
 	}
 
 	imageRequest := ImageConfigRequest{
@@ -197,11 +209,9 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 		return err
 	}
 
-	procfile := resp.Procfile
-	if procfile == nil {
-		if procfile, err = makeProcfile(imgConfig, params); err != nil {
-			return err
-		}
+	procfile, err := makeProcfile(imgConfig, params)
+	if err != nil {
+		return err
 	}
 
 	var updateRequest updateAppCRDRequest
@@ -211,9 +221,9 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 	updateRequest.steps = steps
 	stepWeight, _ := params.getStepWeight()
 	updateRequest.stepWeight = stepWeight
-	updateRequest.procFile = procfile
 	updateRequest.ketchYaml = ketchYaml
 	updateRequest.configFile = imgConfig
+	updateRequest.procFile = procfile
 	interval, _ := params.getStepInterval()
 	updateRequest.stepTimeInterval = interval
 	updateRequest.nextScheduledTime = time.Now().Add(interval)
@@ -233,16 +243,9 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 }
 
 func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
-	if err := validateDeploy(params, app); err != nil {
-		return err
-	}
 	ketchYaml, err := params.getKetchYaml()
 	if err != nil {
 		return err
-	}
-	var platform ketchv1.Platform
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Platform}, &platform); err != nil {
-		return errors.Wrap(err, "failed to get platform %q", app.Spec.Platform)
 	}
 
 	var framework ketchv1.Framework

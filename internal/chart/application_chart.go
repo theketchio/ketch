@@ -59,7 +59,6 @@ type app struct {
 	Deployments []deployment  `json:"deployments"`
 	Env         []ketchv1.Env `json:"env"`
 	Ingress     ingress       `json:"ingress"`
-	Platform    string        `json:"platform"`
 	// IsAccessible if not set, ketch won't create kubernetes objects like Ingress/Gateway to handle incoming request.
 	// These objects could be broken without valid routes to the application.
 	// For example, "spec.rules" of an Ingress object must contain at least one rule.
@@ -120,10 +119,9 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 
 	values := &values{
 		App: &app{
-			Name:     application.Name,
-			Ingress:  newIngress(*application, *framework),
-			Env:      application.Spec.Env,
-			Platform: application.Spec.Platform,
+			Name:    application.Name,
+			Ingress: newIngress(*application, *framework),
+			Env:     application.Spec.Env,
 		},
 		IngressController: &framework.Spec.IngressController,
 		DockerRegistry: dockerRegistrySpec{
@@ -145,13 +143,13 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			return nil, err
 		}
 		exposedPorts := options.ExposedPorts[deployment.Version]
-		c := NewConfigurator(deploymentSpec.KetchYaml, *procfile, exposedPorts, DefaultApplicationPort, application.Spec.Platform)
+		c := NewConfigurator(deploymentSpec.KetchYaml, *procfile, exposedPorts, DefaultApplicationPort)
 		for _, processSpec := range deploymentSpec.Processes {
 			name := processSpec.Name
 			isRoutable := procfile.IsRoutable(name)
 
 			process, err := newProcess(name, isRoutable,
-				withCmd(c.ProcessCmd(name)),
+				withCmd(c.procfile.Processes[name]),
 				withUnits(processSpec.Units),
 				withPortsAndProbes(c),
 				withLifecycle(c.Lifecycle()),

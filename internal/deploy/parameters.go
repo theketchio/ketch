@@ -30,18 +30,19 @@ const (
 	FlagStepInterval   = "step-interval"
 	FlagWait           = "wait"
 	FlagTimeout        = "timeout"
-	FlagIncludeDirs    = "include-dirs"
-	FlagPlatform       = "platform"
 	FlagDescription    = "description"
 	FlagEnvironment    = "env"
 	FlagFramework      = "framework"
 	FlagRegistrySecret = "registry-secret"
+	FlagBuilder        = "builder"
+	FlagBuildPacks     = "build-packs"
 
 	FlagImageShort       = "i"
-	FlagPlatformShort    = "P"
 	FlagDescriptionShort = "d"
 	FlagEnvironmentShort = "e"
 	FlagFrameworkShort   = "o"
+
+	DefaultBuilder = "heroku/buildpacks:20"
 
 	defaultYamlFile = "ketch.yaml"
 )
@@ -83,17 +84,14 @@ type Options struct {
 	Description          string
 	Envs                 []string
 	DockerRegistrySecret string
-	// this goes bye bye
-	Platform string
+	Builder              string
+	BuildPacks           []string
 }
 
-// ChangeSet is used to record things that have changed on the command line because zero values for strings are often
-// legitimate values for flags, we set these values to non nil if they have been provided or changed.
 type ChangeSet struct {
 	appName              string
 	yamlStrictDecoding   bool
 	sourcePath           *string
-	sourceSubPaths       *[]string
 	image                *string
 	ketchYamlFileName    *string
 	procfileFileName     *string
@@ -107,12 +105,17 @@ type ChangeSet struct {
 	envs                 *[]string
 	framework            *string
 	dockerRegistrySecret *string
+	builder              *string
+	buildPacks           *[]string
 }
 
 func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 	var cs ChangeSet
 	cs.appName = o.AppName
 	cs.yamlStrictDecoding = o.StrictKetchYamlDecoding
+
+	// setting values for defaults we want to retain
+	cs.timeout = &o.Timeout
 
 	if o.AppSourcePath != "" {
 		cs.sourcePath = &o.AppSourcePath
@@ -139,12 +142,6 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		FlagTimeout: func(c *ChangeSet) {
 			c.timeout = &o.Timeout
 		},
-		FlagIncludeDirs: func(c *ChangeSet) {
-			c.subPaths = &o.SubPaths
-		},
-		FlagPlatform: func(c *ChangeSet) {
-			c.platform = &o.Platform
-		},
 		FlagDescription: func(c *ChangeSet) {
 			c.description = &o.Description
 		},
@@ -156,6 +153,12 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		},
 		FlagRegistrySecret: func(c *ChangeSet) {
 			c.dockerRegistrySecret = &o.DockerRegistrySecret
+		},
+		FlagBuilder: func(c *ChangeSet) {
+			c.builder = &o.Builder
+		},
+		FlagBuildPacks: func(c *ChangeSet) {
+			c.buildPacks = &o.BuildPacks
 		},
 	}
 	for k, f := range m {
@@ -173,43 +176,11 @@ func (c *ChangeSet) getProcfileName() (string, error) {
 	return *c.procfileFileName, nil
 }
 
-func (c *ChangeSet) getPlatform(ctx context.Context, client Client) (string, error) {
-	if c.platform == nil {
-		return "", newMissingError(FlagPlatform)
-	}
-	var p ketchv1.Platform
-	err := client.Get(ctx, types.NamespacedName{Name: *c.platform}, &p)
-	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("%w platform %q has not been created", newInvalidError(FlagPlatform), *c.platform)
-	}
-	if err != nil {
-		return "", errors.Wrap(err, "could not fetch platform %q", *c.platform)
-	}
-	return *c.platform, nil
-}
-
 func (c *ChangeSet) getDescription() (string, error) {
 	if c.description == nil {
 		return "", newMissingError(FlagDescription)
 	}
 	return *c.description, nil
-}
-
-func (c *ChangeSet) getIncludeDirs() ([]string, error) {
-	if c.subPaths == nil {
-		return nil, newMissingError(FlagIncludeDirs)
-	}
-	rootDir, err := c.getSourceDirectory()
-	if err != nil {
-		return nil, err
-	}
-	paths := *c.subPaths
-	for _, p := range paths {
-		if err := directoryExists(path.Join(rootDir, p)); err != nil {
-			return nil, err
-		}
-	}
-	return paths, nil
 }
 
 func (c *ChangeSet) getYamlPath() (string, error) {
@@ -324,6 +295,28 @@ func (c *ChangeSet) getDockerRegistrySecret() (string, error) {
 		return "", newMissingError(FlagRegistrySecret)
 	}
 	return *c.dockerRegistrySecret, nil
+}
+
+// If the builder is assigned on the command we always use it.  Otherwise we look for a previously defined
+// builder and use that if it exists, otherwise use the default builder.
+func (c *ChangeSet) getBuilder(spec ketchv1.AppSpec) string {
+	if c.builder == nil {
+		if spec.Builder == "" {
+			c.builder = func(s string) *string {
+				return &s
+			}(DefaultBuilder)
+		} else {
+			c.builder = &spec.Builder
+		}
+	}
+	return *c.builder
+}
+
+func (c *ChangeSet) getBuildPacks() ([]string, error) {
+	if c.buildPacks == nil {
+		return nil, newMissingError(FlagBuildPacks)
+	}
+	return *c.buildPacks, nil
 }
 
 func (c *ChangeSet) getKetchYaml() (*ketchv1.KetchYamlData, error) {

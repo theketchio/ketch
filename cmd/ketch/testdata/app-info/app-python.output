@@ -1,6 +1,6 @@
 Application: app-python
 Framework: gke
-Platform: python
+Builder: python
 The default cname hasn't assigned yet because "gke" framework doesn't have ingress service endpoint.
 
 No environment variables.

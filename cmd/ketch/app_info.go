@@ -21,8 +21,8 @@ import (
 var (
 	appInfoTemplate = `Application: {{ .App.Name }}
 Framework: {{ .App.Spec.Framework }}
-{{- if .App.Spec.Platform }}
-Platform: {{ .App.Spec.Platform }}
+{{- if .App.Spec.Builder }}
+Builder: {{ .App.Spec.Builder }}
 {{- end }}
 {{- if .App.Spec.Description }}
 Description: {{ .App.Spec.Description }}

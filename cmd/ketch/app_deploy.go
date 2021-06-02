@@ -11,7 +11,7 @@ const (
 Roll out a new version of an application with an image.
 
 Deploy from source code. <source> is path to source code. The image in this case is required
-and will be built using the selected source code and platform and will be used to deploy the app.
+and will be built using the selected source code and builder and will be used to deploy the app.
   ketch app deploy <app name> <source> -i myregistry/myimage:latest
 
   Ketch looks for Procfile and ketch.yaml inside the source directory by default
@@ -48,17 +48,17 @@ func newAppDeployCmd(params *deploy.Services) *cobra.Command {
 
 	cmd.Flags().StringVar(&options.ProcfileFileName, deploy.FlagProcFile, "", "Path to procfile.")
 	cmd.Flags().BoolVar(&options.StrictKetchYamlDecoding, deploy.FlagStrict, false, "Enforces strict decoding of ketch.yaml.")
-	cmd.Flags().IntVar(&options.Steps, deploy.FlagSteps, 2, "Number of steps for a canary deployment.")
+	cmd.Flags().IntVar(&options.Steps, deploy.FlagSteps, 0, "Number of steps for a canary deployment.")
 	cmd.Flags().StringVar(&options.StepTimeInterval, deploy.FlagStepInterval, "", "Time interval between canary deployment steps. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h.")
 	cmd.Flags().BoolVar(&options.Wait, deploy.FlagWait, false, "If true blocks until deploy completes or a timeout occurs.")
 	cmd.Flags().StringVar(&options.Timeout, deploy.FlagTimeout, "20s", "Defines the length of time to block waiting for deployment completion. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h.")
-	cmd.Flags().StringSliceVar(&options.SubPaths, deploy.FlagIncludeDirs, []string{"."}, "Optionally include additional source paths. Additional paths must be relative to source-path.")
 
-	cmd.Flags().StringVarP(&options.Platform, deploy.FlagPlatform, deploy.FlagPlatformShort, "", "Platform name.")
 	cmd.Flags().StringVarP(&options.Description, deploy.FlagDescription, deploy.FlagDescriptionShort, "", "App description.")
 	cmd.Flags().StringSliceVarP(&options.Envs, deploy.FlagEnvironment, deploy.FlagEnvironmentShort, []string{}, "App env variables.")
 	cmd.Flags().StringVarP(&options.Framework, deploy.FlagFramework, deploy.FlagFrameworkShort, "", "Framework to deploy your app.")
 	cmd.Flags().StringVarP(&options.DockerRegistrySecret, deploy.FlagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the framework.")
+	cmd.Flags().StringVar(&options.Builder, deploy.FlagBuilder, "", "Builder to use when building from source.")
+	cmd.Flags().StringSliceVar(&options.BuildPacks, deploy.FlagBuildPacks, nil, "A list of build packs")
 
 	return cmd
 }
