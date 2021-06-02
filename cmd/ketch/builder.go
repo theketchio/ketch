@@ -7,13 +7,13 @@ import (
 )
 
 const builderCmdHelp = `
-Manage default builder.
+Manage builders.
 `
 
 func newBuilderCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "builder",
-		Short: "Manage default builder",
+		Short: builderCmdHelp,
 		Long:  builderCmdHelp,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

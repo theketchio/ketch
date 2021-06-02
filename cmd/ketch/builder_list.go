@@ -9,16 +9,16 @@ import (
 )
 
 const builderListHelp = `
-List CNCF registered builders
+List CNCF registered builders, along with any additional builders defined by the user in config.toml (default path: $HOME/.kafka)
 `
 
-type BuilderListEntry struct {
+type builderListEntry struct {
 	Vendor      string
 	Image       string
 	Description string
 }
 
-var builderList = []BuilderListEntry{
+var builderList = []builderListEntry{
 	{
 		Vendor:      "Google",
 		Image:       "gcr.io/buildpacks/builder:v1",
@@ -54,7 +54,7 @@ var builderList = []BuilderListEntry{
 func newBuilderListCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List CNCF registered builders",
+		Short: builderListHelp,
 		Long:  builderListHelp,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -64,10 +64,10 @@ func newBuilderListCmd(cfg config, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func getUserBuilders(cfg config) []BuilderListEntry {
-	var userBuilders []BuilderListEntry
+func getUserBuilders(cfg config) []builderListEntry {
+	var userBuilders []builderListEntry
 	for _, builder := range cfg.GetKetchConfigObject().AdditionalBuilders {
-		entry := BuilderListEntry{
+		entry := builderListEntry{
 			Vendor:      builder.Vendor,
 			Image:       builder.Image,
 			Description: builder.Description,
