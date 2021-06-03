@@ -43,6 +43,10 @@ spec:
         spec:
           description: AppSpec defines the desired state of App.
           properties:
+            Framework:
+              description: Framework is a name of a Framework used to run the application.
+              minLength: 1
+              type: string
             buildPacks:
               description: BuildPacks is a list of build packs to use when building
                 from source.
@@ -497,10 +501,6 @@ spec:
               required:
               - generateDefaultCname
               type: object
-            framework:
-              description: Framework is a name of a framework used to run the application.
-              minLength: 1
-              type: string
             version:
               type: string
           required:

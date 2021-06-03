@@ -9,13 +9,13 @@ The ingress controller (Traefik or Istio), cluster issuer, and cert-manager shou
 ### Usage
 
 ```
-Usage: ./ketch-ci.sh [-t --ketch-tag] [-o --framework] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]
+Usage: ./ketch-ci.sh [-t --ketch-tag] [-k --framework] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]
 ```
 
 | Flags | Descriptions |
 | ------ | ------ |
 |  -t, --ketch-tag  | Ketch version. Default is latest. |
-|  -o, --framework        |     Framework where your application should be deployed.|
+|  -k, --framework        |     Framework where your application should be deployed.|
 |  -a, --app         |     Application Name.|
 | -e, --env          |     Application environment variables.|
 | -ig, --ingress   |     Ingress type. Default is Traefik. |
@@ -41,7 +41,7 @@ jobs:
     - stage: build
       script: ./build.sh     # build and push docker images
     - stage: deploy
-      script: ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o myframework --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+      script: ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -k myframework --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
 
 #### Circle CI
@@ -55,7 +55,7 @@ deployment:
   production:
     branch: "master"
     commands:
-      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o myframework --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -k myframework --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```
 
 #### Gitlab CI
@@ -91,5 +91,5 @@ production:
     - branches
 
     script:
-      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -o myframework --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
+      - ./ketch-ci.sh --ketch-tag v0.1.1 -a myapp -k myframework --endpoint 104.155.134.17 -i docker.io/shipasoftware/bulletinboard:1.0 --ingress traefik
 ```

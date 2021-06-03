@@ -40,7 +40,7 @@ const (
 	FlagImageShort       = "i"
 	FlagDescriptionShort = "d"
 	FlagEnvironmentShort = "e"
-	FlagFrameworkShort   = "o"
+	FlagFrameworkShort   = "k"
 
 	DefaultBuilder = "heroku/buildpacks:20"
 
