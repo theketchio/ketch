@@ -99,17 +99,11 @@ func validateDeploy(cs *ChangeSet, app *ketchv1.App) error {
 	return nil
 }
 
-func validateSourceDeploy(cs *ChangeSet, app *ketchv1.App) error {
+func validateSourceDeploy(cs *ChangeSet) error {
 	if _, err := cs.getSourceDirectory(); err != nil {
 		return err
 	}
-
-	_, err := cs.getIncludeDirs()
-	if !isMissing(err) && !isValid(err) {
-		return err
-	}
-
-	return validateDeploy(cs, app)
+	return nil
 }
 
 func validateCreateApp(ctx context.Context, client Client, appName string, cs *ChangeSet) error {
@@ -143,13 +137,12 @@ func directoryExists(dir string) error {
 	return nil
 }
 
-func assign(err error, f func()) error {
+func assign(err error, f func() error) error {
 	if isMissing(err) {
 		return nil
 	}
 	if isValid(err) {
-		f()
-		return nil
+		return f()
 	}
 	return err
 }

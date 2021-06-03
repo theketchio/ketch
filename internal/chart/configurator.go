@@ -5,10 +5,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/pkg/errors"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
@@ -19,11 +18,10 @@ type Configurator struct {
 	procfile     Procfile
 	exposedPorts []ketchv1.ExposedPort
 	defaultPort  int
-	platform     string
 }
 
 // NewConfigurator returns a Configurator instance.
-func NewConfigurator(data *ketchv1.KetchYamlData, procfile Procfile, exposedPorts []ketchv1.ExposedPort, defaultPort int, platform string) Configurator {
+func NewConfigurator(data *ketchv1.KetchYamlData, procfile Procfile, exposedPorts []ketchv1.ExposedPort, defaultPort int) Configurator {
 	shipaYaml := ketchv1.KetchYamlData{}
 	if data != nil {
 		shipaYaml = *data
@@ -33,7 +31,6 @@ func NewConfigurator(data *ketchv1.KetchYamlData, procfile Procfile, exposedPort
 		procfile:     procfile,
 		exposedPorts: exposedPorts,
 		defaultPort:  defaultPort,
-		platform:     strings.ToLower(platform),
 	}
 }
 
@@ -205,32 +202,4 @@ func (c Configurator) ServicePortsForProcess(process string) []apiv1.ServicePort
 		servicePorts = append(servicePorts, sp)
 	}
 	return servicePorts
-}
-
-func (c Configurator) ProcessCmd(process string) []string {
-	// If we are not using an existing Shipa platform return the commands unmodified. In this case
-	// the onus is on the image creator to build an image with entry points/commands that k8s understands.
-	if c.platform == "" {
-		return c.procfile.Processes[process]
-	}
-	cmd := c.procfile.Processes[process]
-	before := ""
-	if c.data.Hooks != nil {
-		before = strings.Join(c.data.Hooks.Restart.Before, " && ")
-		if before != "" {
-			before += " && "
-		}
-	}
-	commands := []string{
-		"/bin/sh",
-		"-lc",
-		before,
-	}
-	if len(cmd) > 1 {
-		commands[len(commands)-1] += "exec $0 \"$@\""
-		commands = append(commands, cmd...)
-	} else {
-		commands[len(commands)-1] += "exec " + cmd[0]
-	}
-	return commands
 }

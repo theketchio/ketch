@@ -10,25 +10,18 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/src-d/go-git.v4"
 
-	"github.com/shipa-corp/ketch/internal/docker"
 	"github.com/shipa-corp/ketch/internal/errors"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
 type mockBuilder struct {
-	buildCalls int
-	pushCalls  int
-	buildFn    func(req docker.BuildRequest) (*docker.BuildResponse, error)
-	pushFn     func(req docker.BuildRequest) error
+	buildAndPushCalls int
+	buildAndPushFn    func(ctx context.Context, req pack.BuildRequest) error
 }
 
-func (mb *mockBuilder) Build(ctx context.Context, req docker.BuildRequest) (*docker.BuildResponse, error) {
-	mb.buildCalls += 1
-	return mb.buildFn(req)
-}
-
-func (mb *mockBuilder) Push(ctx context.Context, req docker.BuildRequest) error {
-	mb.pushCalls += 1
-	return mb.pushFn(req)
+func (mb *mockBuilder) BuildAndPushImage(ctx context.Context, req pack.BuildRequest) error {
+	mb.buildAndPushCalls += 1
+	return mb.buildAndPushFn(ctx, req)
 }
 
 func cloneSource(tempDir, repositoryURL string) (string, error) {
@@ -45,14 +38,6 @@ func cloneSource(tempDir, repositoryURL string) (string, error) {
 	return targetDir, nil
 }
 
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
 func TestGetSourceHandler(t *testing.T) {
 	workingDir, err := cloneSource(t.TempDir(), "https://github.com/shipa-corp/go-sample")
 	require.Nil(t, err)
@@ -60,54 +45,26 @@ func TestGetSourceHandler(t *testing.T) {
 	tt := []struct {
 		name      string
 		wantErr   bool
-		builderFn func(req docker.BuildRequest) (*docker.BuildResponse, error)
-		pushFn    func(req docker.BuildRequest) error
+		builderFn func(ctx context.Context, req pack.BuildRequest) error
 		request   *CreateImageFromSourceRequest
-		expected  *CreateImageFromSourceResponse
 	}{
 		{
 			name: "happy path",
-			builderFn: func(req docker.BuildRequest) (*docker.BuildResponse, error) {
-				assert.True(t, fileExists(path.Join(req.BuildDirectory, "Dockerfile")))
-				assert.True(t, fileExists(path.Join(req.BuildDirectory, archiveFileName)))
+			builderFn: func(ctx context.Context, req pack.BuildRequest) error {
 				assert.Equal(t, req.Image, "acme/superimage")
-				return &docker.BuildResponse{
-					ImageURI: "docker.io/acme/superimage:latest",
-				}, nil
-			},
-			pushFn: func(req docker.BuildRequest) error {
-				assert.Equal(t, req.Image, "acme/superimage")
+				assert.Equal(t, req.WorkingDir, workingDir)
 				return nil
-			},
-			request: &CreateImageFromSourceRequest{
-				Image:         "acme/superimage",
-				AppName:       "acmeapp",
-				PlatformImage: "shipasoftware/go:v1.2",
-			},
-			expected: &CreateImageFromSourceResponse{
-				ImageURI: "docker.io/acme/superimage:latest",
-			},
-		},
-		{
-			name: "failed build",
-			builderFn: func(req docker.BuildRequest) (*docker.BuildResponse, error) {
-				return nil, errors.New("failed build")
 			},
 			request: &CreateImageFromSourceRequest{
 				Image:   "acme/superimage",
 				AppName: "acmeapp",
+				Builder: "heroku/buildpacks:18",
 			},
-			wantErr: true,
 		},
 		{
-			name: "push build",
-			builderFn: func(req docker.BuildRequest) (*docker.BuildResponse, error) {
-				return &docker.BuildResponse{
-					ImageURI: "docker.io/acme/superimage:latest",
-				}, nil
-			},
-			pushFn: func(req docker.BuildRequest) error {
-				return errors.New("failed push")
+			name: "failed build",
+			builderFn: func(ctx context.Context, req pack.BuildRequest) error {
+				return errors.New("failed build")
 			},
 			request: &CreateImageFromSourceRequest{
 				Image:   "acme/superimage",
@@ -120,10 +77,9 @@ func TestGetSourceHandler(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			builder := &mockBuilder{
-				buildFn: tc.builderFn,
-				pushFn:  tc.pushFn,
+				buildAndPushFn: tc.builderFn,
 			}
-			actual, err := GetSourceHandler(builder)(
+			err := GetSourceHandler(builder)(
 				context.Background(),
 				tc.request,
 				WithWorkingDirectory(workingDir),
@@ -133,9 +89,7 @@ func TestGetSourceHandler(t *testing.T) {
 				return
 			}
 			require.Nil(t, err)
-			require.Equal(t, tc.expected.ImageURI, actual.ImageURI)
-			require.Equal(t, 1, builder.buildCalls)
-			require.Equal(t, 1, builder.pushCalls)
+			require.Equal(t, 1, builder.buildAndPushCalls)
 
 		})
 	}

@@ -4,18 +4,14 @@ go 1.16
 
 require (
 	bou.ke/monkey v1.0.2
-	github.com/crossplane/crossplane-runtime v0.12.0 // indirect
-	github.com/docker/cli v0.0.0-20200130152716-5d0cf8839492
-	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
-	github.com/fatih/color v1.7.0 // indirect
+	github.com/buildpacks/pack v0.15.1
+	github.com/crossplane/crossplane-runtime v0.12.0
 	github.com/go-logr/logr v0.1.0
-	github.com/google/go-cmp v0.4.1
+	github.com/google/go-cmp v0.5.2
 	github.com/google/go-containerregistry v0.1.4
 	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	github.com/thediveo/enumflag v0.10.1
