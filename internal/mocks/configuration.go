@@ -1,7 +1,6 @@
 package mocks
 
 import (
-	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	dynamicFake "k8s.io/client-go/dynamic/fake"
@@ -29,7 +28,6 @@ type Configuration struct {
 	KubeClientObjects    []runtime.Object
 	DynamicClientObjects []runtime.Object
 	StorageInstance      templates.Client
-	KetchConfigObj       configuration.KetchConfig
 
 	ctrlClient client.Client
 }
@@ -53,9 +51,4 @@ func (cfg *Configuration) KubernetesClient() kubernetes.Interface {
 // DynamicClient returns kubernetes dynamic client. It's used to work with CRDs for which we don't have go types like ClusterIssuer.
 func (cfg *Configuration) DynamicClient() dynamic.Interface {
 	return dynamicFake.NewSimpleDynamicClient(runtime.NewScheme(), cfg.DynamicClientObjects...)
-}
-
-// GetKetchConfigObject returns the unmarshalled contents of the config.toml file
-func (cfg *Configuration) GetKetchConfigObject() configuration.KetchConfig {
-	return cfg.KetchConfigObj
 }

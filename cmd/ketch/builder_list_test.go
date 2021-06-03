@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"github.com/shipa-corp/ketch/internal/mocks"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -33,27 +32,25 @@ test vendor:           test image                        test description
 func TestBuilderList(t *testing.T) {
 
 	tests := []struct {
-		name     string
-		cfg      config
-		expected string
+		name        string
+		ketchConfig configuration.KetchConfig
+		expected    string
 	}{
 		{
 			name: "default values",
-			cfg: &mocks.Configuration{
-				KetchConfigObj: configuration.KetchConfig{},
+			ketchConfig: configuration.KetchConfig{
+				AdditionalBuilders: nil,
 			},
 			expected: defaultBuilders,
 		},
 		{
 			name: "include user's builders",
-			cfg: &mocks.Configuration{
-				KetchConfigObj: configuration.KetchConfig{
-					AdditionalBuilders: []configuration.AdditionalBuilder{
-						{
-							Vendor:      "test vendor",
-							Image:       "test image",
-							Description: "test description",
-						},
+			ketchConfig: configuration.KetchConfig{
+				AdditionalBuilders: []configuration.AdditionalBuilder{
+					{
+						Vendor:      "test vendor",
+						Image:       "test image",
+						Description: "test description",
 					},
 				},
 			},
@@ -63,7 +60,7 @@ func TestBuilderList(t *testing.T) {
 
 	for _, tt := range tests {
 		var buff bytes.Buffer
-		cmd := newBuilderListCmd(tt.cfg, &buff)
+		cmd := newBuilderListCmd(tt.ketchConfig, &buff)
 		cmd.SetArgs([]string{})
 		err := cmd.Execute()
 		require.Nil(t, err)

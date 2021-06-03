@@ -6,19 +6,15 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+
+	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
 )
 
 const builderListHelp = `
-List CNCF registered builders, along with any additional builders defined by the user in config.toml (default path: $HOME/.kafka)
+List CNCF registered builders, along with any additional builders defined by the user in config.toml (default path: $HOME/.ketch)
 `
 
-type builderListEntry struct {
-	Vendor      string
-	Image       string
-	Description string
-}
-
-var builderList = []builderListEntry{
+var builderList = []configuration.AdditionalBuilder{
 	{
 		Vendor:      "Google",
 		Image:       "gcr.io/buildpacks/builder:v1",
@@ -51,37 +47,23 @@ var builderList = []builderListEntry{
 	},
 }
 
-func newBuilderListCmd(cfg config, out io.Writer) *cobra.Command {
+func newBuilderListCmd(ketchConfig configuration.KetchConfig, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: builderListHelp,
+		Short: "list builders",
 		Long:  builderListHelp,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			writeBuilders(cfg, out)
+			writeBuilders(ketchConfig, out)
 		},
 	}
 	return cmd
 }
 
-func getUserBuilders(cfg config) []builderListEntry {
-	var userBuilders []builderListEntry
-	for _, builder := range cfg.GetKetchConfigObject().AdditionalBuilders {
-		entry := builderListEntry{
-			Vendor:      builder.Vendor,
-			Image:       builder.Image,
-			Description: builder.Description,
-		}
-		userBuilders = append(userBuilders, entry)
-	}
-
-	return userBuilders
-}
-
-func writeBuilders(cfg config, out io.Writer) {
+func writeBuilders(ketchConfig configuration.KetchConfig, out io.Writer) {
 	tw := tabwriter.NewWriter(out, 10, 10, 5, ' ', 0)
 
-	builderList = append(builderList, getUserBuilders(cfg)...)
+	builderList = append(builderList, ketchConfig.AdditionalBuilders...)
 
 	fmt.Fprintln(tw, "VENDOR\tIMAGE\tDESCRIPTION")
 	for _, builder := range builderList {

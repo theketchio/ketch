@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
 	"github.com/shipa-corp/ketch/internal/pack"
 	"github.com/shipa-corp/ketch/internal/templates"
 )
@@ -23,8 +22,6 @@ type config interface {
 	KubernetesClient() kubernetes.Interface
 	// DynamicClient returns kubernetes dynamic client. It's used to work with CRDs for which we don't have go types like ClusterIssuer.
 	DynamicClient() dynamic.Interface
-	// GetKetchConfigObject returns the unmarshalled contents of the config.toml file
-	GetKetchConfigObject() configuration.KetchConfig
 }
 
 type resourceCreator interface {

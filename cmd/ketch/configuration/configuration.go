@@ -33,7 +33,7 @@ type Configuration struct {
 	cli     client.Client
 	storage *templates.Storage
 
-	ketchConfig KetchConfig
+	KetchConfig KetchConfig
 }
 
 // KetchConfig contains all the values present in the config.toml
@@ -105,11 +105,6 @@ func (cfg *Configuration) DynamicClient() dynamic.Interface {
 	return i
 }
 
-// GetKetchConfigObject returns the unmarshalled contents of the config.toml file
-func (cfg *Configuration) GetKetchConfigObject() KetchConfig {
-	return cfg.ketchConfig
-}
-
 // DefaultConfigPath returns the path to the config.toml file
 func DefaultConfigPath() (string, error) {
 	home, err := ketchHome()
@@ -140,7 +135,7 @@ func Read(path string) (*Configuration, error) {
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
-	cfg.ketchConfig = ketchConfig
+	cfg.KetchConfig = ketchConfig
 
 	return &cfg, nil
 }
