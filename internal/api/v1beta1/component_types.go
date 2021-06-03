@@ -17,8 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -26,6 +26,9 @@ import (
 
 // ComponentSpec defines the desired state of Component
 type ComponentSpec struct {
+	// Default is whether the component is applied by default when creating an Application
+	Default bool `json:"default"`
+
 	// Workload represents an identifier to a workload type
 	Workload WorkloadTypeDescriptor `json:"workload"`
 
@@ -36,9 +39,6 @@ type ComponentSpec struct {
 
 // WorkloadTypeDescriptor defines a workload
 type WorkloadTypeDescriptor struct {
-	// Default is whether the component is applied by default when creating an Application
-	Default bool `json:"default"`
-
 	// Definition is a reference to Workload definition via Group, Version, Kind
 	Definition WorkloadGVK `json:"workloadGVK"`
 }
@@ -46,20 +46,21 @@ type WorkloadTypeDescriptor struct {
 // WorkloadGVK defines the version and kind for a workload
 type WorkloadGVK struct {
 	// Group defines the object's group
-	Group string `json:"group,omitempty"`
+	Group string `json:"group"`
 
 	// APIVersion defines the versioned schema of this representation of an object.
-	APIVersion string `json:"apiVersion,omitempty"`
+	APIVersion string `json:"apiVersion"`
 
 	// Kind is a string value representing the REST resource this object represents.
-	Kind string `json:"kind,omitempty"`
+	Kind string `json:"kind"`
 }
 
 type Parameter struct {
-	Name     string   `json:"name"`
-	Required bool     `json:"required"`
-	Type     string   `json:"type"`
-	Paths    []string `json:"fieldPaths"`
+	Name       string   `json:"name"`
+	Value      string   `json:"value"`
+	Required   bool     `json:"required"`
+	Type       string   `json:"type"`
+	FieldPaths []string `json:"fieldPaths"`
 }
 
 type Schematic struct {
@@ -68,18 +69,20 @@ type Schematic struct {
 }
 
 type Kube struct {
-	// Templates
-	Templates  []Template  `json:"templates"`
+	// Templates define raw Kubernetes resources
+	Templates []Template `json:"templates"`
+	// Parameters define configurable parameters
 	Parameters []Parameter `json:"parameters,omitempty"`
 }
 
-type Template struct {
-	Name                 string `json:"name"`
-	runtime.RawExtension `json:"object"`
-}
+type Template string
 
 // ComponentStatus defines the observed state of Component
 type ComponentStatus struct {
+	// Status reflects the observed core v1 status of a resource
+	Status v1.ConditionStatus `json:"status"`
+	// Message contains any details (e.g. error) regarding a status
+	Message string `json:"message,omitempty"`
 }
 
 //+kubebuilder:object:root=true

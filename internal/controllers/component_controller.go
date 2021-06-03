@@ -65,22 +65,27 @@ func (r *ComponentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	// TODO - copied from: https://github.com/oam-dev/kubevela/blob/master/pkg/controller/core.oam.dev/v1alpha2/core/components/componentdefinition/componentdefinition_controller.go#L59
-	// refresh package discover - what does this mean?
-	// generate DefinitionRevision from component
-	// if isNew DefinitionRevision, create/update component Revision & clean up Revision & return
-	// store component in configMap
-	// create/update component Revision
-	// update component Status
-	// clean up component Revision
+	componentStatus := r.reconcile(ctx, &component)
+	component.Status = componentStatus
+	err := r.Status().Update(ctx, &component)
+	return ctrl.Result{}, err
+}
 
-	// Why not just:
-	// generate DefinitionRevision from component
-	// create/update component Revision
-	// update component Status
-	// clean up component Revision
+func (r *ComponentReconciler) reconcile(ctx context.Context, component *ketchv1.Component) ketchv1.ComponentStatus {
+	// parameters
+	//parameterValuesObject := NewParameterValuesObject()
+	//err := setParameterValuesToKubeObj(parameterValuesObject, component.Spec.Schematic.Kube.Parameters)
+	//if err != nil {
+	//	return ketchv1.ComponentStatus{
+	//		Status:  v1.ConditionFalse,
+	//		Message: err.Error(),
+	//	}
+	//}
+	//fmt.Print("values - ", parameterValuesObject)
 
-	return ctrl.Result{}, nil
+	// TODO templates
+
+	return ketchv1.ComponentStatus{}
 }
 
 // SetupWithManager sets up the controller with the Manager.
