@@ -36,6 +36,10 @@ spec:
         spec:
           description: ComponentSpec defines the desired state of Component
           properties:
+            default:
+              description: Default is whether the component is applied by default
+                when creating an Application
+              type: boolean
             schematic:
               description: Schematic
               properties:
@@ -44,6 +48,7 @@ spec:
                     Kubernetes workload resource as a component.
                   properties:
                     parameters:
+                      description: Parameters define configurable parameters
                       items:
                         properties:
                           fieldPaths:
@@ -54,30 +59,22 @@ spec:
                             type: string
                           required:
                             type: boolean
-                          templateName:
-                            type: string
                           type:
+                            type: string
+                          value:
                             type: string
                         required:
                         - fieldPaths
                         - name
                         - required
-                        - templateName
                         - type
+                        - value
                         type: object
                       type: array
                     templates:
-                      description: Templates
+                      description: Templates define raw Kubernetes resources
                       items:
-                        properties:
-                          name:
-                            type: string
-                          object:
-                            type: object
-                        required:
-                        - name
-                        - object
-                        type: object
+                        type: string
                       type: array
                   required:
                   - templates
@@ -88,10 +85,6 @@ spec:
             workload:
               description: Workload represents an identifier to a workload type
               properties:
-                default:
-                  description: Default is whether the component is applied by default
-                    when creating an Application
-                  type: boolean
                 workloadGVK:
                   description: Definition is a reference to Workload definition via
                     Group, Version, Kind
@@ -107,16 +100,29 @@ spec:
                       description: Kind is a string value representing the REST resource
                         this object represents.
                       type: string
+                  required:
+                  - apiVersion
+                  - group
+                  - kind
                   type: object
               required:
-              - default
               - workloadGVK
               type: object
           required:
+          - default
           - workload
           type: object
         status:
           description: ComponentStatus defines the observed state of Component
+          properties:
+            message:
+              description: Message contains any details (e.g. error) regarding a status
+              type: string
+            status:
+              description: Status reflects the observed core v1 status of a resource
+              type: string
+          required:
+          - status
           type: object
       type: object
   version: v1beta1
