@@ -72,19 +72,7 @@ func (r *ComponentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *ComponentReconciler) reconcile(ctx context.Context, component *ketchv1.Component) ketchv1.ComponentStatus {
-	// parameters
-	//parameterValuesObject := NewParameterValuesObject()
-	//err := setParameterValuesToKubeObj(parameterValuesObject, component.Spec.Schematic.Kube.Parameters)
-	//if err != nil {
-	//	return ketchv1.ComponentStatus{
-	//		Status:  v1.ConditionFalse,
-	//		Message: err.Error(),
-	//	}
-	//}
-	//fmt.Print("values - ", parameterValuesObject)
-
-	// TODO templates
-
+	// TODO validation
 	return ketchv1.ComponentStatus{}
 }
 

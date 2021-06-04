@@ -19,6 +19,7 @@ package v1beta1
 import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -69,13 +70,18 @@ type Schematic struct {
 }
 
 type Kube struct {
-	// Templates define raw Kubernetes resources
-	Templates []Template `json:"templates"`
-	// Parameters define configurable parameters
-	Parameters []Parameter `json:"parameters,omitempty"`
+	Templates []KubeTemplate `json:"templates"`
 }
 
-type Template string
+type KubeTemplate struct {
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Template   runtime.RawExtension `json:"object"`
+	Parameters []Parameter          `json:"parameters,omitempty"`
+}
+
+type ComponentType string
+
+type TraitType string
 
 // ComponentStatus defines the observed state of Component
 type ComponentStatus struct {

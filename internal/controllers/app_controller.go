@@ -22,9 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/release"
@@ -32,9 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -146,6 +141,44 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return result, err
 }
 
+func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconcileResult {
+	componentList := ketchv1.ComponentList{}
+	if err := r.List(ctx, &componentList); err != nil {
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: err.Error(),
+		}
+	}
+	components := make(map[ketchv1.ComponentType]ketchv1.ComponentSpec)
+	for _, component := range componentList.Items {
+		components[ketchv1.ComponentType(component.Kind)] = component.Spec
+	}
+
+	traitList := ketchv1.TraitList{}
+	if err := r.List(ctx, &traitList); err != nil {
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: err.Error(),
+		}
+	}
+	traits := make(map[ketchv1.TraitType]ketchv1.TraitSpec)
+	for _, trait := range traitList.Items {
+		traits[ketchv1.TraitType(trait.Kind)] = trait.Spec
+	}
+
+	appChart, err := chart.NewAppChart(app, components, traits)
+	if err != nil {
+		return reconcileResult{
+			status:  v1.ConditionFalse,
+			message: err.Error(),
+		}
+	}
+	fmt.Println(appChart)
+	return reconcileResult{
+		status: v1.ConditionTrue,
+	}
+}
+
 type reconcileResult struct {
 	status     v1.ConditionStatus
 	message    string
@@ -153,222 +186,223 @@ type reconcileResult struct {
 	useTimeout bool
 }
 
-func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconcileResult {
-	pool := ketchv1.Pool{}
-	if err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`pool "%s" is not found`, app.Spec.Pool),
-		}
-	}
-	ref, err := reference.GetReference(r.Scheme, &pool)
-	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: err.Error(),
-		}
-	}
-	if pool.Status.Namespace == nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`pool "%s" is not linked to a kubernetes namespace`, pool.Name),
-		}
-	}
-	tpls, err := r.TemplateReader.Get(app.TemplatesConfigMapName(pool.Spec.IngressController.IngressType))
-	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`failed to read configmap with the app's chart templates: %v`, err),
-		}
-	}
-	if !pool.HasApp(app.Name) && len(pool.Status.Apps) >= pool.Spec.AppQuotaLimit && pool.Spec.AppQuotaLimit != -1 {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`you have reached the limit of apps`),
-		}
-	}
-	options := []chart.Option{
-		chart.WithExposedPorts(app.ExposedPorts()),
-		chart.WithTemplates(*tpls),
-	}
-
-	appChrt, err := chart.New(app, &pool, options...)
-	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: err.Error(),
-		}
-	}
-	patchedPool := pool
-	if !patchedPool.HasApp(app.Name) {
-		patchedPool.Status.Apps = append(patchedPool.Status.Apps, app.Name)
-		mergePatch := client.MergeFrom(&pool)
-		if err := r.Status().Patch(ctx, &patchedPool, mergePatch); err != nil {
-			return reconcileResult{
-				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("failed to update pool status: %v", err),
-			}
-		}
-	}
-	targetNamespace := pool.Status.Namespace.Name
-	helmClient, err := r.HelmFactoryFn(targetNamespace)
-	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: err.Error(),
-		}
-	}
-
-	// check for canary deployment
-	if app.Spec.Canary.Active {
-		// ensures that the canary deployment exists
-		if len(app.Spec.Deployments) <= 1 {
-			// reset canary specs
-			app.Spec.Canary = ketchv1.CanarySpec{}
-
-			return reconcileResult{
-				status:     v1.ConditionFalse,
-				message:    "no canary deployment found",
-				useTimeout: true,
-			}
-		}
-
-		// retry until all pods for canary deployment comes to running state.
-		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
-
-			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
-				return reconcileResult{
-					status:     v1.ConditionFalse,
-					message:    fmt.Sprintf("canary update failed: %v", err),
-					useTimeout: true,
-				}
-			}
-
-			// Do rollback if timeout expired
-			app.DoRollback()
-			if e := r.Update(ctx, app); err != nil {
-				return reconcileResult{
-					status:     v1.ConditionFalse,
-					message:    fmt.Sprintf("failed to update app crd: %v", e),
-					useTimeout: true,
-				}
-			}
-		}
-
-		// Once all pods are running then Perform canary deployment.
-		if err = app.DoCanary(metav1.NewTime(r.Now())); err != nil {
-			return reconcileResult{
-				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("canary update failed: %v", err),
-			}
-		}
-		if err := r.Update(ctx, app); err != nil {
-			return reconcileResult{
-				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("canary update failed: %v", err),
-			}
-		}
-	}
-
-	_, err = helmClient.UpdateChart(*appChrt, chart.NewChartConfig(*app))
-	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf("failed to update helm chart: %v", err),
-		}
-	}
-	return reconcileResult{
-		pool:   ref,
-		status: v1.ConditionTrue,
-	}
-}
+//
+//func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconcileResult {
+//	pool := ketchv1.Pool{}
+//	if err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
+//		return reconcileResult{
+//			status:  v1.ConditionFalse,
+//			message: fmt.Sprintf(`pool "%s" is not found`, app.Spec.Pool),
+//		}
+//	}
+//	ref, err := reference.GetReference(r.Scheme, &pool)
+//	if err != nil {
+//		return reconcileResult{
+//			status:  v1.ConditionFalse,
+//			message: err.Error(),
+//		}
+//	}
+//	if pool.Status.Namespace == nil {
+//		return reconcileResult{
+//			status:  v1.ConditionFalse,
+//			message: fmt.Sprintf(`pool "%s" is not linked to a kubernetes namespace`, pool.Name),
+//		}
+//	}
+//	tpls, err := r.TemplateReader.Get(app.TemplatesConfigMapName(pool.Spec.IngressController.IngressType))
+//	if err != nil {
+//		return reconcileResult{
+//			status:  v1.ConditionFalse,
+//			message: fmt.Sprintf(`failed to read configmap with the app's chart templates: %v`, err),
+//		}
+//	}
+//	if !pool.HasApp(app.Name) && len(pool.Status.Apps) >= pool.Spec.AppQuotaLimit && pool.Spec.AppQuotaLimit != -1 {
+//		return reconcileResult{
+//			status:  v1.ConditionFalse,
+//			message: fmt.Sprintf(`you have reached the limit of apps`),
+//		}
+//	}
+//	options := []chart.Option{
+//		chart.WithExposedPorts(app.ExposedPorts()),
+//		chart.WithTemplates(*tpls),
+//	}
+//
+//	appChrt, err := chart.New(app, &pool, options...)
+//	if err != nil {
+//		return reconcileResult{
+//			status:  v1.ConditionFalse,
+//			message: err.Error(),
+//		}
+//	}
+//	patchedPool := pool
+//	if !patchedPool.HasApp(app.Name) {
+//		patchedPool.Status.Apps = append(patchedPool.Status.Apps, app.Name)
+//		mergePatch := client.MergeFrom(&pool)
+//		if err := r.Status().Patch(ctx, &patchedPool, mergePatch); err != nil {
+//			return reconcileResult{
+//				status:  v1.ConditionFalse,
+//				message: fmt.Sprintf("failed to update pool status: %v", err),
+//			}
+//		}
+//	}
+//	targetNamespace := pool.Status.Namespace.Name
+//	helmClient, err := r.HelmFactoryFn(targetNamespace)
+//	if err != nil {
+//		return reconcileResult{
+//			status:  v1.ConditionFalse,
+//			message: err.Error(),
+//		}
+//	}
+//
+//	// check for canary deployment
+//	if app.Spec.Canary.Active {
+//		// ensures that the canary deployment exists
+//		if len(app.Spec.Deployments) <= 1 {
+//			// reset canary specs
+//			app.Spec.Canary = ketchv1.CanarySpec{}
+//
+//			return reconcileResult{
+//				status:     v1.ConditionFalse,
+//				message:    "no canary deployment found",
+//				useTimeout: true,
+//			}
+//		}
+//
+//		// retry until all pods for canary deployment comes to running state.
+//		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
+//
+//			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
+//				return reconcileResult{
+//					status:     v1.ConditionFalse,
+//					message:    fmt.Sprintf("canary update failed: %v", err),
+//					useTimeout: true,
+//				}
+//			}
+//
+//			// Do rollback if timeout expired
+//			app.DoRollback()
+//			if e := r.Update(ctx, app); err != nil {
+//				return reconcileResult{
+//					status:     v1.ConditionFalse,
+//					message:    fmt.Sprintf("failed to update app crd: %v", e),
+//					useTimeout: true,
+//				}
+//			}
+//		}
+//
+//		// Once all pods are running then Perform canary deployment.
+//		if err = app.DoCanary(metav1.NewTime(r.Now())); err != nil {
+//			return reconcileResult{
+//				status:  v1.ConditionFalse,
+//				message: fmt.Sprintf("canary update failed: %v", err),
+//			}
+//		}
+//		if err := r.Update(ctx, app); err != nil {
+//			return reconcileResult{
+//				status:  v1.ConditionFalse,
+//				message: fmt.Sprintf("canary update failed: %v", err),
+//			}
+//		}
+//	}
+//
+//	_, err = helmClient.UpdateChart(*appChrt, chart.NewChartConfig(*app))
+//	if err != nil {
+//		return reconcileResult{
+//			status:  v1.ConditionFalse,
+//			message: fmt.Sprintf("failed to update helm chart: %v", err),
+//		}
+//	}
+//	return reconcileResult{
+//		pool:   ref,
+//		status: v1.ConditionTrue,
+//	}
+//}
 
 // TODO - WIP
-func (r *AppReconciler) generateHelmTemplates(ctx context.Context, app *ketchv1.App, req ctrl.Request) error {
-	// Components
-	componentList := ketchv1.ComponentList{}
-	if err := r.List(ctx, &componentList, client.InNamespace(req.Namespace)); err != nil {
-		return err
-	}
-	for _, component := range componentList.Items {
-		//	parameters
-		parameterValuesObject := NewParameterValuesObject()
-		parameterValueSettings, err := resolveKubeParameters(component.Spec.Schematic.Kube.Parameters, map[string]interface{}{}) // TODO 2nd param
-		if err != nil {
-			return err
-		}
-
-		err = setParameterValuesToKubeObj(parameterValuesObject, parameterValueSettings)
-		if err != nil {
-			return err
-		}
-		fmt.Print("values - ", parameterValuesObject)
-
-	}
-	// TODO Traits
-
-	return nil
-}
-
-func NewParameterValuesObject() *unstructured.Unstructured {
-	return &unstructured.Unstructured{Object: make(map[string]interface{})}
-}
-
-func resolveKubeParameters(params []ketchv1.Parameter, settings map[string]interface{}) (map[string]ParamValueSetting, error) {
-	values := make(map[string]ParamValueSetting)
-	supported := map[string]*ketchv1.Parameter{}
-	for _, p := range params {
-		supported[p.Name] = p.DeepCopy()
-	}
-	for name, v := range settings {
-		if supported[name] == nil {
-			return nil, errors.Errorf("unsupported parameter %s", name)
-		}
-		values[name] = ParamValueSetting{
-			Parameter: *supported[name],
-			Value:     v,
-		}
-	}
-	return values, nil
-}
-
-func setParameterValuesToKubeObj(obj *unstructured.Unstructured, parameterValueSettings map[string]ParamValueSetting) error {
-	paved := fieldpath.Pave(obj.Object)
-	for paramName, v := range parameterValueSettings {
-		for _, f := range v.FieldPaths {
-			switch v.Type {
-			case "string":
-				vString, ok := v.Value.(string)
-				if !ok {
-					return ErrInvalidParameterType(v.Type)
-				}
-				if err := paved.SetString(f, vString); err != nil {
-					return errors.Wrapf(err, "cannot set parameter %q to field %q", paramName, f)
-				}
-			case "number", "int", "float":
-				switch v.Value.(type) {
-				case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-					if err := paved.SetValue(f, v.Value); err != nil {
-						return errors.Wrapf(err, "cannot set parameter %q to field %q", paramName, f)
-					}
-				default:
-					return ErrInvalidParameterType(v.Type)
-				}
-			case "boolean", "bool":
-				vBoolean, ok := v.Value.(bool)
-				if !ok {
-					ErrInvalidParameterType(v.Type)
-				}
-				if err := paved.SetValue(f, vBoolean); err != nil {
-					return errors.Wrapf(err, "cannot set parameter %q to field %q", paramName, f)
-				}
-			default:
-				return ErrInvalidParameterType(v.Type)
-			}
-		}
-	}
-	return nil
-}
+//func (r *AppReconciler) generateHelmTemplates(ctx context.Context, app *ketchv1.App, req ctrl.Request) error {
+//	// Components
+//	componentList := ketchv1.ComponentList{}
+//	if err := r.List(ctx, &componentList, client.InNamespace(req.Namespace)); err != nil {
+//		return err
+//	}
+//	for _, component := range componentList.Items {
+//		//	parameters
+//		parameterValuesObject := NewParameterValuesObject()
+//		parameterValueSettings, err := resolveKubeParameters(component.Spec.Schematic.Kube.Parameters, map[string]interface{}{}) // TODO 2nd param
+//		if err != nil {
+//			return err
+//		}
+//
+//		err = setParameterValuesToKubeObj(parameterValuesObject, parameterValueSettings)
+//		if err != nil {
+//			return err
+//		}
+//		fmt.Print("values - ", parameterValuesObject)
+//
+//	}
+//	// TODO Traits
+//
+//	return nil
+//}
+//
+//func NewParameterValuesObject() *unstructured.Unstructured {
+//	return &unstructured.Unstructured{Object: make(map[string]interface{})}
+//}
+//
+//func resolveKubeParameters(params []ketchv1.Parameter, settings map[string]interface{}) (map[string]ParamValueSetting, error) {
+//	values := make(map[string]ParamValueSetting)
+//	supported := map[string]*ketchv1.Parameter{}
+//	for _, p := range params {
+//		supported[p.Name] = p.DeepCopy()
+//	}
+//	for name, v := range settings {
+//		if supported[name] == nil {
+//			return nil, errors.Errorf("unsupported parameter %s", name)
+//		}
+//		values[name] = ParamValueSetting{
+//			Parameter: *supported[name],
+//			Value:     v,
+//		}
+//	}
+//	return values, nil
+//}
+//
+//func setParameterValuesToKubeObj(obj *unstructured.Unstructured, parameterValueSettings map[string]ParamValueSetting) error {
+//	paved := fieldpath.Pave(obj.Object)
+//	for paramName, v := range parameterValueSettings {
+//		for _, f := range v.FieldPaths {
+//			switch v.Type {
+//			case "string":
+//				vString, ok := v.Value.(string)
+//				if !ok {
+//					return ErrInvalidParameterType(v.Type)
+//				}
+//				if err := paved.SetString(f, vString); err != nil {
+//					return errors.Wrapf(err, "cannot set parameter %q to field %q", paramName, f)
+//				}
+//			case "number", "int", "float":
+//				switch v.Value.(type) {
+//				case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+//					if err := paved.SetValue(f, v.Value); err != nil {
+//						return errors.Wrapf(err, "cannot set parameter %q to field %q", paramName, f)
+//					}
+//				default:
+//					return ErrInvalidParameterType(v.Type)
+//				}
+//			case "boolean", "bool":
+//				vBoolean, ok := v.Value.(bool)
+//				if !ok {
+//					ErrInvalidParameterType(v.Type)
+//				}
+//				if err := paved.SetValue(f, vBoolean); err != nil {
+//					return errors.Wrapf(err, "cannot set parameter %q to field %q", paramName, f)
+//				}
+//			default:
+//				return ErrInvalidParameterType(v.Type)
+//			}
+//		}
+//	}
+//	return nil
+//}
 
 // check if timeout has expired
 func timeoutExpired(t *metav1.Time, now time.Time) bool {

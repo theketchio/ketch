@@ -47,34 +47,37 @@ spec:
                   description: Kube is a template with parameter list for a certain
                     Kubernetes workload resource as a component.
                   properties:
-                    parameters:
-                      description: Parameters define configurable parameters
+                    templates:
                       items:
                         properties:
-                          fieldPaths:
+                          object:
+                            type: object
+                          parameters:
                             items:
-                              type: string
+                              properties:
+                                fieldPaths:
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  type: string
+                                required:
+                                  type: boolean
+                                type:
+                                  type: string
+                                value:
+                                  type: string
+                              required:
+                              - fieldPaths
+                              - name
+                              - required
+                              - type
+                              - value
+                              type: object
                             type: array
-                          name:
-                            type: string
-                          required:
-                            type: boolean
-                          type:
-                            type: string
-                          value:
-                            type: string
                         required:
-                        - fieldPaths
-                        - name
-                        - required
-                        - type
-                        - value
+                        - object
                         type: object
-                      type: array
-                    templates:
-                      description: Templates define raw Kubernetes resources
-                      items:
-                        type: string
                       type: array
                   required:
                   - templates

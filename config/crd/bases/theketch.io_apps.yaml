@@ -96,6 +96,8 @@ spec:
                   name:
                     type: string
                   properties:
+                    additionalProperties:
+                      type: object
                     type: object
                   type:
                     type: string

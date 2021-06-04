@@ -13,11 +13,14 @@ import (
 	"text/template"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/json"
+
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/pkg/errors"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/templates"
 )
@@ -25,8 +28,12 @@ import (
 // ApplicationChart is an internal representation of a helm chart converted from the App CRD
 // and is used to render a helm chart.
 type ApplicationChart struct {
-	values    values
+	//values         values            // TODO remove
 	templates map[string]string
+	values    map[string]interface{}
+	//componentTemplates map[string]string
+	//traitTemplates     map[string]string
+	Name string
 }
 
 type values struct {
@@ -109,6 +116,65 @@ func WithTemplates(tpls templates.Templates) Option {
 	}
 }
 
+func NewAppChart(a *ketchv1.App, components map[ketchv1.ComponentType]ketchv1.ComponentSpec, traits map[ketchv1.TraitType]ketchv1.TraitSpec) (*ApplicationChart, error) {
+	templates := make(map[string]string)
+	componentValues := make(map[string]interface{})
+	traitValues := make(map[string]interface{})
+
+	for _, c := range a.Spec.Components {
+		component, ok := components[c.Type]
+		if !ok {
+			return nil, errors.New("component is not present")
+		}
+		properties := make(map[string]interface{})
+		for name, prop := range c.Properties {
+			properties[name] = prop // TODO
+		}
+		componentValues[c.Name] = properties
+
+		componentTemplate, err := RenderComponent(&component, &c)
+		if err != nil {
+			return nil, err
+		}
+		templates[fmt.Sprintf("%sComponent.yaml", c.Name)] = componentTemplate
+
+		// TODO same ^ for traits
+	}
+	return &ApplicationChart{
+		values: map[string]interface{}{
+			"components": componentValues,
+			"traits":     traitValues,
+		},
+		templates: templates,
+		Name:      a.Name,
+	}, nil
+}
+
+func RenderComponent(componentSpec *ketchv1.ComponentSpec, componentLink *ketchv1.ComponentLink) (string, error) {
+	// TODO helm-template-ify
+	// TODO - clarify what needs to happen here
+	// componentLink contains values
+	// compoentSpec contains component structure
+
+	builder := strings.Builder{}
+	for _, componentProperty := range componentLink.Properties {
+		b, err := componentProperty.MarshalJSON()
+		if err != nil {
+			return "", err
+		}
+		temp := make(map[string]interface{})
+		err = json.Unmarshal(b, &temp)
+		if err != nil {
+			return "", err
+		}
+		for field, value := range temp {
+			fmt.Println("HERE", field, value)
+			builder.WriteString(fmt.Sprintf("\n%s: %s", field, value))
+		}
+	}
+	return builder.String(), nil
+}
+
 // New returns an ApplicationChart instance.
 func New(application *ketchv1.App, pool *ketchv1.Pool, opts ...Option) (*ApplicationChart, error) {
 
@@ -165,8 +231,8 @@ func New(application *ketchv1.App, pool *ketchv1.Pool, opts ...Option) (*Applica
 	}
 	values.App.IsAccessible = isAppAccessible(values.App)
 	return &ApplicationChart{
-		values:    *values,
-		templates: options.Templates.Yamls,
+		//values:    *values,
+		//templates: options.Templates.Yamls,
 	}, nil
 }
 
@@ -246,6 +312,13 @@ func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig Cha
 			return err
 		}
 	}
+	for filename, content := range chrt.templates {
+		path := filepath.Join(targetDir, "templates", filename)
+		err = ioutil.WriteFile(path, []byte(content), 0644)
+		if err != nil {
+			return err
+		}
+	}
 	valuesBytes, err := yaml.Marshal(chrt.values)
 	if err != nil {
 		return err
@@ -295,7 +368,7 @@ func (chrt ApplicationChart) bufferedFiles(chartConfig ChartConfig) ([]*loader.B
 
 // AppName returns a name of the application.
 func (chrt ApplicationChart) AppName() string {
-	return chrt.values.App.Name
+	return chrt.Name
 }
 
 func isAppAccessible(a *app) bool {

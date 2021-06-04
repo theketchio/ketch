@@ -6,6 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"io/ioutil"
+
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/templates"
 	"github.com/stretchr/testify/require"
@@ -13,7 +17,6 @@ import (
 	"helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -157,6 +160,84 @@ func TestNew(t *testing.T) {
 			expected, err := ioutil.ReadFile(expectedFilename)
 			require.Nil(t, err)
 			require.Equal(t, string(expected), actualManifests)
+		})
+	}
+}
+
+func TestNewAppChart(t *testing.T) {
+	app := &ketchv1.App{
+		Spec: ketchv1.AppSpec{
+			Components: []ketchv1.ComponentLink{{
+				Name: "Frontend",
+				Type: "Deployment",
+				Properties: map[string]runtime.RawExtension{
+					//"name": runtime.RawExtension{Object: &ketchv1.Component{}},
+					//"name":  runtime.RawExtension{Raw: []byte("{\"name\":\"hello-front\"}")},
+					"image": runtime.RawExtension{Raw: []byte("{\"image\":\"me-my-frontendL1.2.3\"}")},
+				},
+			}},
+		},
+	}
+	tests := []struct {
+		name        string
+		application *ketchv1.App
+		components  map[ketchv1.ComponentType]ketchv1.ComponentSpec
+		traits      map[ketchv1.TraitType]ketchv1.TraitSpec
+
+		wantYamlsFilename string
+		wantErr           bool
+	}{
+		{
+			name:        "success",
+			application: app,
+			components: map[ketchv1.ComponentType]ketchv1.ComponentSpec{
+				"Deployment": ketchv1.ComponentSpec{
+					Schematic: ketchv1.Schematic{
+						Kube: &ketchv1.Kube{
+							Templates: []ketchv1.KubeTemplate{{
+								Template: runtime.RawExtension{Raw: []byte(`
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  selector:
+  template:
+    metadata:
+    spec:
+      containers:
+        - name: application
+`)},
+								Parameters: []ketchv1.Parameter{},
+							}},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAppChart(tt.application, tt.components, tt.traits)
+			if tt.wantErr {
+				require.Nil(t, err, "New() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			require.Nil(t, err)
+
+			t.Log(got)
+
+			chartConfig := ChartConfig{
+				Version: "0.0.1",
+				AppName: tt.application.Name,
+			}
+			client := HelmClient{cfg: &action.Configuration{KubeClient: &fake.PrintingKubeClient{}, Releases: storage.Init(driver.NewMemory())}, namespace: "mock-namespace"}
+			release, err := client.UpdateChart(*got, chartConfig, func(install *action.Install) {
+				install.DryRun = true
+				install.ClientOnly = true
+			})
+			require.Nil(t, err)
+
+			fmt.Println(release)
 		})
 	}
 }

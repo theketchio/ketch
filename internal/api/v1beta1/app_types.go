@@ -189,9 +189,9 @@ type CanarySpec struct {
 }
 
 type ComponentLink struct {
-	Name       string               `json:"name"`
-	Type       string               `json:"type"`
-	Properties runtime.RawExtension `json:"properties"`
+	Name       string                          `json:"name"`
+	Type       ComponentType                   `json:"type"`
+	Properties map[string]runtime.RawExtension `json:"properties"`
 	// Traits?
 }
 
