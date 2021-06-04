@@ -28,24 +28,19 @@ func main() {
 		log.Fatalf("couldn't create pack service %q", err)
 	}
 
-	cmd := newRootCmd(initConfig(), out, packSvc)
+	cmd := newRootCmd(&configuration.Configuration{}, out, packSvc, getKetchConfig())
 	if err := cmd.Execute(); err != nil {
 		log.Fatalf("execution failed %q", err)
 	}
 }
 
-func initConfig() *configuration.Configuration {
+// the KetchConfig is optional and in the event it is not found an empty one is returned
+func getKetchConfig() configuration.KetchConfig {
 	path, err := configuration.DefaultConfigPath()
 	if err != nil {
 		log.Println(err)
-		return &configuration.Configuration{}
+		return configuration.KetchConfig{}
 	}
 
-	cfg, err := configuration.Read(path)
-	if err != nil {
-		log.Println(err)
-		return &configuration.Configuration{}
-	}
-
-	return cfg
+	return configuration.Read(path)
 }

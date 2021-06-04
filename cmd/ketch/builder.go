@@ -17,7 +17,7 @@ There are already a number of builders available for use by all developers, as w
 You can learn more about builders at: https://buildpacks.io/docs/concepts/components/builder/
 `
 
-func newBuilderCmd(cfg config, out io.Writer) *cobra.Command {
+func newBuilderCmd(ketchConfig configuration.KetchConfig, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "builder",
 		Short: "Manage pack builders",
@@ -25,8 +25,6 @@ func newBuilderCmd(cfg config, out io.Writer) *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 
-	configStruct := cfg.(*configuration.Configuration)
-
-	cmd.AddCommand(newBuilderListCmd(configStruct.KetchConfig, out))
+	cmd.AddCommand(newBuilderListCmd(ketchConfig, out))
 	return cmd
 }

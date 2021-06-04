@@ -32,8 +32,6 @@ func init() {
 type Configuration struct {
 	cli     client.Client
 	storage *templates.Storage
-
-	KetchConfig KetchConfig
 }
 
 // KetchConfig contains all the values present in the config.toml
@@ -127,15 +125,12 @@ func ketchHome() (string, error) {
 }
 
 // Read returns a Configuration containing the unmarshalled config.toml file contents
-func Read(path string) (*Configuration, error) {
-	cfg := Configuration{}
+func Read(path string) KetchConfig {
 	var ketchConfig KetchConfig
 
 	_, err := toml.DecodeFile(path, &ketchConfig)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, err
+		return KetchConfig{}
 	}
-	cfg.KetchConfig = ketchConfig
-
-	return &cfg, nil
+	return ketchConfig
 }
