@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	bou.ke/monkey v1.0.2
+	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/buildpacks/pack v0.15.1 // indirect
 	github.com/docker/cli v0.0.0-20200312141509-ef2f64abbd37
 	github.com/docker/distribution v2.7.1+incompatible
