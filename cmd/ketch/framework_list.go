@@ -12,32 +12,32 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
-const poolListHelp = `
-List all pools available for deploy.
+const frameworkListHelp = `
+List all frameworks available for deploy.
 `
 
-func newPoolListCmd(cfg config, out io.Writer) *cobra.Command {
+func newFrameworkListCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List all pools available for deploy.",
-		Long:  poolListHelp,
+		Short: "List all frameworks available for deploy.",
+		Long:  frameworkListHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return poolList(cmd.Context(), cfg, out)
+			return frameworkList(cmd.Context(), cfg, out)
 		},
 	}
 	return cmd
 }
 
-func poolList(ctx context.Context, cfg config, out io.Writer) error {
-	pools := ketchv1.PoolList{}
-	if err := cfg.Client().List(ctx, &pools); err != nil {
-		return fmt.Errorf("failed to get list of pools: %w", err)
+func frameworkList(ctx context.Context, cfg config, out io.Writer) error {
+	frameworks := ketchv1.FrameworkList{}
+	if err := cfg.Client().List(ctx, &frameworks); err != nil {
+		return fmt.Errorf("failed to get list of frameworks: %w", err)
 	}
 
 	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
 	fmt.Fprintln(w, "NAME\tSTATUS\tNAMESPACE\tINGRESS TYPE\tINGRESS CLASS NAME\tCLUSTER ISSUER\tAPPS")
 
-	for _, item := range pools.Items {
+	for _, item := range frameworks.Items {
 		apps := fmt.Sprintf("%d", len(item.Status.Apps))
 		if item.Spec.AppQuotaLimit > 0 {
 			apps = fmt.Sprintf("%d/%d", len(item.Status.Apps), item.Spec.AppQuotaLimit)

@@ -110,7 +110,7 @@ func WithTemplates(tpls templates.Templates) Option {
 }
 
 // New returns an ApplicationChart instance.
-func New(application *ketchv1.App, pool *ketchv1.Pool, opts ...Option) (*ApplicationChart, error) {
+func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option) (*ApplicationChart, error) {
 
 	options := &Options{}
 	for _, opt := range opts {
@@ -120,10 +120,10 @@ func New(application *ketchv1.App, pool *ketchv1.Pool, opts ...Option) (*Applica
 	values := &values{
 		App: &app{
 			Name:    application.Name,
-			Ingress: newIngress(*application, *pool),
+			Ingress: newIngress(*application, *framework),
 			Env:     application.Spec.Env,
 		},
-		IngressController: &pool.Spec.IngressController,
+		IngressController: &framework.Spec.IngressController,
 		DockerRegistry: dockerRegistrySpec{
 			ImagePullSecret: application.Spec.DockerRegistry.SecretName,
 		},
@@ -185,7 +185,7 @@ func (chrt ApplicationChart) getValues() (map[string]interface{}, error) {
 const (
 	chartYaml = `apiVersion: v2
 name: {{ .AppName }}
-description: {{ .Description }} 
+description: {{ .Description }}
 type: application
 version: {{ .Version }}
 {{- if .AppVersion }}
@@ -312,10 +312,10 @@ func isAppAccessible(a *app) bool {
 	return false
 }
 
-func newIngress(app ketchv1.App, pool ketchv1.Pool) ingress {
+func newIngress(app ketchv1.App, framework ketchv1.Framework) ingress {
 	var http []string
 	var https []string
-	if len(pool.Spec.IngressController.ClusterIssuer) > 0 {
+	if len(framework.Spec.IngressController.ClusterIssuer) > 0 {
 		// cluster issuer is mandatory to obtain SSL certificates.
 		https = app.Spec.Ingress.Cnames
 	} else {
@@ -329,7 +329,7 @@ func newIngress(app ketchv1.App, pool ketchv1.Pool) ingress {
 		secretName := fmt.Sprintf("%s-cname-%x", app.Name, bs[:10])
 		httpsEndpoints = append(httpsEndpoints, httpsEndpoint{Cname: cname, SecretName: secretName})
 	}
-	defaultCname := app.DefaultCname(&pool)
+	defaultCname := app.DefaultCname(&framework)
 	if defaultCname != nil {
 		http = append(http, *defaultCname)
 	}

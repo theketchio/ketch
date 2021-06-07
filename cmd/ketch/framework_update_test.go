@@ -15,7 +15,7 @@ import (
 	"github.com/shipa-corp/ketch/internal/mocks"
 )
 
-func Test_poolUpdate(t *testing.T) {
+func Test_frameworkUpdate(t *testing.T) {
 	clusterIssuerLe := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "cert-manager.io/v1",
@@ -28,12 +28,12 @@ func Test_poolUpdate(t *testing.T) {
 			},
 		},
 	}
-	frontendPool := &ketchv1.Pool{
+	frontendFramework := &ketchv1.Framework{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "frontend-pool",
+			Name: "frontend-framework",
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "frontend",
 			AppQuotaLimit: 30,
 			IngressController: ketchv1.IngressControllerSpec{
@@ -48,24 +48,24 @@ func Test_poolUpdate(t *testing.T) {
 	tests := []struct {
 		name    string
 		cfg     config
-		options poolUpdateOptions
+		options frameworkUpdateOptions
 
-		wantPoolSpec ketchv1.PoolSpec
-		wantOut      string
-		wantErr      string
+		wantFrameworkSpec ketchv1.FrameworkSpec
+		wantOut           string
+		wantErr           string
 	}{
 		{
 			name: "update service endpoint",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{frontendPool},
+				CtrlClientObjects: []runtime.Object{frontendFramework},
 			},
-			options: poolUpdateOptions{
-				name:                      "frontend-pool",
+			options: frameworkUpdateOptions{
+				name:                      "frontend-framework",
 				ingressServiceEndpointSet: true,
 				ingressServiceEndpoint:    "192.168.1.18",
 			},
 			wantOut: "Successfully updated!\n",
-			wantPoolSpec: ketchv1.PoolSpec{
+			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
 				AppQuotaLimit: 30,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -79,15 +79,15 @@ func Test_poolUpdate(t *testing.T) {
 		{
 			name: "update ingress class name",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{frontendPool},
+				CtrlClientObjects: []runtime.Object{frontendFramework},
 			},
-			options: poolUpdateOptions{
-				name:                "frontend-pool",
+			options: frameworkUpdateOptions{
+				name:                "frontend-framework",
 				ingressClassNameSet: true,
 				ingressClassName:    "traefik",
 			},
 			wantOut: "Successfully updated!\n",
-			wantPoolSpec: ketchv1.PoolSpec{
+			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
 				AppQuotaLimit: 30,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -101,15 +101,15 @@ func Test_poolUpdate(t *testing.T) {
 		{
 			name: "update namespace name",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{frontendPool},
+				CtrlClientObjects: []runtime.Object{frontendFramework},
 			},
-			options: poolUpdateOptions{
-				name:         "frontend-pool",
+			options: frameworkUpdateOptions{
+				name:         "frontend-framework",
 				namespaceSet: true,
 				namespace:    "new-namespace",
 			},
 			wantOut: "Successfully updated!\n",
-			wantPoolSpec: ketchv1.PoolSpec{
+			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "new-namespace",
 				AppQuotaLimit: 30,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -123,15 +123,15 @@ func Test_poolUpdate(t *testing.T) {
 		{
 			name: "update app quota",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{frontendPool},
+				CtrlClientObjects: []runtime.Object{frontendFramework},
 			},
-			options: poolUpdateOptions{
-				name:             "frontend-pool",
+			options: frameworkUpdateOptions{
+				name:             "frontend-framework",
 				appQuotaLimitSet: true,
 				appQuotaLimit:    50,
 			},
 			wantOut: "Successfully updated!\n",
-			wantPoolSpec: ketchv1.PoolSpec{
+			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
 				AppQuotaLimit: 50,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -145,15 +145,15 @@ func Test_poolUpdate(t *testing.T) {
 		{
 			name: "update ingress type",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{frontendPool},
+				CtrlClientObjects: []runtime.Object{frontendFramework},
 			},
-			options: poolUpdateOptions{
-				name:           "frontend-pool",
+			options: frameworkUpdateOptions{
+				name:           "frontend-framework",
 				ingressTypeSet: true,
 				ingressType:    traefik,
 			},
 			wantOut: "Successfully updated!\n",
-			wantPoolSpec: ketchv1.PoolSpec{
+			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
 				AppQuotaLimit: 30,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -167,16 +167,16 @@ func Test_poolUpdate(t *testing.T) {
 		{
 			name: "update cluster issuer",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects:    []runtime.Object{frontendPool},
+				CtrlClientObjects:    []runtime.Object{frontendFramework},
 				DynamicClientObjects: []runtime.Object{clusterIssuerLe},
 			},
-			options: poolUpdateOptions{
-				name:                    "frontend-pool",
+			options: frameworkUpdateOptions{
+				name:                    "frontend-framework",
 				ingressClusterIssuerSet: true,
 				ingressClusterIssuer:    "le-production",
 			},
 			wantOut: "Successfully updated!\n",
-			wantPoolSpec: ketchv1.PoolSpec{
+			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
 				AppQuotaLimit: 30,
 				IngressController: ketchv1.IngressControllerSpec{
@@ -188,24 +188,24 @@ func Test_poolUpdate(t *testing.T) {
 			},
 		},
 		{
-			name: "err - no pool",
+			name: "err - no framework",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{},
 			},
-			options: poolUpdateOptions{
-				name:             "frontend-pool",
+			options: frameworkUpdateOptions{
+				name:             "frontend-framework",
 				appQuotaLimitSet: true,
 				appQuotaLimit:    50,
 			},
-			wantErr: `failed to get the pool: pools.theketch.io "frontend-pool" not found`,
+			wantErr: `failed to get the framework: frameworks.theketch.io "frontend-framework" not found`,
 		},
 		{
 			name: "error - no cluster issuer",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{frontendPool},
+				CtrlClientObjects: []runtime.Object{frontendFramework},
 			},
-			options: poolUpdateOptions{
-				name:                    "frontend-pool",
+			options: frameworkUpdateOptions{
+				name:                    "frontend-framework",
 				ingressClusterIssuerSet: true,
 				ingressClusterIssuer:    "le-production",
 			},
@@ -215,7 +215,7 @@ func Test_poolUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := poolUpdate(context.Background(), tt.cfg, tt.options, out)
+			err := frameworkUpdate(context.Background(), tt.cfg, tt.options, out)
 			wantErr := len(tt.wantErr) > 0
 			if wantErr {
 				require.NotNil(t, err)
@@ -223,10 +223,10 @@ func Test_poolUpdate(t *testing.T) {
 				return
 			}
 			require.Equal(t, tt.wantOut, out.String())
-			gotPool := ketchv1.Pool{}
-			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.options.name}, &gotPool)
+			gotFramework := ketchv1.Framework{}
+			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.options.name}, &gotFramework)
 			require.Nil(t, err)
-			require.Equal(t, tt.wantPoolSpec, gotPool.Spec)
+			require.Equal(t, tt.wantFrameworkSpec, gotFramework.Spec)
 		})
 	}
 }

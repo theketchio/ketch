@@ -13,7 +13,7 @@ import (
 )
 
 const appExportHelp = `
-Export an application as a helm chart. 
+Export an application as a helm chart.
 `
 
 type appExportFn func(ctx context.Context, cfg config, chartNew chartNewFn, options appExportOptions, out io.Writer) error
@@ -40,18 +40,18 @@ type appExportOptions struct {
 	directory string
 }
 
-type chartNewFn func(application *ketchv1.App, pool *ketchv1.Pool, opts ...chart.Option) (*chart.ApplicationChart, error)
+type chartNewFn func(application *ketchv1.App, framework *ketchv1.Framework, opts ...chart.Option) (*chart.ApplicationChart, error)
 
 func appExport(ctx context.Context, cfg config, chartNew chartNewFn, options appExportOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
-	pool := ketchv1.Pool{}
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
-		return fmt.Errorf("failed to get pool: %w", err)
+	framework := ketchv1.Framework{}
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
+		return fmt.Errorf("failed to get framework: %w", err)
 	}
-	tpls, err := cfg.Storage().Get(app.TemplatesConfigMapName(pool.Spec.IngressController.IngressType))
+	tpls, err := cfg.Storage().Get(app.TemplatesConfigMapName(framework.Spec.IngressController.IngressType))
 	if err != nil {
 		return fmt.Errorf("failed to get the app's templates: %w", err)
 	}
@@ -59,7 +59,7 @@ func appExport(ctx context.Context, cfg config, chartNew chartNewFn, options app
 		chart.WithExposedPorts(app.ExposedPorts()),
 		chart.WithTemplates(*tpls),
 	}
-	appChrt, err := chartNew(&app, &pool, chartOptions...)
+	appChrt, err := chartNew(&app, &framework, chartOptions...)
 	if err != nil {
 		return fmt.Errorf("failed to create helm chart: %w", err)
 	}

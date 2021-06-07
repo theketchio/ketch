@@ -127,12 +127,12 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 			return err
 		}
 
-		pool, err := cs.getPool(ctx, client)
+		framework, err := cs.getFramework(ctx, client)
 		if err := assign(err, func() error {
-			if app.Spec.Pool != "" && pool != app.Spec.Pool {
-				return fmt.Errorf("can't change pool once app has been created")
+			if app.Spec.Framework != "" && framework != app.Spec.Framework {
+				return fmt.Errorf("can't change framework once app has been created")
 			}
-			app.Spec.Pool = pool
+			app.Spec.Framework = framework
 			changed = true
 			return nil
 		}); err != nil {
@@ -177,9 +177,9 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 		return err
 	}
 
-	var pool ketchv1.Pool
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
-		return errors.Wrap(err, "failed to get pool %s", app.Spec.Pool)
+	var framework ketchv1.Framework
+	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
+		return errors.Wrap(err, "failed to get framework %s", app.Spec.Framework)
 	}
 
 	image, _ := params.getImage()
@@ -201,7 +201,7 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 	imageRequest := ImageConfigRequest{
 		imageName:       image,
 		secretName:      app.Spec.DockerRegistry.SecretName,
-		secretNamespace: pool.Spec.NamespaceName,
+		secretNamespace: framework.Spec.NamespaceName,
 		client:          svc.KubeClient,
 	}
 	imgConfig, err := svc.GetImageConfig(ctx, imageRequest)
@@ -248,9 +248,9 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 		return err
 	}
 
-	var pool ketchv1.Pool
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
-		return errors.Wrap(err, "failed to get pool %q", app.Spec.Pool)
+	var framework ketchv1.Framework
+	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
+		return errors.Wrap(err, "failed to get framework %q", app.Spec.Framework)
 	}
 
 	image, _ := params.getImage()
@@ -258,7 +258,7 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	imageRequest := ImageConfigRequest{
 		imageName:       image,
 		secretName:      app.Spec.DockerRegistry.SecretName,
-		secretNamespace: pool.Spec.NamespaceName,
+		secretNamespace: framework.Spec.NamespaceName,
 		client:          svc.KubeClient,
 	}
 	imgConfig, err := svc.GetImageConfig(ctx, imageRequest)

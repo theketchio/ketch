@@ -9,8 +9,8 @@ metadata:
   name: apps.theketch.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.pool
-    name: Pool
+  - JSONPath: .spec.Framework
+    name: Framework
     type: string
   - JSONPath: .spec.description
     name: Description
@@ -43,6 +43,10 @@ spec:
         spec:
           description: AppSpec defines the desired state of App.
           properties:
+            Framework:
+              description: Framework is a name of a Framework used to run the application.
+              minLength: 1
+              type: string
             buildPacks:
               description: BuildPacks is a list of build packs to use when building
                 from source.
@@ -497,16 +501,12 @@ spec:
               required:
               - generateDefaultCname
               type: object
-            pool:
-              description: Pool is a name of a pool used to run the application.
-              minLength: 1
-              type: string
             version:
               type: string
           required:
+          - Framework
           - deployments
           - ingress
-          - pool
           type: object
         status:
           description: AppStatus represents information about the status of an application.
@@ -537,7 +537,7 @@ spec:
                 - type
                 type: object
               type: array
-            pool:
+            framework:
               description: 'ObjectReference contains enough information to let you
                 inspect or modify the referred object. --- New uses of this type are
                 discouraged because of difficulty describing its usage when embedded

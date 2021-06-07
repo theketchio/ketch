@@ -31,8 +31,8 @@ type mockClient struct {
 	create funcMap
 	update funcMap
 
-	app  *ketchv1.App
-	pool *ketchv1.Pool
+	app       *ketchv1.App
+	framework *ketchv1.Framework
 
 	getCounter    int
 	createCounter int
@@ -47,15 +47,15 @@ func newMockClient() *mockClient {
 		app: &ketchv1.App{
 			Spec: ketchv1.AppSpec{
 				Description: "foo",
-				Pool:        "initialpool",
+				Framework:   "initialframework",
 				Builder:     "initialbuilder",
 			},
 		},
-		pool: &ketchv1.Pool{
+		framework: &ketchv1.Framework{
 			TypeMeta:   metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{},
-			Spec:       ketchv1.PoolSpec{},
-			Status:     ketchv1.PoolStatus{},
+			Spec:       ketchv1.FrameworkSpec{},
+			Status:     ketchv1.FrameworkStatus{},
 		},
 	}
 }
@@ -71,8 +71,8 @@ func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj runtime.Obje
 	case *ketchv1.App:
 		*v = *m.app
 		return nil
-	case *ketchv1.Pool:
-		*v = *m.pool
+	case *ketchv1.Framework:
+		*v = *m.framework
 		return nil
 	}
 	panic("unhandled type")
@@ -89,8 +89,8 @@ func (m *mockClient) Create(_ context.Context, obj runtime.Object, _ ...client.C
 	case *ketchv1.App:
 		m.app = v
 		return nil
-	case *ketchv1.Pool:
-		m.pool = v
+	case *ketchv1.Framework:
+		m.framework = v
 		return nil
 	}
 	panic("unhandled type")
@@ -107,8 +107,8 @@ func (m *mockClient) Update(ctx context.Context, obj runtime.Object, opts ...cli
 	case *ketchv1.App:
 		m.app = v
 		return nil
-	case *ketchv1.Pool:
-		m.pool = v
+	case *ketchv1.Framework:
+		m.framework = v
 		return nil
 	}
 	panic("unhandled type")
@@ -134,12 +134,12 @@ kubernetes:
     web:
       ports:
         - name: apache-http # an optional name for the port
-          protocol: TCP 
+          protocol: TCP
           port: 80 # The port that is going to be exposed on the router.
           target_port: 9999 # The port on which the application listens on.
     worker:
       ports:
-        - name: http 
+        - name: http
           protocol: TCP
           port: 80
     worker-2:
@@ -191,7 +191,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--pool", "initialpool",
+				"--framework", "initialframework",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -222,7 +222,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -255,7 +255,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 				"--builder", "superduper",
 				"--build-packs", "pack1,pack2",
@@ -292,7 +292,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,zip=zap",
 				"--builder", "newbuilder",
@@ -306,7 +306,7 @@ func TestNewCommand(t *testing.T) {
 			validate: func(t *testing.T, m deploy.Client) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
-				require.Equal(t, "mypool", mock.app.Spec.Pool)
+				require.Equal(t, "myframework", mock.app.Spec.Framework)
 				require.Equal(t, "newbuilder", mock.app.Spec.Builder)
 				require.Len(t, mock.app.Spec.Deployments, 1)
 				require.Len(t, mock.app.Spec.Deployments[0].KetchYaml.Kubernetes.Processes, 3)
@@ -386,7 +386,7 @@ func TestNewCommand(t *testing.T) {
 			validate: func(t *testing.T, m deploy.Client) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
-				require.Equal(t, mock.app.Spec.Pool, "initialpool")
+				require.Equal(t, mock.app.Spec.Framework, "initialframework")
 
 			},
 			params: &deploy.Services{
@@ -417,7 +417,7 @@ func TestNewCommand(t *testing.T) {
 			name: "happy path build from image",
 			arguments: []string{
 				"myapp",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -448,7 +448,7 @@ func TestNewCommand(t *testing.T) {
 				"myapp",
 				"src",
 				"--platform", "go",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -476,7 +476,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,bobb=dobbs",
 			},
@@ -508,7 +508,7 @@ func TestNewCommand(t *testing.T) {
 				"myapp",
 				"src",
 				"--platform", "go",
-				"--pool", "mypool",
+				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,bobbdobbs",
 			},

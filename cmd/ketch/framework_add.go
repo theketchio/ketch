@@ -13,8 +13,8 @@ import (
 	"github.com/shipa-corp/ketch/internal/validation"
 )
 
-const poolAddHelp = `
-Add a new pool.
+const frameworkAddHelp = `
+Add a new framework.
 `
 
 type ingressType enumflag.Flag
@@ -34,23 +34,23 @@ var ingressTypeIds = map[ingressType][]string{
 	istio:   {ketchv1.IstioIngressControllerType.String()},
 }
 
-type addPoolFn func(ctx context.Context, cfg config, options poolAddOptions, out io.Writer) error
+type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error
 
-func newPoolAddCmd(cfg config, out io.Writer, addPool addPoolFn) *cobra.Command {
-	options := poolAddOptions{}
+func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) *cobra.Command {
+	options := frameworkAddOptions{}
 	cmd := &cobra.Command{
-		Use:   "add POOL",
+		Use:   "add FRAMEWORK",
 		Args:  cobra.ExactValidArgs(1),
-		Short: "Add a new pool.",
-		Long:  poolAddHelp,
+		Short: "Add a new framework.",
+		Long:  frameworkAddHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.name = args[0]
 			options.ingressClassNameSet = cmd.Flags().Changed("ingress-class-name")
-			return addPool(cmd.Context(), cfg, options, out)
+			return addFramework(cmd.Context(), cfg, options, out)
 		},
 	}
-	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this pool")
-	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", -1, "Quota limit for app when adding it to this pool")
+	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this framework")
+	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", -1, "Quota limit for app when adding it to this framework")
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", `if set, it is used as kubernetes.io/ingress.class annotations. Ketch uses "istio" class name for istio ingress controller, if class name is not specified`)
 	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
@@ -58,7 +58,7 @@ func newPoolAddCmd(cfg config, out io.Writer, addPool addPoolFn) *cobra.Command 
 	return cmd
 }
 
-type poolAddOptions struct {
+type frameworkAddOptions struct {
 	name string
 
 	appQuotaLimit int
@@ -71,9 +71,9 @@ type poolAddOptions struct {
 	ingressType            ingressType
 }
 
-func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Writer) error {
+func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
 	if !validation.ValidateName(options.name) {
-		return ErrInvalidPoolName
+		return ErrInvalidFrameworkName
 	}
 	namespace := fmt.Sprintf("ketch-%s", options.name)
 	if len(options.namespace) > 0 {
@@ -88,12 +88,12 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 			return ErrClusterIssuerNotFound
 		}
 	}
-	pool := ketchv1.Pool{
+	framework := ketchv1.Framework{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: options.name,
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: namespace,
 			AppQuotaLimit: options.appQuotaLimit,
 			IngressController: ketchv1.IngressControllerSpec{
@@ -103,16 +103,16 @@ func addPool(ctx context.Context, cfg config, options poolAddOptions, out io.Wri
 				IngressType:     options.ingressType.ingressControllerType(),
 			},
 		},
-		Status: ketchv1.PoolStatus{},
+		Status: ketchv1.FrameworkStatus{},
 	}
-	if err := cfg.Client().Create(ctx, &pool); err != nil {
-		return fmt.Errorf("failed to create pool: %w", err)
+	if err := cfg.Client().Create(ctx, &framework); err != nil {
+		return fmt.Errorf("failed to create framework: %w", err)
 	}
 	fmt.Fprintln(out, "Successfully added!")
 	return nil
 }
 
-func (o poolAddOptions) IngressClassName() string {
+func (o frameworkAddOptions) IngressClassName() string {
 	if !o.ingressClassNameSet && o.ingressType.ingressControllerType() == ketchv1.IstioIngressControllerType {
 		return defaultIstioIngressClassName
 	}

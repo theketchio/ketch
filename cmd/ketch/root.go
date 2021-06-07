@@ -60,7 +60,7 @@ func newRootCmd(cfg config, out io.Writer, packSvc *pack.Client, ketchConfig con
 	cmd.AddCommand(newAppCmd(cfg, out, packSvc))
 	cmd.AddCommand(newBuilderCmd(ketchConfig, out))
 	cmd.AddCommand(newCnameCmd(cfg, out))
-	cmd.AddCommand(newPoolCmd(cfg, out))
+	cmd.AddCommand(newFrameworkCmd(cfg, out))
 	cmd.AddCommand(newUnitCmd(cfg, out))
 	cmd.AddCommand(newEnvCmd(cfg, out))
 	return cmd

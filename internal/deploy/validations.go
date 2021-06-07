@@ -113,7 +113,7 @@ func validateCreateApp(ctx context.Context, client Client, appName string, cs *C
 			appName)
 	}
 
-	if _, err := cs.getPool(ctx, client); err != nil {
+	if _, err := cs.getFramework(ctx, client); err != nil {
 		return err
 	}
 	if _, err := cs.getImage(); err != nil {

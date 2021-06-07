@@ -12,15 +12,15 @@ const (
 	// ErrDeploymentNotFound is returned when an operation can not be completed because there is no such deployment.
 	ErrDeploymentNotFound Error = "deployment not found"
 
-	// ErrDeletePoolWithRunningApps is returned when a pool can not be deleted because the pool contains running apps.
-	ErrDeletePoolWithRunningApps Error = "failed to delete pool because the pool contains running apps"
+	// ErrDeleteFrameworkWithRunningApps is returned when a framework can not be deleted because the framework contains running apps.
+	ErrDeleteFrameworkWithRunningApps Error = "failed to delete framework because the framework contains running apps"
 
-	// ErrChangeNamespaceWhenAppsRunning is returned when a pool's namespace can not be changed because the pool contains running apps.
-	ErrChangeNamespaceWhenAppsRunning Error = "failed to change target namespace because the pool contains running apps"
+	// ErrChangeNamespaceWhenAppsRunning is returned when a framework's namespace can not be changed because the framework contains running apps.
+	ErrChangeNamespaceWhenAppsRunning Error = "failed to change target namespace because the framework contains running apps"
 
-	// ErrNamespaceIsUsedByAnotherPool is returned when a pool's namespace can not be changed because there is another pool that uses a new namespace.
-	ErrNamespaceIsUsedByAnotherPool Error = "failed to change target namespace because the namespace is already used by another pool"
+	// ErrNamespaceIsUsedByAnotherFramework is returned when a framework's namespace can not be changed because there is another framework that uses a new namespace.
+	ErrNamespaceIsUsedByAnotherFramework Error = "failed to change target namespace because the namespace is already used by another framework"
 
 	// ErrDecreaseQuota is returned when a new quota is too small.
-	ErrDecreaseQuota Error = "failed to decrease quota because the pool has more running apps than the new quota permits"
+	ErrDecreaseQuota Error = "failed to decrease quota because the framework has more running apps than the new quota permits"
 )

@@ -11,9 +11,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-theketch-io-v1beta1-pool
+      path: /mutate-theketch-io-v1beta1-framework
   failurePolicy: Fail
-  name: mpool.kb.io
+  name: mframework.kb.io
   rules:
   - apiGroups:
     - theketch.io
@@ -23,7 +23,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - pools
+    - frameworks
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -37,9 +37,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-theketch-io-v1beta1-pool
+      path: /validate-theketch-io-v1beta1-framework
   failurePolicy: Fail
-  name: vpool.kb.io
+  name: vframework.kb.io
   rules:
   - apiGroups:
     - theketch.io
@@ -50,4 +50,4 @@ webhooks:
     - UPDATE
     - DELETE
     resources:
-    - pools
+    - frameworks

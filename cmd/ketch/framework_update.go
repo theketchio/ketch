@@ -12,17 +12,17 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
-const poolUpdateHelp = `
-Update a pool.
+const frameworkUpdateHelp = `
+Update a framework.
 `
 
-func newPoolUpdateCmd(cfg config, out io.Writer) *cobra.Command {
-	options := poolUpdateOptions{}
+func newFrameworkUpdateCmd(cfg config, out io.Writer) *cobra.Command {
+	options := frameworkUpdateOptions{}
 	cmd := &cobra.Command{
-		Use:   "update POOL",
+		Use:   "update FRAMEWORK",
 		Args:  cobra.ExactValidArgs(1),
-		Short: "Update a pool.",
-		Long:  poolUpdateHelp,
+		Short: "Update a framework.",
+		Long:  frameworkUpdateHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.name = args[0]
 			options.appQuotaLimitSet = cmd.Flags().Changed("app-quota-limit")
@@ -31,11 +31,11 @@ func newPoolUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 			options.ingressServiceEndpointSet = cmd.Flags().Changed("ingress-service-endpoint")
 			options.ingressTypeSet = cmd.Flags().Changed("ingress-type")
 			options.ingressClusterIssuerSet = cmd.Flags().Changed("cluster-issuer")
-			return poolUpdate(cmd.Context(), cfg, options, out)
+			return frameworkUpdate(cmd.Context(), cfg, options, out)
 		},
 	}
-	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this pool")
-	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", 0, "Quota limit for app when adding it to this pool")
+	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this framework")
+	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", 0, "Quota limit for app when adding it to this framework")
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", "if set, it is used as kubernetes.io/ingress.class annotations")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
 	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
@@ -43,7 +43,7 @@ func newPoolUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-type poolUpdateOptions struct {
+type frameworkUpdateOptions struct {
 	name string
 
 	appQuotaLimitSet          bool
@@ -60,25 +60,25 @@ type poolUpdateOptions struct {
 	ingressType               ingressType
 }
 
-func poolUpdate(ctx context.Context, cfg config, options poolUpdateOptions, out io.Writer) error {
-	pool := ketchv1.Pool{}
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.name}, &pool); err != nil {
-		return fmt.Errorf("failed to get the pool: %w", err)
+func frameworkUpdate(ctx context.Context, cfg config, options frameworkUpdateOptions, out io.Writer) error {
+	framework := ketchv1.Framework{}
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.name}, &framework); err != nil {
+		return fmt.Errorf("failed to get the framework: %w", err)
 	}
 	if options.appQuotaLimitSet {
-		pool.Spec.AppQuotaLimit = options.appQuotaLimit
+		framework.Spec.AppQuotaLimit = options.appQuotaLimit
 	}
 	if options.namespaceSet {
-		pool.Spec.NamespaceName = options.namespace
+		framework.Spec.NamespaceName = options.namespace
 	}
 	if options.ingressClassNameSet {
-		pool.Spec.IngressController.ClassName = options.ingressClassName
+		framework.Spec.IngressController.ClassName = options.ingressClassName
 	}
 	if options.ingressServiceEndpointSet {
-		pool.Spec.IngressController.ServiceEndpoint = options.ingressServiceEndpoint
+		framework.Spec.IngressController.ServiceEndpoint = options.ingressServiceEndpoint
 	}
 	if options.ingressTypeSet {
-		pool.Spec.IngressController.IngressType = options.ingressType.ingressControllerType()
+		framework.Spec.IngressController.IngressType = options.ingressType.ingressControllerType()
 	}
 	if options.ingressClusterIssuerSet {
 		exists, err := clusterIssuerExist(cfg.DynamicClient(), ctx, options.ingressClusterIssuer)
@@ -88,10 +88,10 @@ func poolUpdate(ctx context.Context, cfg config, options poolUpdateOptions, out 
 		if !exists {
 			return ErrClusterIssuerNotFound
 		}
-		pool.Spec.IngressController.ClusterIssuer = options.ingressClusterIssuer
+		framework.Spec.IngressController.ClusterIssuer = options.ingressClusterIssuer
 	}
-	if err := cfg.Client().Update(ctx, &pool); err != nil {
-		return fmt.Errorf("failed to update the pool: %w", err)
+	if err := cfg.Client().Update(ctx, &framework); err != nil {
+		return fmt.Errorf("failed to update the framework: %w", err)
 	}
 	fmt.Fprintln(out, "Successfully updated!")
 	return nil

@@ -103,18 +103,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.PoolReconciler{
+	if err = (&controllers.FrameworkReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Pool"),
+		Log:    ctrl.Log.WithName("controllers").WithName("Framework"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Pool")
+		setupLog.Error(err, "unable to create controller", "controller", "Framework")
 		os.Exit(1)
 	}
 
 	if !disableWebhooks {
-		if err = (&ketchv1.Pool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Pool")
+		if err = (&ketchv1.Framework{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Framework")
 			os.Exit(1)
 		}
 	}
