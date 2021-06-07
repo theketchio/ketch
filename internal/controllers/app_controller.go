@@ -151,7 +151,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	}
 	components := make(map[ketchv1.ComponentType]ketchv1.ComponentSpec)
 	for _, component := range componentList.Items {
-		components[ketchv1.ComponentType(component.Kind)] = component.Spec
+		components[ketchv1.ComponentType(component.ObjectMeta.Name)] = component.Spec
 	}
 
 	traitList := ketchv1.TraitList{}
@@ -163,7 +163,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 	}
 	traits := make(map[ketchv1.TraitType]ketchv1.TraitSpec)
 	for _, trait := range traitList.Items {
-		traits[ketchv1.TraitType(trait.Kind)] = trait.Spec
+		traits[ketchv1.TraitType(trait.ObjectMeta.Name)] = trait.Spec
 	}
 
 	appChart, err := chart.NewAppChart(app, components, traits)

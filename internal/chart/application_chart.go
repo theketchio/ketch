@@ -13,7 +13,7 @@ import (
 	"text/template"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/json"
+	"github.com/shipa-corp/ketch/internal/utils"
 
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -28,12 +28,9 @@ import (
 // ApplicationChart is an internal representation of a helm chart converted from the App CRD
 // and is used to render a helm chart.
 type ApplicationChart struct {
-	//values         values            // TODO remove
 	templates map[string]string
 	values    map[string]interface{}
-	//componentTemplates map[string]string
-	//traitTemplates     map[string]string
-	Name string
+	Name      string
 }
 
 type values struct {
@@ -124,19 +121,23 @@ func NewAppChart(a *ketchv1.App, components map[ketchv1.ComponentType]ketchv1.Co
 	for _, c := range a.Spec.Components {
 		component, ok := components[c.Type]
 		if !ok {
-			return nil, errors.New("component is not present")
+			return nil, errors.Errorf("component type %s is not defined", c.Type)
 		}
+
 		properties := make(map[string]interface{})
 		for name, prop := range c.Properties {
-			properties[name] = prop // TODO
+			//properties[name], err = yaml.Marshal(prop)
+			properties[name] = prop
 		}
 		componentValues[c.Name] = properties
 
-		componentTemplate, err := RenderComponent(&component, &c)
+		componentTemplates, err := RenderComponentTemplates(&component, c.Name)
 		if err != nil {
 			return nil, err
 		}
-		templates[fmt.Sprintf("%sComponent.yaml", c.Name)] = componentTemplate
+		for key, value := range componentTemplates {
+			templates[key] = value
+		}
 
 		// TODO same ^ for traits
 	}
@@ -150,29 +151,57 @@ func NewAppChart(a *ketchv1.App, components map[ketchv1.ComponentType]ketchv1.Co
 	}, nil
 }
 
-func RenderComponent(componentSpec *ketchv1.ComponentSpec, componentLink *ketchv1.ComponentLink) (string, error) {
-	// TODO helm-template-ify
-	// TODO - clarify what needs to happen here
-	// componentLink contains values
-	// compoentSpec contains component structure
+// RenderComponentTemplates
+// for each component.componentSpec.Schematic.Kube.Templates:
+// for each FieldPath:
+// create nested map; done
+// for each template in componentSpec.Schematic.Kube.Templates:
+// if value in nested map exists, populate value with directive
+func RenderComponentTemplates(componentSpec *ketchv1.ComponentSpec, componentName string) (map[string]string, error) {
+	templates := make(map[string]string)
+	for _, template := range componentSpec.Schematic.Kube.Templates {
+		nestedMap := utils.NestedMap{}
+		err := yaml.Unmarshal(template.Template.Raw, &nestedMap)
+		if err != nil {
+			return nil, err
+		}
 
-	builder := strings.Builder{}
-	for _, componentProperty := range componentLink.Properties {
-		b, err := componentProperty.MarshalJSON()
+		// TODO this isn't right - figure how to mod helm chart vars:
+		for _, parameter := range template.Parameters {
+			for _, fieldPath := range parameter.FieldPaths {
+				key, err := utils.GetNestedMapKeyFromFieldPath(fieldPath)
+				if err != nil {
+					return nil, err
+				}
+				c, err := nestedMap.Get(key)
+				if err != nil {
+					if err == utils.ErrKeyNotFound {
+						continue
+					}
+					return nil, err
+				}
+
+				err = nestedMap.Set(key, fmt.Sprintf(`{{ .Values.%s | default "%v" }}`, parameter.Name, c))
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+		out, err := yaml.Marshal(nestedMap)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		temp := make(map[string]interface{})
-		err = json.Unmarshal(b, &temp)
+		componentKindIface, err := nestedMap.Get([]interface{}{"kind"})
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		for field, value := range temp {
-			fmt.Println("HERE", field, value)
-			builder.WriteString(fmt.Sprintf("\n%s: %s", field, value))
+		componentKind, ok := componentKindIface.(string)
+		if !ok {
+			return nil, errors.New("component kind is not a string")
 		}
+		templates[fmt.Sprintf("%s%sComponent.yaml", componentName, componentKind)] = string(out)
 	}
-	return builder.String(), nil
+	return templates, nil
 }
 
 // New returns an ApplicationChart instance.
