@@ -44,7 +44,7 @@ jobs:
       dist: xenial
       language: go
       go: 1.16.x
-      install: ./ci/scripts/setup_minikube.sh $TRAVIS_COMMIT $DOCKER_USERNAME $DOCKER_PASSWORD
+      before_install: ./ci/scripts/setup_minikube.sh $TRAVIS_COMMIT $DOCKER_USERNAME $DOCKER_PASSWORD
       script:
         - kubectl cluster-info
         - make install
