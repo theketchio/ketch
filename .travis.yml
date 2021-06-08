@@ -44,7 +44,7 @@ jobs:
       dist: xenial
       language: go
       go: 1.16.x
-      before_install: ./scripts/install_script.sh $TRAVIS_COMMIT
+      before_install: ./install_script.sh $TRAVIS_COMMIT
       script:
         - kubectl cluster-info
         - make install
