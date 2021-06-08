@@ -60,5 +60,7 @@ func newAppDeployCmd(params *deploy.Services) *cobra.Command {
 	cmd.Flags().StringVar(&options.Builder, deploy.FlagBuilder, "", "Builder to use when building from source.")
 	cmd.Flags().StringSliceVar(&options.BuildPacks, deploy.FlagBuildPacks, nil, "A list of build packs")
 
+	cmd.Flags().IntVar(&options.Units, deploy.FlagUnits, 1, "Set number of units for deployment")
+
 	return cmd
 }

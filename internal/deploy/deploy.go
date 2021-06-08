@@ -5,6 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -184,6 +185,7 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
+	units := params.getUnits()
 
 	if err := svc.Builder(
 		ctx,
@@ -228,6 +230,7 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 	updateRequest.stepTimeInterval = interval
 	updateRequest.nextScheduledTime = time.Now().Add(interval)
 	updateRequest.started = time.Now()
+	updateRequest.units = units
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		return errors.Wrap(err, "deploy from source failed")
@@ -254,6 +257,7 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	}
 
 	image, _ := params.getImage()
+	units := params.getUnits()
 
 	imageRequest := ImageConfigRequest{
 		imageName:       image,
@@ -284,6 +288,7 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	updateRequest.stepTimeInterval = interval
 	updateRequest.nextScheduledTime = time.Now().Add(interval)
 	updateRequest.started = time.Now()
+	updateRequest.units = units
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		return errors.Wrap(err, "deploy from image failed")
@@ -326,6 +331,7 @@ type updateAppCRDRequest struct {
 	nextScheduledTime time.Time
 	started           time.Time
 	stepTimeInterval  time.Duration
+	units             int
 }
 
 func updateAppCRD(ctx context.Context, svc *Services, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
@@ -334,6 +340,9 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 		if err := svc.Client.Get(ctx, types.NamespacedName{Name: appName}, &updated); err != nil {
 			return errors.Wrap(err, "could not get app to deploy %q", appName)
 		}
+
+		log.Println("found app deployments:")
+		log.Println(updated.Spec.Deployments)
 
 		processes := make([]ketchv1.ProcessSpec, 0, len(args.procFile.Processes))
 		for _, processName := range args.procFile.SortedNames() {
@@ -351,6 +360,72 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 				return err
 			}
 			exposedPorts = append(exposedPorts, *exposedPort)
+		}
+
+		log.Println("default processes")
+		log.Println(processes)
+
+		// check to see if any of the processes differ from previous deployment
+		// if they differ overwrite the processes in the current deployment
+		// not worrying about canary for now
+		if updated.Spec.Deployments != nil && args.steps < 1 {
+			log.Println("comparison of found deployment to cli")
+			for i := range updated.Spec.Deployments {
+				// confirm it is not default config?
+
+				// user specified something different, overwrite
+				if len(updated.Spec.Deployments[i].Processes) != len(processes) {
+					log.Println("processes differ in length")
+					updated.Spec.Deployments[i].Processes = processes
+				} else {
+					log.Println("processes same in length")
+					log.Println(updated.Spec.Deployments[i].Processes)
+					log.Println(processes)
+					log.Println(len(updated.Spec.Deployments[i].Processes))
+					for j := range updated.Spec.Deployments[i].Processes {
+						// Something doesn't match so overwrite and break
+						log.Println(updated.Spec.Deployments[i].Processes[j].Name)
+						log.Println(processes[j].Name)
+						if updated.Spec.Deployments[i].Processes[j].Name != processes[j].Name {
+							log.Println("processes changed; different names")
+							updated.Spec.Deployments[i].Processes = processes
+							break
+						}
+						if len(updated.Spec.Deployments[i].Processes[j].Cmd) != len(processes[j].Cmd) {
+							log.Println("processes changed; different cmd length")
+							updated.Spec.Deployments[i].Processes = processes
+							break
+						} else {
+							for x := range updated.Spec.Deployments[i].Processes[j].Cmd {
+								if updated.Spec.Deployments[i].Processes[j].Cmd[x] != processes[j].Cmd[x] {
+									log.Println("cmd changed")
+									updated.Spec.Deployments[i].Processes = processes
+									break
+								}
+							}
+							// break
+						}
+					}
+				}
+				updated.Spec.Deployments[i].Image = args.image
+				updated.Spec.Deployments[i].KetchYaml = args.ketchYaml
+				updated.Spec.Deployments[i].RoutingSettings = ketchv1.RoutingSettings{
+					Weight: defaultTrafficWeight,
+				}
+				updated.Spec.Deployments[i].ExposedPorts = exposedPorts
+
+				deploymentVersion := 0
+				processName := "worker"
+
+				if args.units > 0 {
+					s := ketchv1.NewSelector(deploymentVersion, processName)
+					if err := updated.SetUnits(s, args.units); err != nil {
+						log.Println("error is here")
+						return err
+					}
+				}
+				return svc.Client.Update(ctx, &updated)
+			}
 		}
 
 		// default deployment spec for an app
@@ -388,14 +463,19 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			updated.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
 		}
 
+		log.Println("new app deployments:")
+		log.Println(updated.Spec.Deployments)
+
 		updated.Spec.DeploymentsCount += 1
 
 		// temp variable for testing to see if I spawn the right number of pods
-		units := 4
+		deploymentVersion := 0
+		processName := "worker"
 
-		for i := range updated.Spec.Deployments {
-			for j := range updated.Spec.Deployments[i].Processes {
-				updated.Spec.Deployments[i].Processes[j].Units = &units
+		if args.units > 0 {
+			s := ketchv1.NewSelector(deploymentVersion, processName)
+			if err := updated.SetUnits(s, args.units); err != nil {
+				return err
 			}
 		}
 
