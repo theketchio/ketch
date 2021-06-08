@@ -72,6 +72,7 @@ jobs:
         - kubectl cluster-info
         - make install
         - make ketch
+        - export PATH=$PATH:./bin
         # cert-manager
         - kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.yaml
         # istio
