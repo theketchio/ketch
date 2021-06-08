@@ -394,6 +394,15 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 
 		updated.Spec.DeploymentsCount += 1
 
+		// temp variable for testing to see if I spawn the right number of pods
+		units := 4
+
+		for i := range updated.Spec.Deployments {
+			for j := range updated.Spec.Deployments[i].Processes {
+				updated.Spec.Deployments[i].Processes[j].Units = &units
+			}
+		}
+
 		return svc.Client.Update(ctx, &updated)
 	})
 	return &updated, err
