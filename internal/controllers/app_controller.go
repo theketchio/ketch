@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controllers contains App and Pool reconcilers to be used with controller-runtime.
+// Package controllers contains App and Framework reconcilers to be used with controller-runtime.
 package controllers
 
 import (
@@ -65,8 +65,8 @@ type Helm interface {
 
 // +kubebuilder:rbac:groups=theketch.io,resources=apps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=theketch.io,resources=apps/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=theketch.io,resources=pools,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=theketch.io,resources=pools/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=theketch.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=theketch.io,resources=frameworks/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete
@@ -85,6 +85,7 @@ type Helm interface {
 // +kubebuilder:rbac:groups="traefik.containo.us",resources=ingressroutes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="traefik.containo.us",resources=traefikservices,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="traefik.containo.us",resources=traefikservices/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch;update;delete
 
 func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -110,7 +111,7 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		reason := AppReconcileReason{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeWarning, reason.String(), err.Error())
 	} else {
-		app.Status.Pool = scheduleResult.pool
+		app.Status.Framework = scheduleResult.framework
 		reason := AppReconcileReason{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeNormal, reason.String(), "success")
 	}
@@ -135,39 +136,39 @@ func (r *AppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 type reconcileResult struct {
 	status     v1.ConditionStatus
 	message    string
-	pool       *v1.ObjectReference
+	framework  *v1.ObjectReference
 	useTimeout bool
 }
 
 func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconcileResult {
-	pool := ketchv1.Pool{}
-	if err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
+	framework := ketchv1.Framework{}
+	if err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`pool "%s" is not found`, app.Spec.Pool),
+			message: fmt.Sprintf(`framework "%s" is not found`, app.Spec.Framework),
 		}
 	}
-	ref, err := reference.GetReference(r.Scheme, &pool)
+	ref, err := reference.GetReference(r.Scheme, &framework)
 	if err != nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
 			message: err.Error(),
 		}
 	}
-	if pool.Status.Namespace == nil {
+	if framework.Status.Namespace == nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`pool "%s" is not linked to a kubernetes namespace`, pool.Name),
+			message: fmt.Sprintf(`framework "%s" is not linked to a kubernetes namespace`, framework.Name),
 		}
 	}
-	tpls, err := r.TemplateReader.Get(app.TemplatesConfigMapName(pool.Spec.IngressController.IngressType))
+	tpls, err := r.TemplateReader.Get(app.TemplatesConfigMapName(framework.Spec.IngressController.IngressType))
 	if err != nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
 			message: fmt.Sprintf(`failed to read configmap with the app's chart templates: %v`, err),
 		}
 	}
-	if !pool.HasApp(app.Name) && len(pool.Status.Apps) >= pool.Spec.AppQuotaLimit && pool.Spec.AppQuotaLimit != -1 {
+	if !framework.HasApp(app.Name) && len(framework.Status.Apps) >= framework.Spec.AppQuotaLimit && framework.Spec.AppQuotaLimit != -1 {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
 			message: fmt.Sprintf(`you have reached the limit of apps`),
@@ -178,25 +179,25 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		chart.WithTemplates(*tpls),
 	}
 
-	appChrt, err := chart.New(app, &pool, options...)
+	appChrt, err := chart.New(app, &framework, options...)
 	if err != nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
 			message: err.Error(),
 		}
 	}
-	patchedPool := pool
-	if !patchedPool.HasApp(app.Name) {
-		patchedPool.Status.Apps = append(patchedPool.Status.Apps, app.Name)
-		mergePatch := client.MergeFrom(&pool)
-		if err := r.Status().Patch(ctx, &patchedPool, mergePatch); err != nil {
+	patchedFramework := framework
+	if !patchedFramework.HasApp(app.Name) {
+		patchedFramework.Status.Apps = append(patchedFramework.Status.Apps, app.Name)
+		mergePatch := client.MergeFrom(&framework)
+		if err := r.Status().Patch(ctx, &patchedFramework, mergePatch); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("failed to update pool status: %v", err),
+				message: fmt.Sprintf("failed to update framework status: %v", err),
 			}
 		}
 	}
-	targetNamespace := pool.Status.Namespace.Name
+	targetNamespace := framework.Status.Namespace.Name
 	helmClient, err := r.HelmFactoryFn(targetNamespace)
 	if err != nil {
 		return reconcileResult{
@@ -264,8 +265,8 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		}
 	}
 	return reconcileResult{
-		pool:   ref,
-		status: v1.ConditionTrue,
+		framework: ref,
+		status:    v1.ConditionTrue,
 	}
 }
 
@@ -318,17 +319,17 @@ func checkPodStatus(c client.Client, appName string, depVersion ketchv1.Deployme
 }
 
 func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {
-	pools := ketchv1.PoolList{}
-	err := r.Client.List(ctx, &pools)
+	frameworks := ketchv1.FrameworkList{}
+	err := r.Client.List(ctx, &frameworks)
 	if err != nil {
 		return err
 	}
-	for _, pool := range pools.Items {
-		if !pool.HasApp(appName) {
+	for _, framework := range frameworks.Items {
+		if !framework.HasApp(appName) {
 			continue
 		}
 
-		helmClient, err := r.HelmFactoryFn(pool.Spec.NamespaceName)
+		helmClient, err := r.HelmFactoryFn(framework.Spec.NamespaceName)
 		if err != nil {
 			return err
 		}
@@ -336,17 +337,17 @@ func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {
 		if err != nil {
 			return err
 		}
-		patchedPool := pool
+		patchedFramework := framework
 
-		patchedPool.Status.Apps = make([]string, 0, len(patchedPool.Status.Apps))
-		for _, name := range pool.Status.Apps {
+		patchedFramework.Status.Apps = make([]string, 0, len(patchedFramework.Status.Apps))
+		for _, name := range framework.Status.Apps {
 			if name == appName {
 				continue
 			}
-			patchedPool.Status.Apps = append(patchedPool.Status.Apps, name)
+			patchedFramework.Status.Apps = append(patchedFramework.Status.Apps, name)
 		}
-		mergePatch := client.MergeFrom(&pool)
-		return r.Status().Patch(ctx, &patchedPool, mergePatch)
+		mergePatch := client.MergeFrom(&framework)
+		return r.Status().Patch(ctx, &patchedFramework, mergePatch)
 	}
 	return nil
 

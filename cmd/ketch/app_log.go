@@ -18,6 +18,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/utils"
 	"github.com/shipa-corp/ketch/internal/validation"
 )
 
@@ -72,22 +73,22 @@ func appLog(ctx context.Context, cfg config, options appLogOptions, out io.Write
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
 	}
-	pool := ketchv1.Pool{}
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, &pool); err != nil {
-		return fmt.Errorf("failed to get pool instance: %w", err)
+	framework := ketchv1.Framework{}
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
+		return fmt.Errorf("failed to get framework instance: %w", err)
 	}
 	set := map[string]string{
-		ketchAppNameLabel: options.appName,
+		utils.KetchAppNameLabel: options.appName,
 	}
 	if len(options.processName) > 0 {
-		set[ketchProcessNameLabel] = options.processName
+		set[utils.KetchProcessNameLabel] = options.processName
 	}
 	if options.deploymentVersion > 0 {
-		set[ketchDeploymentVersionLabel] = fmt.Sprintf("%d", options.deploymentVersion)
+		set[utils.KetchDeploymentVersionLabel] = fmt.Sprintf("%d", options.deploymentVersion)
 	}
 	s := labels.SelectorFromSet(set)
 	opts := watchOptions{
-		namespace:    pool.Spec.NamespaceName,
+		namespace:    framework.Spec.NamespaceName,
 		selector:     s,
 		follow:       options.follow,
 		ignoreErrors: options.ignoreErrors,

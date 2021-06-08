@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -10,6 +10,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
+	"github.com/shipa-corp/ketch/internal/pack"
 )
 
 var (
@@ -21,9 +22,25 @@ func main() {
 	// Remove any flags that were added by libraries automatically.
 	pflag.CommandLine = pflag.NewFlagSet("ketch", pflag.ExitOnError)
 
-	cmd := newRootCmd(&configuration.Configuration{}, os.Stdout)
-	if err := cmd.Execute(); err != nil {
-		fmt.Printf("%v\n", err)
-		os.Exit(1)
+	out := os.Stdout
+	packSvc, err := pack.New(out)
+	if err != nil {
+		log.Fatalf("couldn't create pack service %q", err)
 	}
+
+	cmd := newRootCmd(&configuration.Configuration{}, out, packSvc, getKetchConfig())
+	if err := cmd.Execute(); err != nil {
+		log.Fatalf("execution failed %q", err)
+	}
+}
+
+// the KetchConfig is optional and in the event it is not found an empty one is returned
+func getKetchConfig() configuration.KetchConfig {
+	path, err := configuration.DefaultConfigPath()
+	if err != nil {
+		log.Println(err)
+		return configuration.KetchConfig{}
+	}
+
+	return configuration.Read(path)
 }

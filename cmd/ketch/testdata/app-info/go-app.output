@@ -1,5 +1,5 @@
 Application: go-app
-Pool: aws
+Framework: aws
 Address: http://go-app.10.10.10.10.shipa.cloud
 
 Environment variables:

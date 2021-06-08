@@ -163,7 +163,7 @@ type AppStatus struct {
 	// Conditions of App resource.
 	Conditions []AppCondition `json:"conditions,omitempty"`
 
-	Pool *v1.ObjectReference `json:"pool,omitempty"`
+	Framework *v1.ObjectReference `json:"framework,omitempty"`
 }
 
 // CanarySpec represents configuration for a canary deployment.
@@ -206,9 +206,9 @@ type AppSpec struct {
 	// List of environment variables of the application.
 	Env []Env `json:"env,omitempty"`
 
-	// Pool is a name of a pool used to run the application.
+	// Framework is a name of a Framework used to run the application.
 	// +kubebuilder:validation:MinLength=1
-	Pool string `json:"pool"`
+	Framework string `json:"framework"`
 
 	// Ingress contains configuration of entrypoints to access the application.
 	Ingress IngressSpec `json:"ingress"`
@@ -216,14 +216,17 @@ type AppSpec struct {
 	// DockerRegistry contains docker registry configuration of the application.
 	DockerRegistry DockerRegistrySpec `json:"dockerRegisty,omitempty"`
 
-	// Platform is the name of the platform that is used to build source code.
-	Platform string `json:"platform,omitempty"`
+	// Builder is the name of the builder used to build source code.
+	Builder string `json:"builder,omitempty"`
+
+	// BuildPacks is a list of build packs to use when building from source.
+	BuildPacks []string `json:"buildPacks,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Pool",type=string,JSONPath=`.spec.pool`
+// +kubebuilder:printcolumn:name="Framework",type=string,JSONPath=`.spec.Framework`
 // +kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 
 // App is the Schema for the apps API.
@@ -423,13 +426,13 @@ func (app *App) Start(selector Selector) error {
 }
 
 // CNames returns all CNAMEs to access the application including a default cname.
-func (app *App) CNames(pool *Pool) []string {
+func (app *App) CNames(framework *Framework) []string {
 	scheme := "http"
-	if len(pool.Spec.IngressController.ClusterIssuer) > 0 {
+	if len(framework.Spec.IngressController.ClusterIssuer) > 0 {
 		scheme = "https"
 	}
 	cnames := []string{}
-	defaultCname := app.DefaultCname(pool)
+	defaultCname := app.DefaultCname(framework)
 	if defaultCname != nil {
 		cnames = append(cnames, fmt.Sprintf("http://%s", *defaultCname))
 	}
@@ -440,18 +443,18 @@ func (app *App) CNames(pool *Pool) []string {
 }
 
 // DefaultCname returns a default cname to access the application.
-// A default cname uses the following format: <app name>.<pool's ServiceEndpoint>.shipa.cloud.
-func (app *App) DefaultCname(pool *Pool) *string {
-	if pool == nil {
+// A default cname uses the following format: <app name>.<Framework's ServiceEndpoint>.shipa.cloud.
+func (app *App) DefaultCname(framework *Framework) *string {
+	if framework == nil {
 		return nil
 	}
 	if !app.Spec.Ingress.GenerateDefaultCname {
 		return nil
 	}
-	if len(pool.Spec.IngressController.ServiceEndpoint) == 0 {
+	if len(framework.Spec.IngressController.ServiceEndpoint) == 0 {
 		return nil
 	}
-	url := fmt.Sprintf("%s.%s.%s", app.Name, pool.Spec.IngressController.ServiceEndpoint, ShipaCloudDomain)
+	url := fmt.Sprintf("%s.%s.%s", app.Name, framework.Spec.IngressController.ServiceEndpoint, ShipaCloudDomain)
 	return &url
 }
 
@@ -484,7 +487,7 @@ func (app *App) ExposedPorts() map[DeploymentVersion][]ExposedPort {
 	return ports
 }
 
-// SetCondition sets Status and Message fields of the given type of condition to the provided values.
+// SetCondition sets Status and message fields of the given type of condition to the provided values.
 func (app *App) SetCondition(t AppConditionType, status v1.ConditionStatus, message string, time metav1.Time) {
 	c := AppCondition{
 		Type:               t,

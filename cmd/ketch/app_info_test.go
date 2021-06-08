@@ -20,7 +20,7 @@ func Test_appInfo(t *testing.T) {
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
-			Pool: "gke",
+			Framework: "gke",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
@@ -31,11 +31,11 @@ func Test_appInfo(t *testing.T) {
 			Name: "app-python",
 		},
 		Spec: ketchv1.AppSpec{
-			Pool: "gke",
+			Framework: "gke",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
-			Platform: "python",
+			Builder: "python",
 		},
 	}
 	goApp := &ketchv1.App{
@@ -63,7 +63,7 @@ func Test_appInfo(t *testing.T) {
 				{Name: "API_KEY", Value: "public_key"},
 				{Name: "VAR1", Value: "VALUE"},
 			},
-			Pool: "aws",
+			Framework: "aws",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
@@ -86,7 +86,7 @@ func Test_appInfo(t *testing.T) {
 					},
 				},
 			},
-			Pool: "aws",
+			Framework: "aws",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 				Cnames:               []string{"theketch.io", "www.theketch.io"},
@@ -96,22 +96,22 @@ func Test_appInfo(t *testing.T) {
 			},
 		},
 	}
-	gke := &ketchv1.Pool{
+	gke := &ketchv1.Framework{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "gke",
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "ketch-gke",
 			IngressController: ketchv1.IngressControllerSpec{
 				IngressType: ketchv1.IstioIngressControllerType,
 			},
 		},
 	}
-	aws := &ketchv1.Pool{
+	aws := &ketchv1.Framework{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "aws",
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "ketch-aws",
 			IngressController: ketchv1.IngressControllerSpec{
 				ServiceEndpoint: "10.10.10.10",
@@ -157,7 +157,7 @@ func Test_appInfo(t *testing.T) {
 			wantOutputFilename: "./testdata/app-info/go-app-secret-name.output",
 		},
 		{
-			name: "app with platform",
+			name: "app with builder",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{gke, appPython},
 			},
@@ -167,7 +167,7 @@ func Test_appInfo(t *testing.T) {
 			wantOutputFilename: "./testdata/app-info/app-python.output",
 		},
 		{
-			name: "no pool",
+			name: "no framework",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{dashboard},
 			},
@@ -195,6 +195,7 @@ func Test_appInfo(t *testing.T) {
 				require.NotNil(t, err, "appInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			require.Nil(t, err)
 			wantOut, err := ioutil.ReadFile(tt.wantOutputFilename)
 			require.Nil(t, err)
 			require.Equal(t, string(wantOut), out.String())

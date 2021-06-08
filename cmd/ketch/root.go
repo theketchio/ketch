@@ -4,14 +4,15 @@ import (
 	"context"
 	"io"
 
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
-
-	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
+	"github.com/shipa-corp/ketch/internal/pack"
 	"github.com/shipa-corp/ketch/internal/templates"
 )
 
@@ -46,7 +47,7 @@ type resourceGetDeleter interface {
 }
 
 // RootCmd represents the base command when called without any subcommands
-func newRootCmd(cfg config, out io.Writer) *cobra.Command {
+func newRootCmd(cfg config, out io.Writer, packSvc *pack.Client, ketchConfig configuration.KetchConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "ketch",
 		Short:   "Manage your applications and your cloud resources",
@@ -56,11 +57,11 @@ func newRootCmd(cfg config, out io.Writer) *cobra.Command {
 			return cmd.Usage()
 		},
 	}
-	cmd.AddCommand(newAppCmd(cfg, out))
+	cmd.AddCommand(newAppCmd(cfg, out, packSvc))
+	cmd.AddCommand(newBuilderCmd(ketchConfig, out))
 	cmd.AddCommand(newCnameCmd(cfg, out))
-	cmd.AddCommand(newPoolCmd(cfg, out))
+	cmd.AddCommand(newFrameworkCmd(cfg, out))
 	cmd.AddCommand(newUnitCmd(cfg, out))
 	cmd.AddCommand(newEnvCmd(cfg, out))
-	cmd.AddCommand(newPlatformCmd(cfg, out))
 	return cmd
 }

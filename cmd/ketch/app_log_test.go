@@ -31,6 +31,7 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/mocks"
+	"github.com/shipa-corp/ketch/internal/utils"
 )
 
 func Test_watchLogs(t *testing.T) {
@@ -84,10 +85,10 @@ func Test_watchLogs(t *testing.T) {
 				Namespace: namespace,
 				UID:       types.UID(name),
 				Labels: map[string]string{
-					"TIME":                      logsStartTime.Format(time.RFC3339Nano),
-					ketchAppNameLabel:           appName,
-					ketchProcessNameLabel:       processName,
-					ketchDeploymentVersionLabel: version,
+					"TIME":                            logsStartTime.Format(time.RFC3339Nano),
+					utils.KetchAppNameLabel:           appName,
+					utils.KetchProcessNameLabel:       processName,
+					utils.KetchDeploymentVersionLabel: version,
 				},
 			},
 		}
@@ -160,7 +161,7 @@ func Test_watchLogs(t *testing.T) {
 			description: "happy path - logs from dashboard containers, + prefix, + timestamps",
 			options: watchOptions{
 				namespace:  "default",
-				selector:   labels.SelectorFromSet(map[string]string{ketchAppNameLabel: "dashboard"}),
+				selector:   labels.SelectorFromSet(map[string]string{utils.KetchAppNameLabel: "dashboard"}),
 				prefix:     true,
 				timestamps: true,
 			},
@@ -267,17 +268,17 @@ func Test_appLog(t *testing.T) {
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
-			Pool: "gke",
+			Framework: "gke",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
 		},
 	}
-	gke := &ketchv1.Pool{
+	gke := &ketchv1.Framework{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "gke",
 		},
-		Spec: ketchv1.PoolSpec{
+		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "ketch-gke",
 			IngressController: ketchv1.IngressControllerSpec{
 				IngressType: ketchv1.IstioIngressControllerType,
@@ -302,7 +303,7 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					ketchAppNameLabel: "dashboard",
+					utils.KetchAppNameLabel: "dashboard",
 				}),
 				prefix: true,
 			},
@@ -317,7 +318,7 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					ketchAppNameLabel: "dashboard",
+					utils.KetchAppNameLabel: "dashboard",
 				}),
 				follow: true,
 			},
@@ -332,8 +333,8 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					ketchAppNameLabel:     "dashboard",
-					ketchProcessNameLabel: "web",
+					utils.KetchAppNameLabel:     "dashboard",
+					utils.KetchProcessNameLabel: "web",
 				}),
 				timestamps: true,
 			},
@@ -348,9 +349,9 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					ketchAppNameLabel:           "dashboard",
-					ketchProcessNameLabel:       "worker",
-					ketchDeploymentVersionLabel: "4",
+					utils.KetchAppNameLabel:           "dashboard",
+					utils.KetchProcessNameLabel:       "worker",
+					utils.KetchDeploymentVersionLabel: "4",
 				}),
 				ignoreErrors: true,
 			},
@@ -364,12 +365,12 @@ func Test_appLog(t *testing.T) {
 			wantErr: `failed to get app instance: apps.theketch.io "dashboard" not found`,
 		},
 		{
-			description: "no pool",
+			description: "no framework",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{dashboard},
 			},
 			options: appLogOptions{appName: "dashboard"},
-			wantErr: `failed to get pool instance: pools.theketch.io "gke" not found`,
+			wantErr: `failed to get framework instance: frameworks.theketch.io "gke" not found`,
 		},
 		{
 			description: "error from watchLog",
@@ -382,7 +383,7 @@ func Test_appLog(t *testing.T) {
 			wantWatchOptions: watchOptions{
 				namespace: "ketch-gke",
 				selector: labels.SelectorFromSet(map[string]string{
-					ketchAppNameLabel: "dashboard",
+					utils.KetchAppNameLabel: "dashboard",
 				}),
 			},
 		},

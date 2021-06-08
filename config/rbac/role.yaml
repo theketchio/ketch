@@ -21,6 +21,15 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
   - namespaces
   verbs:
   - create
@@ -185,7 +194,7 @@ rules:
 - apiGroups:
   - theketch.io
   resources:
-  - pools
+  - frameworks
   verbs:
   - create
   - delete
@@ -197,7 +206,7 @@ rules:
 - apiGroups:
   - theketch.io
   resources:
-  - pools/status
+  - frameworks/status
   verbs:
   - get
   - patch

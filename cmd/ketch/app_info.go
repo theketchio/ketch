@@ -15,13 +15,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/utils"
 )
 
 var (
 	appInfoTemplate = `Application: {{ .App.Name }}
-Pool: {{ .App.Spec.Pool }} 
-{{- if .App.Spec.Platform }}
-Platform: {{ .App.Spec.Platform }}
+Framework: {{ .App.Spec.Framework }}
+{{- if .App.Spec.Builder }}
+Builder: {{ .App.Spec.Builder }}
 {{- end }}
 {{- if .App.Spec.Description }}
 Description: {{ .App.Spec.Description }}
@@ -31,7 +32,7 @@ Description: {{ .App.Spec.Description }}
 Address: {{ $address }}
 {{- end }}
 {{- else }}
-The default cname hasn't assigned yet because "{{ .App.Spec.Pool }}" pool doesn't have ingress service endpoint.
+The default cname hasn't assigned yet because "{{ .App.Spec.Framework }}" framework doesn't have ingress service endpoint.
 {{- end }}
 {{- if .App.Spec.DockerRegistry.SecretName }}
 Secret name to pull application's images: {{ .App.Spec.DockerRegistry.SecretName }}
@@ -86,9 +87,9 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.name}, &app); err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
-	pool := &ketchv1.Pool{}
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Pool}, pool); err != nil {
-		return fmt.Errorf("failed to get pool: %w", err)
+	framework := &ketchv1.Framework{}
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, framework); err != nil {
+		return fmt.Errorf("failed to get framework: %w", err)
 	}
 
 	buf := bytes.Buffer{}
@@ -96,7 +97,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	table := &bytes.Buffer{}
 	w := tabwriter.NewWriter(table, 0, 4, 4, ' ', 0)
 	appPods, err := cfg.KubernetesClient().CoreV1().Pods(app.Namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf(`%s=%s`, ketchAppNameLabel, app.Name),
+		LabelSelector: fmt.Sprintf(`%s=%s`, utils.KetchAppNameLabel, app.Name),
 	})
 	if err != nil {
 		return err
@@ -122,7 +123,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	w.Flush()
 	infoContext := appInfoContext{
 		App:         app,
-		Cnames:      app.CNames(pool),
+		Cnames:      app.CNames(framework),
 		Table:       table.String(),
 		NoProcesses: noProcesses,
 	}
@@ -136,8 +137,8 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 func filterProcessDeploymentPods(appPods []corev1.Pod, version, process string) []corev1.Pod {
 	var pods []corev1.Pod
 	for _, pod := range appPods {
-		deploymentVersion := pod.Labels[ketchDeploymentVersionLabel]
-		processName := pod.Labels[ketchProcessNameLabel]
+		deploymentVersion := pod.Labels[utils.KetchDeploymentVersionLabel]
+		processName := pod.Labels[utils.KetchProcessNameLabel]
 		if deploymentVersion == version && processName == process {
 			pods = append(pods, pod)
 		}
