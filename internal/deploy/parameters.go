@@ -36,6 +36,7 @@ const (
 	FlagRegistrySecret = "registry-secret"
 	FlagBuilder        = "builder"
 	FlagBuildPacks     = "build-packs"
+	FlagUnits          = "units"
 
 	FlagAppShort         = "a"
 	FlagImageShort       = "i"
@@ -88,6 +89,8 @@ type Options struct {
 	DockerRegistrySecret string
 	Builder              string
 	BuildPacks           []string
+
+	Units int
 }
 
 type ChangeSet struct {
@@ -107,6 +110,7 @@ type ChangeSet struct {
 	dockerRegistrySecret *string
 	builder              *string
 	buildPacks           *[]string
+	units                *int
 }
 
 func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
@@ -156,6 +160,9 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		},
 		FlagBuildPacks: func(c *ChangeSet) {
 			c.buildPacks = &o.BuildPacks
+		},
+		FlagUnits: func(c *ChangeSet) {
+			c.units = &o.Units
 		},
 	}
 	for k, f := range m {
@@ -300,6 +307,13 @@ func (c *ChangeSet) getBuilder(spec ketchv1.AppSpec) string {
 		}
 	}
 	return *c.builder
+}
+
+func (c *ChangeSet) getUnits() int {
+	if c.units == nil {
+		return 0
+	}
+	return *c.units
 }
 
 func (c *ChangeSet) getBuildPacks() ([]string, error) {

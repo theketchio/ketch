@@ -72,5 +72,7 @@ func newAppDeployCmd(cfg config, params *deploy.Services, configDefaultBuilder s
 	cmd.RegisterFlagCompletionFunc(deploy.FlagBuilder, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return autoCompleteBuilderNames(cfg, toComplete)
 	})
+	cmd.Flags().IntVar(&options.Units, deploy.FlagUnits, 1, "Set number of units for deployment")
+
 	return cmd
 }
