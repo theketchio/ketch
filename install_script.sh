@@ -31,4 +31,4 @@ DOCKER_PASSWORD=$3
 - sudo apt-get install helm
 
 # BATS
-sudo apt-get update -yq && sudo apt-g
+sudo apt-get update -yq && sudo apt-get install bats -y
