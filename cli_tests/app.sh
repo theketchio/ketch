@@ -15,7 +15,7 @@ setup() {
 }
 
 @test "framework create" {
-  result=$($KETCH framework add $FRAMEWORK --ingress-service-endpoint $INGRESS --ingress-type traefik)
+  result=$($KETCH framework add --ingress-service-endpoint $INGRESS --ingress-type traefik)
   [[ $result =~ "Successfully added!" ]]
 }
 
@@ -35,7 +35,6 @@ setup() {
 @test "app list" {
   result=$($KETCH app list)
   headerRegex="NAME[ \t]+FRAMEWORK[ \t]+STATE[ \t]+ADDRESSES[ \t]+BUILDER[ \t]+DESCRIPTION"
-  ip=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   dataRegex="bulletinboard[ \t]+myframework[ \t]+(created|running)[ \t]+http://bulletinboard.$INGRESS.shipa.cloud"
   echo $result
   [[ $result =~ $headerRegex ]]
