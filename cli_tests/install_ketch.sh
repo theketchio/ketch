@@ -4,6 +4,13 @@
 sudo minikube start --profile=minikube --vm-driver=none --kubernetes-version=v1.20.1
 sudo chown -R travis /home/travis/.minikube/
 
+# kubebuilder
+make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
+
+# kustomize
+make install-kustomize KUSTOMIZE_INSTALL_DIR=/tmp
+export PATH=$PATH:/tmp
+
 # ketch
 kubectl cluster-info
 make install
