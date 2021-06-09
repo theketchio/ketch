@@ -1,47 +1,56 @@
 #!/usr/bin/env bats
 
-ls 
-export PATH=$PATH:$(pwd)/bin
-ketch -v
-
+setup() {
+  KETCH=$(pwd)/bin/ketch
+  INGRESS=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  echo $INGRESS
+}
 framework="myframework"
 appImage="docker.io/shipasoftware/bulletinboard:1.0"
-# platform="go"
 
 @test "help" {
-  result="$(ketch help)"
+  result="$($KETCH help)"
   [[ $result =~ "For details see https://theketch.io" ]]
   [[ $result =~ "Available Commands" ]]
   [[ $result =~ "Flags" ]]
 }
 
 @test "framework create" {
-  result="$(ketch framework add $framework --ingress-service-endpoint "$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')" --ingress-type traefik)"
+  result="$($KETCH framework add $framework --ingress-service-endpoint $INGRESS --ingress-type traefik)"
   [[ $result =~ "Successfully added!" ]]
 }
 
 @test "framework list" {
-  result="$(ketch framework list)"
+  result="$($KETCH framework list)"
   echo $result
-  [[ $result =~ "myframework" ]] # TODO check w/ regex
+  headerRegex="NAME[ \t]+STATUS[ \t]+NAMESPACE[ \t]+INGRESS TYPE[ \t]+INGRESS CLASS NAME[ \t]+CLUSTER ISSUER[ \t]+APPS"
+  dataRegex="myframework[ \t]+ketch-myframework[ \t]+traefik[ \t]+traefik"
+  [[ "$result" =~ $headerRegex ]]
+  [[ "$result" =~ $dataRegex ]]
 }
 
 @test "app deploy" {
-  result="$(ketch app deploy bulletinboard --framework $framework -i $appImage)"
-  # [[ $result =~ "Success" ]]
+  run $KETCH app deploy bulletinboard --framework $framework -i $appImage
+  [ $status -eq 0 ]
 }
 
 @test "app list" {
-  result="$(ketch app list)"
-  [[ $result =~ "bulletinboard" ]] # TODO regex
+  result="$($KETCH app list)"
+  headerRegex="NAME[ \t]+FRAMEWORK[ \t]+STATE[ \t]+ADDRESSES[ \t]+BUILDER[ \t]+DESCRIPTION"
+  dataRegex="bulletinboard[ \t]+myframework[ \t]+(created|running)[ \t]+http://bulletinboard.$INGRESS.shipa.cloud"
+  echo $result
+  [[ "$result" =~ $headerRegex ]]
+  [[ "$result" =~ $dataRegex ]]
 }
 
+# TODO curl test
+
 @test "app remove" {
-  result="$(ketch app remove bulletinboard)"
+  result="$($KETCH app remove bulletinboard)"
   [[ $result =~ "Successfully removed!" ]]
 }
 
 @test "framework remove" {
-  result="$(echo ketch-$framework | ketch framework remove $framework)"
+  result="$(echo ketch-$framework | $KETCH framework remove $framework)"
   [[ $result =~ "Framework successfully removed!" ]]
 }
