@@ -187,8 +187,6 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
-	sourceProcFilePath := path.Join(sourcePath, defaultProcFile)
-	units := params.getUnits()
 
 	if err := svc.Builder(
 		ctx,
@@ -219,6 +217,9 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 		return err
 	}
 
+	_, err = params.getProcfileName()
+	procFileProvided := !isMissing(err)
+
 	var updateRequest updateAppCRDRequest
 
 	updateRequest.image = image
@@ -229,11 +230,17 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 	updateRequest.ketchYaml = ketchYaml
 	updateRequest.configFile = imgConfig
 	updateRequest.procFile = procfile
+	updateRequest.procFileProvided = procFileProvided
 	interval, _ := params.getStepInterval()
 	updateRequest.stepTimeInterval = interval
 	updateRequest.nextScheduledTime = time.Now().Add(interval)
 	updateRequest.started = time.Now()
+	units, _ := params.getUnits()
 	updateRequest.units = units
+	version, _ := params.getVersion()
+	updateRequest.version = version
+	process, _ := params.getProcess()
+	updateRequest.process = process
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		return errors.Wrap(err, "deploy from source failed")
@@ -260,7 +267,6 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	}
 
 	image, _ := params.getImage()
-	units := params.getUnits()
 
 	imageRequest := ImageConfigRequest{
 		imageName:       image,
@@ -277,6 +283,8 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	if err != nil {
 		return err
 	}
+	_, err = params.getProcfileName()
+	procFileProvided := !isMissing(err)
 
 	var updateRequest updateAppCRDRequest
 	updateRequest.image = image
@@ -285,13 +293,19 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	stepWeight, _ := params.getStepWeight()
 	updateRequest.stepWeight = stepWeight
 	updateRequest.procFile = procfile
+	updateRequest.procFileProvided = procFileProvided
 	updateRequest.ketchYaml = ketchYaml
 	updateRequest.configFile = imgConfig
 	interval, _ := params.getStepInterval()
 	updateRequest.stepTimeInterval = interval
 	updateRequest.nextScheduledTime = time.Now().Add(interval)
 	updateRequest.started = time.Now()
+	units, _ := params.getUnits()
 	updateRequest.units = units
+	version, _ := params.getVersion()
+	updateRequest.version = version
+	process, _ := params.getProcess()
+	updateRequest.process = process
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		return errors.Wrap(err, "deploy from image failed")
@@ -330,12 +344,15 @@ type updateAppCRDRequest struct {
 	steps             int
 	stepWeight        uint8
 	procFile          *chart.Procfile
+	procFileProvided  bool
 	ketchYaml         *ketchv1.KetchYamlData
 	configFile        *registryv1.ConfigFile
 	nextScheduledTime time.Time
 	started           time.Time
 	stepTimeInterval  time.Duration
 	units             int
+	version           int
+	process           string
 }
 
 func updateAppCRD(ctx context.Context, svc *Services, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
@@ -366,122 +383,75 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			exposedPorts = append(exposedPorts, *exposedPort)
 		}
 
-		log.Println("default processes")
-		log.Println(processes)
-
-		// check to see if any of the processes differ from previous deployment
-		// if they differ overwrite the processes in the current deployment
-		// not worrying about canary for now
-		if updated.Spec.Deployments != nil && args.steps < 1 {
-			log.Println("comparison of found deployment to cli")
+		// previous deployment found with no procFile provided
+		usePrevious := false
+		if !args.procFileProvided && len(updated.Spec.Deployments) > 0 {
+			usePrevious = true
 			for i := range updated.Spec.Deployments {
-				// confirm it is not default config?
-
-				// user specified something different, overwrite
-				if len(updated.Spec.Deployments[i].Processes) != len(processes) {
-					log.Println("processes differ in length")
-					updated.Spec.Deployments[i].Processes = processes
-				} else {
-					log.Println("processes same in length")
-					log.Println(updated.Spec.Deployments[i].Processes)
-					log.Println(processes)
-					log.Println(len(updated.Spec.Deployments[i].Processes))
-					for j := range updated.Spec.Deployments[i].Processes {
-						// Something doesn't match so overwrite and break
-						log.Println(updated.Spec.Deployments[i].Processes[j].Name)
-						log.Println(processes[j].Name)
-						if updated.Spec.Deployments[i].Processes[j].Name != processes[j].Name {
-							log.Println("processes changed; different names")
-							updated.Spec.Deployments[i].Processes = processes
-							break
-						}
-						if len(updated.Spec.Deployments[i].Processes[j].Cmd) != len(processes[j].Cmd) {
-							log.Println("processes changed; different cmd length")
-							updated.Spec.Deployments[i].Processes = processes
-							break
-						} else {
-							for x := range updated.Spec.Deployments[i].Processes[j].Cmd {
-								if updated.Spec.Deployments[i].Processes[j].Cmd[x] != processes[j].Cmd[x] {
-									log.Println("cmd changed")
-									updated.Spec.Deployments[i].Processes = processes
-									break
-								}
-							}
-							// break
-						}
-					}
+				// default procfile is based on the image, so a new image means a new procfile
+				if updated.Spec.Deployments[i].Image != args.image {
+					usePrevious = false
+					break
 				}
-				updated.Spec.Deployments[i].Image = args.image
-				updated.Spec.Deployments[i].KetchYaml = args.ketchYaml
-				updated.Spec.Deployments[i].RoutingSettings = ketchv1.RoutingSettings{
+				// ketchYaml found, update
+				if args.ketchYaml != nil {
+					updated.Spec.Deployments[i].KetchYaml = args.ketchYaml
+				}
+			}
+		}
+
+		if !usePrevious {
+			log.Println("creating new deployment spec")
+			// default deployment spec for an app
+			deploymentSpec := ketchv1.AppDeploymentSpec{
+				Image:     args.image,
+				Version:   ketchv1.DeploymentVersion(updated.Spec.DeploymentsCount + 1),
+				Processes: processes,
+				KetchYaml: args.ketchYaml,
+				RoutingSettings: ketchv1.RoutingSettings{
 					Weight: defaultTrafficWeight,
-				}
-				updated.Spec.Deployments[i].ExposedPorts = exposedPorts
+				},
+				ExposedPorts: exposedPorts,
+			}
 
-				deploymentVersion := 0
-				processName := "worker"
-
-				if args.units > 0 {
-					s := ketchv1.NewSelector(deploymentVersion, processName)
-					if err := updated.SetUnits(s, args.units); err != nil {
-						log.Println("error is here")
-						return err
-					}
+			// not sure what to do with canary when dealing with previous deployments
+			if args.steps > 1 {
+				nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
+				started := metav1.NewTime(args.started)
+				updated.Spec.Canary = ketchv1.CanarySpec{
+					Steps:             args.steps,
+					StepWeight:        args.stepWeight,
+					StepTimeInteval:   args.stepTimeInterval,
+					NextScheduledTime: &nextScheduledTime,
+					CurrentStep:       1,
+					Active:            true,
+					Started:           &started,
 				}
-				return svc.Client.Update(ctx, &updated)
+
+				// set initial weight for canary deployment to zero.
+				// App controller will update the weight once all pods for canary will be on running state.
+				deploymentSpec.RoutingSettings.Weight = 0
+
+				// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
+				updated.Spec.Deployments = append(updated.Spec.Deployments, deploymentSpec)
+			} else {
+				updated.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
 			}
 		}
 
-		// default deployment spec for an app
-		deploymentSpec := ketchv1.AppDeploymentSpec{
-			Image:     args.image,
-			Version:   ketchv1.DeploymentVersion(updated.Spec.DeploymentsCount + 1),
-			Processes: processes,
-			KetchYaml: args.ketchYaml,
-			RoutingSettings: ketchv1.RoutingSettings{
-				Weight: defaultTrafficWeight,
-			},
-			ExposedPorts: exposedPorts,
-		}
-
-		if args.steps > 1 {
-			nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
-			started := metav1.NewTime(args.started)
-			updated.Spec.Canary = ketchv1.CanarySpec{
-				Steps:             args.steps,
-				StepWeight:        args.stepWeight,
-				StepTimeInteval:   args.stepTimeInterval,
-				NextScheduledTime: &nextScheduledTime,
-				CurrentStep:       1,
-				Active:            true,
-				Started:           &started,
+		if args.units > 0 {
+			s := ketchv1.NewSelector(args.version, args.process)
+			log.Printf("%+v", s)
+			if err := updated.SetUnits(s, args.units); err != nil {
+				return err
 			}
-
-			// set initial weight for canary deployment to zero.
-			// App controller will update the weight once all pods for canary will be on running state.
-			deploymentSpec.RoutingSettings.Weight = 0
-
-			// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
-			updated.Spec.Deployments = append(updated.Spec.Deployments, deploymentSpec)
-		} else {
-			updated.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
 		}
 
 		log.Println("new app deployments:")
 		log.Println(updated.Spec.Deployments)
 
+		// not sure if this should be updated if using old deploy
 		updated.Spec.DeploymentsCount += 1
-
-		// temp variable for testing to see if I spawn the right number of pods
-		deploymentVersion := 0
-		processName := "worker"
-
-		if args.units > 0 {
-			s := ketchv1.NewSelector(deploymentVersion, processName)
-			if err := updated.SetUnits(s, args.units); err != nil {
-				return err
-			}
-		}
 
 		return svc.Client.Update(ctx, &updated)
 	})

@@ -89,6 +89,27 @@ func validateDeploy(cs *ChangeSet, app *ketchv1.App) error {
 		}
 	}
 
+	_, err = cs.getUnits()
+	if !isMissing(err) {
+		if !isValid(err) {
+			return err
+		}
+	}
+
+	_, err = cs.getVersion()
+	if !isMissing(err) {
+		if !isValid(err) {
+			return err
+		}
+	}
+
+	_, err = cs.getProcess()
+	if !isMissing(err) {
+		if !isValid(err) {
+			return err
+		}
+	}
+
 	wait, err := cs.getWait()
 	if !isMissing(err) {
 		if wait {

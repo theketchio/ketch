@@ -37,6 +37,8 @@ const (
 	FlagBuilder        = "builder"
 	FlagBuildPacks     = "build-packs"
 	FlagUnits          = "units"
+	FlagVersion        = "version"
+	FlagProcess        = "process"
 
 	FlagAppShort         = "a"
 	FlagImageShort       = "i"
@@ -90,7 +92,9 @@ type Options struct {
 	Builder              string
 	BuildPacks           []string
 
-	Units int
+	Units   int
+	Version int
+	Process string
 }
 
 type ChangeSet struct {
@@ -111,6 +115,8 @@ type ChangeSet struct {
 	builder              *string
 	buildPacks           *[]string
 	units                *int
+	version              *int
+	process              *string
 }
 
 func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
@@ -163,6 +169,12 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		},
 		FlagUnits: func(c *ChangeSet) {
 			c.units = &o.Units
+		},
+		FlagVersion: func(c *ChangeSet) {
+			c.version = &o.Version
+		},
+		FlagProcess: func(c *ChangeSet) {
+			c.process = &o.Process
 		},
 	}
 	for k, f := range m {
@@ -309,11 +321,41 @@ func (c *ChangeSet) getBuilder(spec ketchv1.AppSpec) string {
 	return *c.builder
 }
 
-func (c *ChangeSet) getUnits() int {
+func (c *ChangeSet) getUnits() (int, error) {
 	if c.units == nil {
-		return 0
+		return 0, nil
 	}
-	return *c.units
+	if *c.units < 1 {
+		return 0, fmt.Errorf("%w %s must be 1 or greater",
+			newInvalidError(FlagUnits), FlagUnits)
+	}
+	return *c.units, nil
+}
+
+func (c *ChangeSet) getVersion() (int, error) {
+	if c.version == nil {
+		return 0, nil
+	}
+	if c.units == nil {
+		return 0, fmt.Errorf("%w %s must be used with %s flag",
+			newInvalidError(FlagVersion), FlagVersion, FlagUnits)
+	}
+	if *c.version < 1 {
+		return 0, fmt.Errorf("%w %s must be 1 or greater",
+			newInvalidError(FlagVersion), FlagVersion)
+	}
+	return *c.version, nil
+}
+
+func (c *ChangeSet) getProcess() (string, error) {
+	if c.process == nil {
+		return "", nil
+	}
+	if c.units == nil {
+		return "", fmt.Errorf("%w %s must be used with %s flag",
+			newInvalidError(FlagProcess), FlagProcess, FlagUnits)
+	}
+	return *c.process, nil
 }
 
 func (c *ChangeSet) getBuildPacks() ([]string, error) {
