@@ -358,24 +358,6 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			return errors.Wrap(err, "could not get app to deploy %q", appName)
 		}
 
-		processes := make([]ketchv1.ProcessSpec, 0, len(args.procFile.Processes))
-		for _, processName := range args.procFile.SortedNames() {
-			cmd := args.procFile.Processes[processName]
-			processes = append(processes, ketchv1.ProcessSpec{
-				Name: processName,
-				Cmd:  cmd,
-			})
-		}
-		exposedPorts := make([]ketchv1.ExposedPort, 0, len(args.configFile.Config.ExposedPorts))
-		for port := range args.configFile.Config.ExposedPorts {
-			exposedPort, err := ketchv1.NewExposedPort(port)
-			if err != nil {
-				// Shouldn't happen
-				return err
-			}
-			exposedPorts = append(exposedPorts, *exposedPort)
-		}
-
 		// previous deployment found with no procFile provided, and not a canary deployment
 		usePrevious := false
 		if !args.procFileProvided && len(updated.Spec.Deployments) > 0 && args.steps < 2 {
@@ -394,6 +376,24 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 		}
 
 		if !usePrevious {
+			processes := make([]ketchv1.ProcessSpec, 0, len(args.procFile.Processes))
+			for _, processName := range args.procFile.SortedNames() {
+				cmd := args.procFile.Processes[processName]
+				processes = append(processes, ketchv1.ProcessSpec{
+					Name: processName,
+					Cmd:  cmd,
+				})
+			}
+			exposedPorts := make([]ketchv1.ExposedPort, 0, len(args.configFile.Config.ExposedPorts))
+			for port := range args.configFile.Config.ExposedPorts {
+				exposedPort, err := ketchv1.NewExposedPort(port)
+				if err != nil {
+					// Shouldn't happen
+					return err
+				}
+				exposedPorts = append(exposedPorts, *exposedPort)
+			}
+
 			// default deployment spec for an app
 			deploymentSpec := ketchv1.AppDeploymentSpec{
 				Image:     args.image,
