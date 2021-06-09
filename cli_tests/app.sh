@@ -15,16 +15,16 @@ setup() {
 }
 
 @test "framework create" {
-  run $KETCH framework add $FRAMEWORK --ingress-service-endpoint $INGRESS --ingress-type traefik
+  result=$($KETCH framework add $FRAMEWORK --ingress-service-endpoint $INGRESS --ingress-type traefik)
   [[ $result =~ "Successfully added!" ]]
 }
 
 @test "framework list" {
-  result="$($KETCH framework list)"
+  result=$($KETCH framework list)
   headerRegex="NAME[ \t]+STATUS[ \t]+NAMESPACE[ \t]+INGRESS TYPE[ \t]+INGRESS CLASS NAME[ \t]+CLUSTER ISSUER[ \t]+APPS"
   dataRegex="myframework[ \t]+ketch-myframework[ \t]+traefik[ \t]+traefik"
-  [[ "$result" =~ $headerRegex ]]
-  [[ "$result" =~ $dataRegex ]]
+  [[ $result =~ $headerRegex ]]
+  [[ $result =~ $dataRegex ]]
 }
 
 @test "app deploy" {
@@ -33,21 +33,21 @@ setup() {
 }
 
 @test "app list" {
-  result="$($KETCH app list)"
+  result=$($KETCH app list)
   headerRegex="NAME[ \t]+FRAMEWORK[ \t]+STATE[ \t]+ADDRESSES[ \t]+BUILDER[ \t]+DESCRIPTION"
   ip=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   dataRegex="bulletinboard[ \t]+myframework[ \t]+(created|running)[ \t]+http://bulletinboard.$INGRESS.shipa.cloud"
   echo $result
-  [[ "$result" =~ $headerRegex ]]
-  [[ "$result" =~ $dataRegex ]]
+  [[ $result =~ $headerRegex ]]
+  [[ $result =~ $dataRegex ]]
 }
 
 @test "app remove" {
-  result="$($KETCH app remove bulletinboard)"
+  result=$($KETCH app remove bulletinboard)
   [[ $result =~ "Successfully removed!" ]]
 }
 
 @test "framework remove" {
-  result="$(echo ketch-$FRAMEWORK | $KETCH framework remove $FRAMEWORK)"
+  result=$(echo ketch-$FRAMEWORK | $KETCH framework remove $FRAMEWORK)
   [[ $result =~ "Framework successfully removed!" ]]
 }
