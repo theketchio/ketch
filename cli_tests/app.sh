@@ -1,5 +1,8 @@
 #!/usr/bin/env bats
 
+export PATH=$PATH:$(pwd)/ketch/bin
+ketch -v
+
 framework="myframework"
 appImage="docker.io/shipasoftware/bulletinboard:1.0"
 # platform="go"
