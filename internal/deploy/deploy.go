@@ -378,9 +378,9 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			exposedPorts = append(exposedPorts, *exposedPort)
 		}
 
-		// previous deployment found with no procFile provided
+		// previous deployment found with no procFile provided, and not a canary deployment
 		usePrevious := false
-		if !args.procFileProvided && len(updated.Spec.Deployments) > 0 {
+		if !args.procFileProvided && len(updated.Spec.Deployments) > 0 && args.steps < 2 {
 			usePrevious = true
 			for i := range updated.Spec.Deployments {
 				// default procfile is based on the image, so a new image means a new procfile
