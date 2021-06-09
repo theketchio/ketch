@@ -21,7 +21,6 @@ func newUnitCmd(cfg config, out io.Writer) *cobra.Command {
 		},
 	}
 	cmd.AddCommand(newUnitAddCmd(cfg, out))
-	cmd.AddCommand(newUnitSetCmd(cfg, out))
 	cmd.AddCommand(newUnitRemoveCmd(cfg, out))
 	return cmd
 }
