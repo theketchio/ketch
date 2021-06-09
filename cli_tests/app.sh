@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
-export PATH=$PATH:$(pwd)/ketch/bin
+ls 
+export PATH=$PATH:$(pwd)/bin
 ketch -v
 
 framework="myframework"
