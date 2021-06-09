@@ -15,7 +15,7 @@ setup() {
 }
 
 @test "framework create" {
-  result=$($KETCH framework add --ingress-service-endpoint $INGRESS --ingress-type traefik)
+  result=$($KETCH framework add "$FRAMEWORK" --ingress-service-endpoint "$INGRESS" --ingress-type "traefik")
   [[ $result =~ "Successfully added!" ]]
 }
 
@@ -28,7 +28,7 @@ setup() {
 }
 
 @test "app deploy" {
-  run $KETCH app deploy bulletinboard --framework $FRAMEWORK -i $APP_IMAGE
+  run $KETCH app deploy bulletinboard --framework "$FRAMEWORK" -i "$APP_IMAGE"
   [ $status -eq 0 ]
 }
 
@@ -47,6 +47,6 @@ setup() {
 }
 
 @test "framework remove" {
-  result=$(echo ketch-$FRAMEWORK | $KETCH framework remove $FRAMEWORK)
+  result=$(echo "ketch-$FRAMEWORK" | $KETCH framework remove "$FRAMEWORK")
   [[ $result =~ "Framework successfully removed!" ]]
 }
