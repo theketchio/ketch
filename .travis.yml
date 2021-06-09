@@ -86,4 +86,4 @@ jobs:
         # deploy
         - make deploy IMG=shipasoftware/ketch:$TRAVIS_COMMIT
         # test
-        - ./cli_tests/help.sh
+        - ketch help
