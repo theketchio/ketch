@@ -1,7 +1,18 @@
 #!/usr/bin/env bats
 
+# To run locally:
+# export KETCH_COMMAND=<location of ketch binary>
+# assure you have a kubernetes cluster running w/ traefik, cert manager, etc. (see ketch getting started docs)
+# assure the ketch cli is compiled (make ketch)
+# assure you have bats installed locally (via apt, brew, etc.)
+# ./cli_tests/app.sh
+
 setup() {
-  KETCH=$(pwd)/bin/ketch
+    if [[ -z "${KETCH_COMMAND}" ]]; then
+    KETCH=$(pwd)/bin/ketch
+  else
+    KETCH="${KETCH_COMMAND}"
+  fi
   INGRESS=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   FRAMEWORK="myframework"
   APP_IMAGE="docker.io/shipasoftware/bulletinboard:1.0"
