@@ -14,7 +14,7 @@ setup() {
   [[ $result =~ "Flags" ]]
 }
 
-@test "framework create" {
+@test "framework add" {
   result=$($KETCH framework add "$FRAMEWORK" --ingress-service-endpoint "$INGRESS" --ingress-type "traefik")
   [[ $result =~ "Successfully added!" ]]
 }
@@ -35,7 +35,7 @@ setup() {
 @test "app list" {
   result=$($KETCH app list)
   headerRegex="NAME[ \t]+FRAMEWORK[ \t]+STATE[ \t]+ADDRESSES[ \t]+BUILDER[ \t]+DESCRIPTION"
-  dataRegex="bulletinboard[ \t]+myframework[ \t]+(created|running)[ \t]+http://bulletinboard.$INGRESS.shipa.cloud"
+  dataRegex="bulletinboard[ \t]+myframework[ \t]+(created|running)"
   echo $result
   [[ $result =~ $headerRegex ]]
   [[ $result =~ $dataRegex ]]
