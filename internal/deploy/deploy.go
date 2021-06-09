@@ -5,7 +5,6 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -359,9 +358,6 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			return errors.Wrap(err, "could not get app to deploy %q", appName)
 		}
 
-		log.Println("found app deployments:")
-		log.Println(updated.Spec.Deployments)
-
 		processes := make([]ketchv1.ProcessSpec, 0, len(args.procFile.Processes))
 		for _, processName := range args.procFile.SortedNames() {
 			cmd := args.procFile.Processes[processName]
@@ -398,7 +394,6 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 		}
 
 		if !usePrevious {
-			log.Println("creating new deployment spec")
 			// default deployment spec for an app
 			deploymentSpec := ketchv1.AppDeploymentSpec{
 				Image:     args.image,
@@ -410,6 +405,8 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 				},
 				ExposedPorts: exposedPorts,
 			}
+
+			updated.Spec.DeploymentsCount += 1
 
 			// not sure what to do with canary when dealing with previous deployments
 			if args.steps > 1 {
@@ -438,17 +435,10 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 
 		if args.units > 0 {
 			s := ketchv1.NewSelector(args.version, args.process)
-			log.Printf("%+v", s)
 			if err := updated.SetUnits(s, args.units); err != nil {
 				return err
 			}
 		}
-
-		log.Println("new app deployments:")
-		log.Println(updated.Spec.Deployments)
-
-		// not sure if this should be updated if using old deploy
-		updated.Spec.DeploymentsCount += 1
 
 		return svc.Client.Update(ctx, &updated)
 	})
