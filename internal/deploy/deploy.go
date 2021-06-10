@@ -238,6 +238,7 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 	updateRequest.version = version
 	process, _ := params.getProcess()
 	updateRequest.process = process
+	updateRequest.fromSource = true
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		return errors.Wrap(err, "deploy from source failed")
@@ -349,6 +350,7 @@ type updateAppCRDRequest struct {
 	units             int
 	version           int
 	process           string
+	fromSource        bool
 }
 
 func updateAppCRD(ctx context.Context, svc *Services, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
@@ -363,8 +365,10 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 		if !args.procFileProvided && len(updated.Spec.Deployments) > 0 && args.steps < 2 {
 			usePrevious = true
 			for i := range updated.Spec.Deployments {
-				// default procfile is based on the image, so a new image means a new procfile
-				if updated.Spec.Deployments[i].Image != args.image {
+				// default procfile is based on the imgConfig. In the case of a
+				// deployment from an image, imgConfig comes from the specified image.
+				// meaning a new image will create a different procfile
+				if updated.Spec.Deployments[i].Image != args.image && !args.fromSource {
 					usePrevious = false
 					break
 				}
