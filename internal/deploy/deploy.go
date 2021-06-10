@@ -5,6 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -56,11 +57,7 @@ func (r Runner) Run(ctx context.Context, svc *Services) error {
 		return err
 	}
 
-	if r.params.sourcePath != nil {
-		return deployFromSource(ctx, svc, app, r.params)
-	}
-
-	return deployFromImage(ctx, svc, app, r.params)
+	return deployImage(ctx, svc, app, r.params)
 }
 
 type appUpdater func(ctx context.Context, app *ketchv1.App, changed bool) error
@@ -171,89 +168,21 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 	return app, err
 }
 
-func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
-	ketchYaml, err := params.getKetchYaml()
-	if err != nil {
-		return err
-	}
-
-	var framework ketchv1.Framework
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
-		return errors.Wrap(err, "failed to get framework %s", app.Spec.Framework)
-	}
-
-	image, _ := params.getImage()
-	sourcePath, _ := params.getSourceDirectory()
-
-	if err := svc.Builder(
+func buildFromSource(ctx context.Context, svc *Services, app *ketchv1.App, appName, image, sourcePath string) error {
+	log.Println("building from source")
+	return svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
 			Image:      image,
-			AppName:    params.appName,
+			AppName:    appName,
 			Builder:    app.Spec.Builder,
 			BuildPacks: app.Spec.BuildPacks,
 		},
 		build.WithWorkingDirectory(sourcePath),
-	); err != nil {
-		return err
-	}
-
-	imageRequest := ImageConfigRequest{
-		imageName:       image,
-		secretName:      app.Spec.DockerRegistry.SecretName,
-		secretNamespace: framework.Spec.NamespaceName,
-		client:          svc.KubeClient,
-	}
-	imgConfig, err := svc.GetImageConfig(ctx, imageRequest)
-	if err != nil {
-		return err
-	}
-
-	procfile, err := makeProcfile(imgConfig, params)
-	if err != nil {
-		return err
-	}
-
-	_, err = params.getProcfileName()
-	procFileProvided := !isMissing(err)
-
-	var updateRequest updateAppCRDRequest
-
-	updateRequest.image = image
-	steps, _ := params.getSteps()
-	updateRequest.steps = steps
-	stepWeight, _ := params.getStepWeight()
-	updateRequest.stepWeight = stepWeight
-	updateRequest.ketchYaml = ketchYaml
-	updateRequest.configFile = imgConfig
-	updateRequest.procFile = procfile
-	updateRequest.procFileProvided = procFileProvided
-	interval, _ := params.getStepInterval()
-	updateRequest.stepTimeInterval = interval
-	updateRequest.nextScheduledTime = time.Now().Add(interval)
-	updateRequest.started = time.Now()
-	units, _ := params.getUnits()
-	updateRequest.units = units
-	version, _ := params.getVersion()
-	updateRequest.version = version
-	process, _ := params.getProcess()
-	updateRequest.process = process
-	updateRequest.fromSource = true
-
-	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
-		return errors.Wrap(err, "deploy from source failed")
-	}
-
-	wait, _ := params.getWait()
-	if wait {
-		timeout, _ := params.getTimeout()
-		return svc.Wait(ctx, svc, app, timeout)
-	}
-
-	return nil
+	)
 }
 
-func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
+func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
 	ketchYaml, err := params.getKetchYaml()
 	if err != nil {
 		return err
@@ -266,6 +195,15 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 
 	image, _ := params.getImage()
 
+	fromSource := params.sourcePath != nil
+	// build image from source if valid path provided
+	if fromSource {
+		sourcePath, _ := params.getSourceDirectory()
+		if err := buildFromSource(ctx, svc, app, params.appName, image, sourcePath); err != nil {
+			return errors.Wrap(err, "failed to build image from source path %q", sourcePath)
+		}
+	}
+
 	imageRequest := ImageConfigRequest{
 		imageName:       image,
 		secretName:      app.Spec.DockerRegistry.SecretName,
@@ -304,9 +242,14 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	updateRequest.version = version
 	process, _ := params.getProcess()
 	updateRequest.process = process
+	updateRequest.fromSource = fromSource
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
-		return errors.Wrap(err, "deploy from image failed")
+		deploymentType := "image"
+		if fromSource {
+			deploymentType = "source"
+		}
+		return errors.Wrap(err, fmt.Sprintf("deploy from %s failed", deploymentType))
 	}
 
 	wait, _ := params.getWait()
