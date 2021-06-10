@@ -5,6 +5,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/spf13/pflag"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -66,7 +68,7 @@ framework-b              b            traefik         classname-b           lets
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := frameworkList(context.Background(), tt.cfg, out)
+			err := frameworkList(context.Background(), tt.cfg, out, &pflag.FlagSet{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("frameworkList() error = %v, wantErr %v", err, tt.wantErr)
 				return

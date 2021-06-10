@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+
+	"github.com/spf13/pflag"
+	"gopkg.in/yaml.v2"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
@@ -25,7 +29,7 @@ func newEnvGetCmd(cfg config, out io.Writer) *cobra.Command {
 		Long:  envGetHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.envs = args
-			return envGet(cmd.Context(), cfg, options, out)
+			return envGet(cmd.Context(), cfg, options, out, cmd.Flags())
 
 		},
 	}
@@ -39,14 +43,33 @@ type envGetOptions struct {
 	envs    []string
 }
 
-func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Writer) error {
+func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Writer, flags *pflag.FlagSet) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get the app: %w", err)
 	}
 	envs := app.Envs(options.envs)
-	for name, value := range envs {
-		fmt.Fprintf(out, "%v=%v\n", name, value)
+	outputFlag, err := flags.GetString("output")
+	if err != nil {
+		outputFlag = ""
+	}
+	switch outputFlag {
+	case "json", "JSON":
+		j, err := json.MarshalIndent(envs, "", "\t")
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(out, string(j))
+	case "yaml", "YAML":
+		y, err := yaml.Marshal(envs)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(out, string(y))
+	default:
+		for name, value := range envs {
+			fmt.Fprintf(out, "%v=%v\n", name, value)
+		}
 	}
 	return nil
 }

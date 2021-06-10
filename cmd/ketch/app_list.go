@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/spf13/pflag"
+	"gopkg.in/yaml.v2"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -14,6 +18,15 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/utils"
 )
+
+type appListOutput struct {
+	Name        string `json:"name" yaml:"name"`
+	Framework   string `json:"framework" yaml:"framework"`
+	State       string `json:"state" yaml:"state"`
+	Addresses   string `json:"addresses" yaml:"addresses"`
+	Builder     string `json:"builder" yaml:"builder"`
+	Description string `json:"description" yaml:"description"`
+}
 
 const appListHelp = `
 List all apps running on a kubernetes cluster.
@@ -26,13 +39,13 @@ func newAppListCmd(cfg config, out io.Writer) *cobra.Command {
 		Long:  appListHelp,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return appList(cmd.Context(), cfg, out)
+			return appList(cmd.Context(), cfg, out, cmd.Flags())
 		},
 	}
 	return cmd
 }
 
-func appList(ctx context.Context, cfg config, out io.Writer) error {
+func appList(ctx context.Context, cfg config, out io.Writer, flags *pflag.FlagSet) error {
 	apps := ketchv1.AppList{}
 	if err := cfg.Client().List(ctx, &apps); err != nil {
 		return fmt.Errorf("failed to list apps: %w", err)
@@ -49,18 +62,53 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("failed to list apps pods: %w", err)
 	}
-	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
-	fmt.Fprintln(w, "NAME\tFRAMEWORK\tSTATE\tADDRESSES\tBUILDER\tDESCRIPTION")
+
+	outputs := generateAppListOutput(apps, allPods, frameworksByName)
+	outputFlag, err := flags.GetString("output")
+	if err != nil {
+		outputFlag = ""
+	}
+	switch outputFlag {
+	case "json", "JSON":
+		j, err := json.MarshalIndent(outputs, "", "\t")
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(out, string(j))
+	case "yaml", "YAML":
+		y, err := yaml.Marshal(outputs)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(out, string(y))
+	default:
+		w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
+		fmt.Fprintln(w, "NAME\tFRAMEWORK\tSTATE\tADDRESSES\tBUILDER\tDESCRIPTION")
+		for _, output := range outputs {
+			line := []string{output.Name, output.Framework, output.State, output.Addresses, output.Builder, output.Description}
+			fmt.Fprintln(w, strings.Join(line, "\t"))
+		}
+		w.Flush()
+	}
+	return nil
+}
+
+func generateAppListOutput(apps ketchv1.AppList, allPods *corev1.PodList, frameworksByName map[string]ketchv1.Framework) []appListOutput {
+	var outputs []appListOutput
 	for _, item := range apps.Items {
 		pods := filterAppPods(item.Name, allPods.Items)
-
 		framework := frameworksByName[item.Spec.Framework]
 		urls := strings.Join(item.CNames(&framework), " ")
-		line := []string{item.Name, item.Spec.Framework, appState(pods), urls, item.Spec.Builder, item.Spec.Description}
-		fmt.Fprintln(w, strings.Join(line, "\t"))
+		outputs = append(outputs, appListOutput{
+			Name:        item.Name,
+			Framework:   item.Spec.Framework,
+			State:       appState(pods),
+			Addresses:   urls,
+			Builder:     item.Spec.Builder,
+			Description: item.Spec.Description,
+		})
 	}
-	w.Flush()
-	return nil
+	return outputs
 }
 
 func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.PodList, error) {

@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/spf13/pflag"
+
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -190,7 +192,7 @@ func Test_appInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			err := appInfo(context.Background(), tt.cfg, tt.options, out)
+			err := appInfo(context.Background(), tt.cfg, tt.options, out, &pflag.FlagSet{})
 			if tt.wantErr {
 				require.NotNil(t, err, "appInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
