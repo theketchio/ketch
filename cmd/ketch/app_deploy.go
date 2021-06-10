@@ -69,5 +69,8 @@ func newAppDeployCmd(cfg config, params *deploy.Services, configDefaultBuilder s
 	cmd.RegisterFlagCompletionFunc(deploy.FlagFramework, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return autoCompleteFrameworkNames(cfg, toComplete)
 	})
+	cmd.RegisterFlagCompletionFunc(deploy.FlagBuilder, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return autoCompleteBuilderNames(cfg, toComplete)
+	})
 	return cmd
 }

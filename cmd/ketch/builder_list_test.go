@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -65,5 +66,54 @@ func TestBuilderList(t *testing.T) {
 		err := cmd.Execute()
 		require.Nil(t, err)
 		require.Equal(t, tt.expected, buff.String())
+	}
+}
+
+func TestBuilderList_Names(t *testing.T) {
+	tests := []struct {
+		name string
+
+		builderList BuilderList
+		filter      []string
+		want        []string
+	}{
+		{
+			name: "no filter, return all",
+			builderList: BuilderList{
+				{Image: "img1"},
+				{Image: "img2"},
+				{Image: "img3"},
+			},
+			filter: nil,
+			want:   []string{"img1", "img2", "img3"},
+		},
+		{
+			name: "filtered result",
+			builderList: BuilderList{
+				{Image: "img1"},
+				{Image: "img2"},
+				{Image: "img3"},
+			},
+			filter: nil,
+			want:   []string{"img1", "img2", "img3"},
+		},
+		{
+			name: "empty, all filtered",
+			builderList: BuilderList{
+				{Image: "img1"},
+				{Image: "img2"},
+				{Image: "img3"},
+			},
+			filter: []string{"img1", "img2"},
+			want:   []string{"img1", "img2"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.builderList.Names(tt.filter...)
+			if !reflect.DeepEqual(tt.want, got) {
+				t.Errorf("builderList.Names() want:%v, got%v", tt.want, got)
+			}
+		})
 	}
 }

@@ -83,3 +83,7 @@ func autoCompleteFrameworkNames(cfg config, toComplete ...string) ([]string, cob
 	}
 	return names, cobra.ShellCompDirectiveNoSpace
 }
+
+func autoCompleteBuilderNames(cfg config, toComplete ...string) ([]string, cobra.ShellCompDirective) {
+	return builderList.Names(toComplete...), cobra.ShellCompDirectiveNoSpace
+}
