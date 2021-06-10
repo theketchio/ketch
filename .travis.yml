@@ -5,16 +5,6 @@ stages:
 
 sudo: required
 
-env:
-  global:
-    - CHANGE_MINIKUBE_NONE_USER=true
-    - MINIKUBE_WANTUPDATENOTIFICATION=false
-    - MINIKUBE_WANTREPORTERRORPROMPT=false
-    - MINIKUBE_HOME=$HOME
-    - KUBECONFIG=$HOME/.kube/config
-before_install:
-  - sudo apt-get -qq -y install conntrack
-
 jobs:
   include:
     - stage: test

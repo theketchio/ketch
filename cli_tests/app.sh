@@ -18,6 +18,8 @@ setup() {
   APP_IMAGE="docker.io/shipasoftware/bulletinboard:1.0"
   APP_NAME="bulletinboard"
   CNAME="my-cname.com"
+  TEST_ENVVAR_KEY="FOO"
+  TEST_ENVVAR_VALUE="BAR"
 }
 
 @test "help" {
@@ -136,6 +138,25 @@ setup() {
   result=$(kubectl describe apps $APP_NAME)
   echo "RECEIVED:" $result
  [[ $result =~ "Units:  3" ]] # note two spaces
+}
+
+@test "env set" {
+  run $KETCH env set "$TEST_ENVVAR_KEY=$TEST_ENVVAR_VALUE" --app "$APP_NAME"
+  [ $status -eq 0 ]
+}
+
+@test "env get" {
+  result=$($KETCH env get "$TEST_ENVVAR_KEY" --app "$APP_NAME")
+  echo "RECEIVED:" $result
+  [[ $result =~ "$TEST_ENVVAR_VALUE" ]]
+}
+
+@test "env unset" {
+  run $KETCH env unset "$TEST_ENVVAR_KEY" --app "$APP_NAME"
+  [ $status -eq 0 ]
+  result=$($KETCH env get "$TEST_ENVVAR_KEY" --app "$APP_NAME")
+  echo "RECEIVED:" $result
+  [[ ! $result =~ "$TEST_ENVVAR_VALUE" ]]
 }
 
 @test "app remove" {
