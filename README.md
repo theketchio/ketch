@@ -122,6 +122,17 @@ Flags:
 Use "ketch [command] --help" for more information about a command.
 ```
 
+## Shell autocompletion
+
+Ketch supports shell autocompletion for:
+- bash
+- zsh
+- fish
+- PowerShell
+
+To get instructions on how to install shell autocompletion use following command:
+`ketch completion -h`
+
 ## Get Involved
 
 * Discuss Ketch on [slack](https://join.slack.com/t/shipaco/shared_invite/zt-mqy8plp1-DxFKP102VJtUn5q9tzom9Q) or our [dev mailing list](https://groups.google.com/g/ketch-dev)
