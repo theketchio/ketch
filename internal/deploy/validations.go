@@ -16,6 +16,7 @@ type statusType int
 const (
 	missingValue statusType = iota
 	invalidValue
+	invalidUsage
 )
 
 type statusError struct {
@@ -34,10 +35,17 @@ func newMissingError(flag string) error {
 	}
 }
 
-func newInvalidError(flag string) error {
+func newInvalidValueError(flag string) error {
 	return &statusError{
 		reason:  invalidValue,
 		message: fmt.Sprintf("%q invalid value", flag),
+	}
+}
+
+func newInvalidUsageError(flag string) error {
+	return &statusError{
+		reason:  invalidUsage,
+		message: fmt.Sprintf("%q used improperly", flag),
 	}
 }
 
@@ -58,7 +66,7 @@ func isValid(err error) bool {
 	if err != nil {
 		var v *statusError
 		if errors.As(err, &v) {
-			if v.Status() == invalidValue {
+			if v.Status() == invalidValue || v.Status() == invalidUsage {
 				return false
 			}
 		}
@@ -147,13 +155,13 @@ func validateCreateApp(ctx context.Context, client Client, appName string, cs *C
 func directoryExists(dir string) error {
 	fi, err := os.Stat(dir)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("%w directory doesn't exist", newInvalidError(dir))
+		return fmt.Errorf("%w directory doesn't exist", newInvalidValueError(dir))
 	}
 	if err != nil {
 		return kerrs.Wrap(err, "test for directory failed")
 	}
 	if !fi.IsDir() {
-		return fmt.Errorf("%w not a directory", newInvalidError(dir))
+		return fmt.Errorf("%w not a directory", newInvalidValueError(dir))
 	}
 	return nil
 }
