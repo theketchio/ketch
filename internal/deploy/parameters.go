@@ -37,8 +37,8 @@ const (
 	FlagBuilder        = "builder"
 	FlagBuildPacks     = "build-packs"
 	FlagUnits          = "units"
-	FlagVersion        = "version"
-	FlagProcess        = "process"
+	FlagVersion        = "unit-version"
+	FlagProcess        = "unit-process"
 
 	FlagImageShort       = "i"
 	FlagDescriptionShort = "d"

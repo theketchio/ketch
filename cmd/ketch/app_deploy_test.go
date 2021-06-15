@@ -532,14 +532,14 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 		{
-			name:      "illicit use of --version without --units",
+			name:      "illicit use of --unit-version without --units",
 			wantError: true,
 			arguments: []string{
 				"myapp",
 				"src",
 				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
-				"--version", "7",
+				"--unit-version", "7",
 			},
 			setup: func(t *testing.T) {
 				dir := t.TempDir()
@@ -562,14 +562,14 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 		{
-			name:      "illicit use of --process without --units",
+			name:      "illicit use of --unit-process without --units",
 			wantError: true,
 			arguments: []string{
 				"myapp",
 				"src",
 				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
-				"--process", "test",
+				"--unit-process", "test",
 			},
 			setup: func(t *testing.T) {
 				dir := t.TempDir()
@@ -651,12 +651,12 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 		{
-			name: "happy path with --units and --process build from source",
+			name: "happy path with --units and --unit-process build from source",
 			arguments: []string{
 				"myapp",
 				"src",
 				"--units", "4",
-				"--process", "worker1",
+				"--unit-process", "worker1",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -706,13 +706,13 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 		{
-			name: "happy path with --units, --process, and --version build from source",
+			name: "happy path with --units, --unit-process, and --unit-version build from source",
 			arguments: []string{
 				"myapp",
 				"src",
 				"--units", "4",
-				"--process", "worker1",
-				"--version", "1",
+				"--unit-process", "worker1",
+				"--unit-version", "1",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
