@@ -1,22 +1,22 @@
 #!/usr/bin/env bats
 
 # To run locally:
-# export KETCH_COMMAND=<location of ketch binary>
+# export KETCH_EXECUTABLE_PATH=<location of ketch binary>
 # assure you have a kubernetes cluster running w/ traefik, cert manager, etc. (see ketch getting started docs)
 # assure the ketch cli is compiled (make ketch)
 # assure you have bats installed locally (via apt, brew, etc.)
 # ./cli_tests/app.sh
 
 setup() {
-    if [[ -z "${KETCH_COMMAND}" ]]; then
+    if [[ -z "${KETCH_EXECUTABLE_PATH}" ]]; then
     KETCH=$(pwd)/bin/ketch
   else
-    KETCH="${KETCH_COMMAND}"
+    KETCH="${KETCH_EXECUTABLE_PATH}"
   fi
   INGRESS=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   FRAMEWORK="myframework"
-  APP_IMAGE="docker.io/shipasoftware/bulletinboard:1.0"
-  APP_NAME="bulletinboard"
+  APP_IMAGE="gcr.io/shipa-ci/sample-go-app:latest"
+  APP_NAME="sample-app"
   CNAME="my-cname.com"
   TEST_ENVVAR_KEY="FOO"
   TEST_ENVVAR_VALUE="BAR"
@@ -53,7 +53,7 @@ setup() {
 
 @test "app deploy" {
   run $KETCH app deploy "$APP_NAME" --framework "$FRAMEWORK" -i "$APP_IMAGE"
-  [ $status -eq 0 ]
+  [[ $status -eq 0 ]]
 }
 
 @test "app list" {
@@ -68,7 +68,7 @@ setup() {
 @test "app info" {
   result=$($KETCH app info "$APP_NAME")
   headerRegex="DEPLOYMENT VERSION[ \t]+IMAGE[ \t]+PROCESS NAME[ \t]+WEIGHT[ \t]+STATE[ \t]+CMD"
-  dataRegex="1[ \t]+docker.io/shipasoftware/bulletinboard:1.0[ \t]+web[ \t]+100%[ \t]+created[ \t]+docker-entrypoint.sh npm start"
+  dataRegex="1[ \t]+$APP_IMAGE[ \t]+web[ \t]+100%[ \t]+created[ \t]"
   echo "RECEIVED:" $result
   [[ $result =~ $headerRegex ]]
   [[ $result =~ $dataRegex ]]
@@ -88,7 +88,7 @@ setup() {
 
 @test "app log" {
   run $KETCH app log "$APP_NAME"
-  [ $status -eq 0 ]
+  [[ $status -eq 0 ]]
 }
 
 @test "builder list" {
@@ -102,7 +102,7 @@ setup() {
 
 @test "cname add" {
   run $KETCH cname add "$CNAME" --app "$APP_NAME"
-  [ $status -eq 0 ]
+  [[ $status -eq 0 ]]
   result=$($KETCH app info "$APP_NAME")
   echo "RECEIVED:" $result
   [[ $result =~ "Address: http://$CNAME" ]]
@@ -110,7 +110,7 @@ setup() {
 
 @test "cname remove" {
   run $KETCH cname remove "$CNAME" --app "$APP_NAME"
-  [ $status -eq 0 ]
+  [[ $status -eq 0 ]]
   result=$($KETCH app info "$APP_NAME")
   echo "RECEIVED:" $result
   [[ ! $result =~ "Address: http://$CNAME" ]]
@@ -118,7 +118,7 @@ setup() {
 
 @test "unit add" {
  run $KETCH unit add 1 --app "$APP_NAME"
- [ $status -eq 0 ]
+ [[ $status -eq 0 ]]
  result=$(kubectl describe apps $APP_NAME)
  echo "RECEIVED:" $result
  [[ $result =~ "Units:  2" ]] # note two spaces
@@ -126,7 +126,7 @@ setup() {
 
 @test "unit remove" {
  run $KETCH unit remove 1 --app "$APP_NAME"
- [ $status -eq 0 ]
+ [[ $status -eq 0 ]]
   result=$(kubectl describe apps $APP_NAME)
   echo "RECEIVED:" $result
  [[ $result =~ "Units:  1" ]] # note two spaces
@@ -134,7 +134,7 @@ setup() {
 
 @test "unit set" {
  run $KETCH unit set 3 --app "$APP_NAME"
- [ $status -eq 0 ]
+ [[ $status -eq 0 ]]
   result=$(kubectl describe apps $APP_NAME)
   echo "RECEIVED:" $result
  [[ $result =~ "Units:  3" ]] # note two spaces
@@ -142,7 +142,7 @@ setup() {
 
 @test "env set" {
   run $KETCH env set "$TEST_ENVVAR_KEY=$TEST_ENVVAR_VALUE" --app "$APP_NAME"
-  [ $status -eq 0 ]
+  [[ $status -eq 0 ]]
 }
 
 @test "env get" {
@@ -153,7 +153,7 @@ setup() {
 
 @test "env unset" {
   run $KETCH env unset "$TEST_ENVVAR_KEY" --app "$APP_NAME"
-  [ $status -eq 0 ]
+  [[ $status -eq 0 ]]
   result=$($KETCH env get "$TEST_ENVVAR_KEY" --app "$APP_NAME")
   echo "RECEIVED:" $result
   [[ ! $result =~ "$TEST_ENVVAR_VALUE" ]]
