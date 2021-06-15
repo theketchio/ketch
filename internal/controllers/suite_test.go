@@ -40,9 +40,13 @@ type testingContext struct {
 	k8sClient client.Client
 }
 
+var cancel context.CancelFunc
+
 func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testingContext, error) {
+	var cancelCtx context.Context
+	cancelCtx, cancel = context.WithCancel(context.Background())
 	ctx := &testingContext{
-		Context: context.Background(),
+		Context: cancelCtx,
 		env: &envtest.Environment{
 			CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
 		},
@@ -124,7 +128,7 @@ func teardown(ctx *testingContext) {
 	if ctx == nil {
 		return
 	}
-	ctx.Done()
+	cancel()
 	err := ctx.env.Stop()
 	if err != nil {
 		panic(err)
