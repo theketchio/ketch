@@ -1,6 +1,7 @@
 stages:
   - test
   - build
+  - integration
 
 sudo: required
 
@@ -27,3 +28,17 @@ jobs:
         - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
         - docker build -t shipasoftware/ketch:$TRAVIS_COMMIT .
         - docker push shipasoftware/ketch:$TRAVIS_COMMIT
+
+    - stage: cli_test
+      sudo: required
+      language: go
+      go: 1.16.x
+      services:
+        - docker
+      provider: script
+      script:
+        - bash cli_tests/install_kubectl.sh
+        - bash cli_tests/install_minikube.sh
+        - bash cli_tests/install_bats.sh
+        - bash cli_tests/install_ketch.sh
+        - bats cli_tests/app.sh
