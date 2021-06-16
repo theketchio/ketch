@@ -23,8 +23,8 @@ func newBuilderSetCmd(ketchConfig configuration.KetchConfig) *cobra.Command {
 	return cmd
 }
 
-func setDefaultBuilder(ketchConfig configuration.KetchConfig, defaultBulder string) error {
-	ketchConfig.DefaultBuilder = defaultBulder
+func setDefaultBuilder(ketchConfig configuration.KetchConfig, defaultBuilder string) error {
+	ketchConfig.DefaultBuilder = defaultBuilder
 	path, err := configuration.DefaultConfigPath()
 	if err != nil {
 		return err
