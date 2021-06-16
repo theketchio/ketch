@@ -6,13 +6,10 @@ require (
 	bou.ke/monkey v1.0.2
 	github.com/BurntSushi/toml v0.3.1
 	github.com/buildpacks/pack v0.15.1
-	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/google/go-cmp v0.5.5
 	github.com/google/go-containerregistry v0.1.4
-	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f // indirect
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
