@@ -353,7 +353,6 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 
 			updated.Spec.DeploymentsCount += 1
 
-			// not sure what to do with canary when dealing with previous deployments
 			if args.steps > 1 {
 				nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
 				started := metav1.NewTime(args.started)
