@@ -122,7 +122,7 @@ type DockerRegistrySpec struct {
 type AppPhase string
 
 const (
-	// AppPending means the app has been accepted by the system, but has not been started.
+	// AppCreated means the app has been accepted by the system, but has not been started.
 	AppCreated AppPhase = "Created"
 
 	// AppError means the app CRD is broken in some way and ketch controller can't render and install a new helm chart.
