@@ -42,9 +42,11 @@ const (
 	FlagEnvironmentShort = "e"
 	FlagFrameworkShort   = "k"
 
-	DefaultBuilder = "heroku/buildpacks:20"
-
 	defaultYamlFile = "ketch.yaml"
+)
+
+var (
+	DefaultBuilder = "heroku/buildpacks:20"
 )
 
 // Services contains interfaces and function pointers to external services needed for deploy. The purpose of this
