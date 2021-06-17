@@ -1,13 +1,9 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"io"
-	"text/tabwriter"
 
-	"github.com/spf13/pflag"
-	"gopkg.in/yaml.v2"
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 
 	"github.com/spf13/cobra"
 
@@ -58,39 +54,8 @@ func newBuilderListCmd(ketchConfig configuration.KetchConfig, out io.Writer) *co
 		Long:  builderListHelp,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return writeBuilders(ketchConfig, out, cmd.Flags())
+			return output.Write(append(builderList, ketchConfig.AdditionalBuilders...), out, cmd.Flags())
 		},
 	}
 	return cmd
-}
-
-func writeBuilders(ketchConfig configuration.KetchConfig, out io.Writer, flags *pflag.FlagSet) error {
-	tw := tabwriter.NewWriter(out, 10, 10, 5, ' ', 0)
-
-	builderList = append(builderList, ketchConfig.AdditionalBuilders...)
-	outputFlag, err := flags.GetString("output")
-	if err != nil {
-		outputFlag = ""
-	}
-	switch outputFlag {
-	case "json", "JSON":
-		j, err := json.MarshalIndent(builderList, "", "\t")
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(j))
-	case "yaml", "YAML":
-		y, err := yaml.Marshal(builderList)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(y))
-	default:
-		fmt.Fprintln(tw, "VENDOR\tIMAGE\tDESCRIPTION")
-		for _, builder := range builderList {
-			fmt.Fprintf(tw, "%s:\t%s\t%s\t\n", builder.Vendor, builder.Image, builder.Description)
-		}
-		tw.Flush()
-	}
-	return nil
 }

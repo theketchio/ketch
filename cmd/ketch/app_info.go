@@ -3,17 +3,16 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
 	"strings"
-	"text/tabwriter"
+
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 
 	"github.com/spf13/pflag"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,11 +49,7 @@ Environment variables:
 {{- else }}
 No environment variables.
 {{- end }}
-{{ if .NoProcesses }}
-No processes.
-{{ else }}
-{{ .Table }}
-{{- end }}`
+`
 )
 
 type appInfoContext struct {
@@ -118,45 +113,21 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 		return err
 	}
 
-	output := generateAppInfoOutput(app, appPods, framework)
-	outputFlag, err := flags.GetString("output")
+	data := generateAppInfoOutput(app, appPods, framework)
+	outputFlag, _ := flags.GetString("output")
 	if err != nil {
 		outputFlag = ""
 	}
-	switch outputFlag {
-	case "json", "JSON":
-		j, err := json.MarshalIndent(output, "", "\t")
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(j))
-	case "yaml", "YAML":
-		y, err := yaml.Marshal(output)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(y))
-	default:
+	if outputFlag == "" {
 		buf := bytes.Buffer{}
 		t := template.Must(template.New("app-info").Parse(appInfoTemplate))
-		table := &bytes.Buffer{}
-		w := tabwriter.NewWriter(table, 0, 4, 4, ' ', 0)
-		fmt.Fprintln(w, "DEPLOYMENT VERSION\tIMAGE\tPROCESS NAME\tWEIGHT\tSTATE\tCMD")
-		for _, deployment := range output.Deployments {
-			line := []string{
-				deployment.DeploymentVersion, deployment.Image, deployment.ProcessName, deployment.Weight, deployment.State, deployment.Cmd,
-			}
-			fmt.Fprintln(w, strings.Join(line, "\t"))
-		}
-		w.Flush()
-		output.AppInfoContext.Table = table.String()
-		if err := t.Execute(&buf, output.AppInfoContext); err != nil {
+		if err := t.Execute(&buf, data.AppInfoContext); err != nil {
 			return err
 		}
 		fmt.Fprintf(out, "%v", buf.String())
-		return nil
+		return output.Write(data.Deployments, out, flags)
 	}
-	return nil
+	return output.Write(data, out, flags)
 }
 
 func generateAppInfoOutput(app ketchv1.App, appPods *v1.PodList, framework *ketchv1.Framework) appInfoOutput {

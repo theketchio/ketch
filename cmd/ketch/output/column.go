@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 	"strings"
 	"text/tabwriter"
 )
@@ -43,14 +44,29 @@ func (c *Column) Marshal(v interface{}) ([]byte, error) {
 	case reflect.Struct:
 		valSet := newValSet(value)
 		valSets = append(valSets, valSet)
+
 	case reflect.Slice:
 		for i := 0; i < reflect.Value.Len(value); i++ {
 			valSet := newValSet(value.Index(i))
 			valSets = append(valSets, valSet)
 		}
+
 	case reflect.Ptr:
 		valSet := newValSet(value.Elem())
 		valSets = append(valSets, valSet)
+
+	case reflect.Map:
+		var vs valSet
+		keys := value.MapKeys()
+		sort.Slice(keys, func(i, j int) bool {
+			return keys[i].String() < keys[j].String()
+		})
+		for _, key := range keys {
+			v := value.MapIndex(key)
+			vs = append(vs, val{tag: reflect.StructTag(fmt.Sprintf("column:\"%s\"", key.String())), value: v})
+		}
+		valSets = append(valSets, vs)
+
 	default:
 		return nil, fmt.Errorf("unsupported kind: %s", value.Kind())
 	}

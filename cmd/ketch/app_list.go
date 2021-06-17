@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
-	"text/tabwriter"
+
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 
 	"github.com/spf13/pflag"
-	"gopkg.in/yaml.v2"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -63,34 +62,7 @@ func appList(ctx context.Context, cfg config, out io.Writer, flags *pflag.FlagSe
 		return fmt.Errorf("failed to list apps pods: %w", err)
 	}
 
-	outputs := generateAppListOutput(apps, allPods, frameworksByName)
-	outputFlag, err := flags.GetString("output")
-	if err != nil {
-		outputFlag = ""
-	}
-	switch outputFlag {
-	case "json", "JSON":
-		j, err := json.MarshalIndent(outputs, "", "\t")
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(j))
-	case "yaml", "YAML":
-		y, err := yaml.Marshal(outputs)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(y))
-	default:
-		w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
-		fmt.Fprintln(w, "NAME\tFRAMEWORK\tSTATE\tADDRESSES\tBUILDER\tDESCRIPTION")
-		for _, output := range outputs {
-			line := []string{output.Name, output.Framework, output.State, output.Addresses, output.Builder, output.Description}
-			fmt.Fprintln(w, strings.Join(line, "\t"))
-		}
-		w.Flush()
-	}
-	return nil
+	return output.Write(generateAppListOutput(apps, allPods, frameworksByName), out, flags)
 }
 
 func generateAppListOutput(apps ketchv1.AppList, allPods *corev1.PodList, frameworksByName map[string]ketchv1.Framework) []appListOutput {

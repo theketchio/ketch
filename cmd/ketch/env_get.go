@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
+
 	"github.com/spf13/pflag"
-	"gopkg.in/yaml.v2"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,28 +48,5 @@ func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Write
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get the app: %w", err)
 	}
-	envs := app.Envs(options.envs)
-	outputFlag, err := flags.GetString("output")
-	if err != nil {
-		outputFlag = ""
-	}
-	switch outputFlag {
-	case "json", "JSON":
-		j, err := json.MarshalIndent(envs, "", "\t")
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(j))
-	case "yaml", "YAML":
-		y, err := yaml.Marshal(envs)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(y))
-	default:
-		for name, value := range envs {
-			fmt.Fprintf(out, "%v=%v\n", name, value)
-		}
-	}
-	return nil
+	return output.Write(app.Envs(options.envs), out, flags)
 }

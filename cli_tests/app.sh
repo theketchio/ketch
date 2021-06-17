@@ -45,6 +45,14 @@ setup() {
   [[ $result =~ $dataRegex ]]
 }
 
+@test "framework list yaml format" {
+  result=$($KETCH framework list -o yaml)
+  dataRegex="- Apps: \"0\"
+  ClusterIssuer: \"\""
+  echo "RECEIVED:" $result
+  [[ $result =~ $dataRegex ]]
+}
+
 @test "framework update" {
   result=$($KETCH framework update "$FRAMEWORK" --app-quota-limit 1)
   echo "RECEIVED:" $result
@@ -74,6 +82,13 @@ setup() {
   [[ $result =~ $dataRegex ]]
 }
 
+@test "app info json format" {
+  result=$($KETCH app info "$APP_NAME" -o json)
+  dataRegex="\"name\": \"$APP_NAME\""
+  echo "RECEIVED:" $result
+  [[ $result =~ $dataRegex ]]
+}
+
 @test "app stop" {
   result=$($KETCH app stop "$APP_NAME")
   echo "RECEIVED:" $result
@@ -94,7 +109,7 @@ setup() {
 @test "builder list" {
   result=$($KETCH builder list)
   headerRegex="VENDOR[ \t]+IMAGE[ \t]+DESCRIPTION"
-  dataRegex="Google:[ \t]+gcr.io/buildpacks/builder:v1[ \t]+GCP Builder for all runtimes"
+  dataRegex="Google[ \t]+gcr.io/buildpacks/builder:v1[ \t]+GCP Builder for all runtimes"
   echo "RECEIVED:" $result
   [[ $result =~ $headerRegex ]]
   [[ $result =~ $dataRegex ]]

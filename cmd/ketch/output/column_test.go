@@ -39,6 +39,11 @@ func TestMarshal(t *testing.T) {
 			expected:    []byte("name    VALUE    UNLABELED DATA    \ntest    2        0"),
 			description: "pointer",
 		},
+		{
+			v:           map[string]interface{}{"number": 3, "str": "this is a string", "float": 4.3},
+			expected:    []byte("float    number    str\n4.3      3         this is a string"),
+			description: "map",
+		},
 	}
 	for _, test := range tests {
 		c := &Column{}

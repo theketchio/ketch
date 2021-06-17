@@ -46,8 +46,7 @@ func frameworkList(ctx context.Context, cfg config, out io.Writer, flags *pflag.
 		return fmt.Errorf("failed to get list of frameworks: %w", err)
 	}
 
-	outputs := generateFrameworkListOutput(frameworks)
-	return output.Write(outputs, out, flags)
+	return output.Write(generateFrameworkListOutput(frameworks), out, flags)
 }
 
 func generateFrameworkListOutput(frameworks ketchv1.FrameworkList) []frameworkListOutput {
