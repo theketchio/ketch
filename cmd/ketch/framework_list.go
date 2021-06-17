@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
-	"text/tabwriter"
+
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 
 	"github.com/spf13/pflag"
-	"gopkg.in/yaml.v2"
 
 	"github.com/spf13/cobra"
 
@@ -49,33 +47,7 @@ func frameworkList(ctx context.Context, cfg config, out io.Writer, flags *pflag.
 	}
 
 	outputs := generateFrameworkListOutput(frameworks)
-	outputFlag, err := flags.GetString("output")
-	if err != nil {
-		outputFlag = ""
-	}
-	switch outputFlag {
-	case "json", "JSON":
-		j, err := json.MarshalIndent(outputs, "", "\t")
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(j))
-	case "yaml", "YAML":
-		y, err := yaml.Marshal(outputs)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(out, string(y))
-	default:
-		w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
-		fmt.Fprintln(w, "NAME\tSTATUS\tNAMESPACE\tINGRESS TYPE\tINGRESS CLASS NAME\tCLUSTER ISSUER\tAPPS")
-		for _, output := range outputs {
-			line := []string{output.Name, output.Status, output.Namespace, output.IngresType, output.IngressClassName, output.ClusterIssuer, output.Apps}
-			fmt.Fprintln(w, strings.Join(line, "\t"))
-		}
-		w.Flush()
-	}
-	return nil
+	return output.Write(outputs, out, flags)
 }
 
 func generateFrameworkListOutput(frameworks ketchv1.FrameworkList) []frameworkListOutput {
