@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/output"
-
 	"github.com/spf13/pflag"
 
 	"github.com/spf13/cobra"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
@@ -37,6 +36,7 @@ func newFrameworkListCmd(cfg config, out io.Writer) *cobra.Command {
 			return frameworkList(cmd.Context(), cfg, out, cmd.Flags())
 		},
 	}
+	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	return cmd
 }
 

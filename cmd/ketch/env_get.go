@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/output"
-
-	"github.com/spf13/pflag"
-
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
@@ -33,6 +31,7 @@ func newEnvGetCmd(cfg config, out io.Writer) *cobra.Command {
 
 		},
 	}
+	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	cmd.Flags().StringVarP(&options.appName, "app", "a", "", "The name of the app.")
 	cmd.MarkFlagRequired("app")
 	return cmd

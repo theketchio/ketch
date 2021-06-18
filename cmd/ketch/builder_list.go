@@ -3,11 +3,10 @@ package main
 import (
 	"io"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/output"
-
 	"github.com/spf13/cobra"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 )
 
 const builderListHelp = `
@@ -57,5 +56,6 @@ func newBuilderListCmd(ketchConfig configuration.KetchConfig, out io.Writer) *co
 			return output.Write(append(builderList, ketchConfig.AdditionalBuilders...), out, cmd.Flags())
 		},
 	}
+	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	return cmd
 }

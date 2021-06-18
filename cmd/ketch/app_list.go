@@ -6,14 +6,13 @@ import (
 	"io"
 	"strings"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/output"
-
 	"github.com/spf13/pflag"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/utils"
 )
@@ -41,6 +40,7 @@ func newAppListCmd(cfg config, out io.Writer) *cobra.Command {
 			return appList(cmd.Context(), cfg, out, cmd.Flags())
 		},
 	}
+	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	return cmd
 }
 

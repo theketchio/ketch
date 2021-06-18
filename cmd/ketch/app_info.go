@@ -8,15 +8,16 @@ import (
 	"io"
 	"strings"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/output"
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
+	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/utils"
 )
 
 var (
@@ -86,6 +87,7 @@ func newAppInfoCmd(cfg config, out io.Writer) *cobra.Command {
 			return appInfo(cmd.Context(), cfg, options, out, cmd.Flags())
 		},
 	}
+	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	return cmd
 }
 
@@ -111,7 +113,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	}
 
 	data := generateAppInfoOutput(app, appPods, framework)
-	outputFlag, _ := flags.GetString("output")
+	outputFlag, err := flags.GetString("output")
 	if err != nil {
 		outputFlag = ""
 	}
