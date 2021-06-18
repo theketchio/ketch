@@ -148,12 +148,13 @@ kubernetes:
 
 func TestNewCommand(t *testing.T) {
 	tt := []struct {
-		name      string
-		params    *deploy.Services
-		arguments []string
-		setup     func(t *testing.T)
-		validate  func(t *testing.T, m deploy.Client)
-		wantError bool
+		name        string
+		params      *deploy.Services
+		arguments   []string
+		setup       func(t *testing.T)
+		userDefault string
+		validate    func(t *testing.T, m deploy.Client)
+		wantError   bool
 	}{
 		{
 			name: "change builder from previous deploy",
@@ -243,6 +244,84 @@ func TestNewCommand(t *testing.T) {
 					}
 					return m
 				}(),
+				KubeClient:     fake.NewSimpleClientset(),
+				Builder:        build.GetSourceHandler(&packMocker{}),
+				GetImageConfig: getImageConfig,
+				Wait:           nil,
+				Writer:         &bytes.Buffer{},
+			},
+		},
+		{
+			name: "use user default builder for new app",
+			arguments: []string{
+				"myapp",
+				"src",
+				"--framework", "myframework",
+				"--image", "shipa/go-sample:latest",
+			},
+			setup: func(t *testing.T) {
+				dir := t.TempDir()
+				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
+				require.Nil(t, os.Chdir(dir))
+			},
+			userDefault: "newDefault",
+			validate: func(t *testing.T, m deploy.Client) {
+				mock, ok := m.(*mockClient)
+				require.True(t, ok)
+				require.Equal(t, "newDefault", mock.app.Spec.Builder)
+			},
+			params: &deploy.Services{
+				Client: func() *mockClient {
+					m := newMockClient()
+					m.get[1] = func(_ *mockClient, _ runtime.Object) error {
+						return errors.NewNotFound(v1.Resource(""), "")
+					}
+					return m
+				}(),
+				KubeClient:     fake.NewSimpleClientset(),
+				Builder:        build.GetSourceHandler(&packMocker{}),
+				GetImageConfig: getImageConfig,
+				Wait:           nil,
+				Writer:         &bytes.Buffer{},
+			},
+		},
+		{
+			name: "don't update builder on previous deployment",
+			arguments: []string{
+				"myapp",
+				"src",
+				"--image", "shipa/go-sample:latest",
+			},
+			setup: func(t *testing.T) {
+				dir := t.TempDir()
+				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
+				require.Nil(t, os.Chdir(dir))
+			},
+			userDefault: "newDefault",
+			validate: func(t *testing.T, m deploy.Client) {
+				mock, ok := m.(*mockClient)
+				require.True(t, ok)
+				require.Equal(t, mock.app.Spec.Builder, "initialBuilder")
+
+			},
+			params: &deploy.Services{
+				Client: func() *mockClient {
+					m := newMockClient()
+					m.app.Spec.Builder = "initialBuilder"
+					m.app.Spec.Deployments = []ketchv1.AppDeploymentSpec{
+						{
+							Image:           "shipa/go-sample:latest",
+							Version:         1,
+							Processes:       nil,
+							KetchYaml:       nil,
+							Labels:          nil,
+							RoutingSettings: ketchv1.RoutingSettings{},
+							ExposedPorts:    nil,
+						},
+					}
+					return m
+				}(),
+
 				KubeClient:     fake.NewSimpleClientset(),
 				Builder:        build.GetSourceHandler(&packMocker{}),
 				GetImageConfig: getImageConfig,
@@ -546,7 +625,7 @@ func TestNewCommand(t *testing.T) {
 			if tc.setup != nil {
 				tc.setup(t)
 			}
-			cmd := newAppDeployCmd(tc.params)
+			cmd := newAppDeployCmd(tc.params, tc.userDefault)
 			cmd.SetArgs(tc.arguments)
 			err = cmd.Execute()
 			if tc.wantError {

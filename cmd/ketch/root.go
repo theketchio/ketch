@@ -57,8 +57,9 @@ func newRootCmd(cfg config, out io.Writer, packSvc *pack.Client, ketchConfig con
 			return cmd.Usage()
 		},
 	}
+
 	cmd.PersistentFlags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
-	cmd.AddCommand(newAppCmd(cfg, out, packSvc))
+	cmd.AddCommand(newAppCmd(cfg, out, packSvc, ketchConfig.DefaultBuilder))
 	cmd.AddCommand(newBuilderCmd(ketchConfig, out))
 	cmd.AddCommand(newCnameCmd(cfg, out))
 	cmd.AddCommand(newFrameworkCmd(cfg, out))
