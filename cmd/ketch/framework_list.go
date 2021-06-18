@@ -22,7 +22,7 @@ type frameworkListOutput struct {
 	Name             string
 	Status           string
 	Namespace        string
-	IngresType       string
+	IngressType      string
 	IngressClassName string
 	ClusterIssuer    string
 	Apps             string
@@ -60,7 +60,7 @@ func generateFrameworkListOutput(frameworks ketchv1.FrameworkList) []frameworkLi
 			Name:             item.Name,
 			Status:           string(item.Status.Phase),
 			Namespace:        item.Spec.NamespaceName,
-			IngresType:       item.Spec.IngressController.IngressType.String(),
+			IngressType:      item.Spec.IngressController.IngressType.String(),
 			IngressClassName: item.Spec.IngressController.ClassName,
 			ClusterIssuer:    item.Spec.IngressController.ClusterIssuer,
 			Apps:             apps,
