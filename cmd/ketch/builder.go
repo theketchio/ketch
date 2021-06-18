@@ -26,5 +26,6 @@ func newBuilderCmd(ketchConfig configuration.KetchConfig, out io.Writer) *cobra.
 	}
 
 	cmd.AddCommand(newBuilderListCmd(ketchConfig, out))
+	cmd.AddCommand(newBuilderSetCmd(ketchConfig))
 	return cmd
 }
