@@ -9,17 +9,14 @@ import (
 	"strings"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/output"
-
-	"github.com/spf13/pflag"
-
+	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/utils"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/utils"
 )
 
 var (

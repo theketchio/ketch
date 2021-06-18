@@ -10,7 +10,6 @@ type Item struct {
 	Value         int    `column:"VALUE"`
 	UnlabeledData float64
 	Omit          string `column:"-"`
-	// TODO implement omitempty
 }
 
 func TestMarshal(t *testing.T) {

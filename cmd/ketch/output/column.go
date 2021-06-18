@@ -16,6 +16,7 @@ type Column struct {
 	Writer io.Writer
 }
 
+// val is a structure for storing a Value and it's column struct tag together
 type val struct {
 	tag   reflect.StructTag
 	value reflect.Value
@@ -33,12 +34,13 @@ func (c *Column) Write() error {
 	return err
 }
 
-// Marshal creates valSets from v, depending on whether it is a slice, struct, or pointer.
-// It then prints data to a tabwriter. Column headings are pulled from the "column" struct tag
-// or spaced-and-capitalized if the tag does not exist. Data is then printed to the tabwriter.
+// Marshal creates valSets from v, depending on whether it is a slice, struct, map, or pointer.
+// Column headings are pulled from the "column" struct tag or spaced-and-capitalized from the field name
+// if the tag does not exist. Data is then printed to the tabwriter. Fields with the dash struct tag, e.g. `column"-"`
+// are omitted. The 'omitempty' tag directive has not been implemented.
 func (c *Column) Marshal(v interface{}) ([]byte, error) {
+	// create valSets from the ValueOf v, depending on v's underlying kind
 	var valSets []valSet
-
 	value := reflect.ValueOf(v)
 	switch value.Kind() {
 	case reflect.Struct:
@@ -79,7 +81,7 @@ func (c *Column) Marshal(v interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	w := tabwriter.NewWriter(&buf, 0, 4, 4, ' ', 0)
 
-	// headers
+	// write header columns using tags from first item in valSets
 	for i, val := range valSets[0] {
 		tag := val.tag.Get("column")
 		// omit?
@@ -95,10 +97,10 @@ func (c *Column) Marshal(v interface{}) ([]byte, error) {
 	}
 	fmt.Fprint(w, "\n")
 
-	// fields
+	// write field columns from valSets values
 	for i, valSet := range valSets {
 		for j, val := range valSet {
-			// omit?
+			// omit if column tag is '-'
 			if val.tag.Get("column") == "-" {
 				continue
 			}
@@ -108,7 +110,6 @@ func (c *Column) Marshal(v interface{}) ([]byte, error) {
 			// tab
 			if j+1 < len(valSet) {
 				fmt.Fprint(w, "\t")
-
 			}
 		}
 		// newline
@@ -129,19 +130,19 @@ func newValSet(value reflect.Value) valSet {
 	var valSet valSet
 	for i := 0; i < value.NumField(); i++ {
 		tag := value.Type().Field(i).Tag
-		// use Field Type as StructTag
+		// use Field Type as StructTag if column tag is not set
 		if tag.Get("column") == "" {
 			fieldName := value.Type().Field(i).Name
 			// split and uppercase field name
 			var builder strings.Builder
 			for i, r := range fieldName {
-				if r > 96 && r < 123 {
+				if r > 96 && r < 123 { // lowercase -> uppercase
 					builder.WriteString(string(r - 32))
 				} else {
-					if i > 0 {
+					if i > 0 { // prepend space if not first value
 						builder.WriteString(" ")
 					}
-					builder.WriteString(string(r))
+					builder.WriteString(string(r)) // write currently uppercase runes
 				}
 			}
 			tag = reflect.StructTag(fmt.Sprintf("column:\"%s\"", builder.String()))
