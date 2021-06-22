@@ -33,10 +33,10 @@ Install latest at /usr/local/bin default location
 curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | bash
 ```
 
-Alternatively, you can install specific tag at a target location, for example command below installs ketch version v0.2.1 in current directory:
+Alternatively, you can install specific tag at a target location, for example command below installs ketch version v0.3.0 in current directory:
 
 ```bash
-curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | INSTALL_DIR=. TAG=v0.2.1  bash
+curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | INSTALL_DIR=. TAG=v0.3.0  bash
 ```
 
 
@@ -69,7 +69,7 @@ kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/relea
 ```
 ### Install Ketch controller.
 ```bash
-kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.2.1/ketch-controller.yaml
+kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.3.0/ketch-controller.yaml
 ```
 
 Thats it!
@@ -79,24 +79,24 @@ Thats it!
 Learn more about Ketch at [Ketch documentation](https://learn.theketch.io/docs)
 
 ### Quick Start
-Deploying apps is easy once you've installed Ketch.  First, create a pool. Then create app(s) adding them to the pool and finally
+Deploying apps is easy once you've installed Ketch.  First, create a framework. Then create app(s) adding them to the framework and finally
 deploy the app(s).  The following example illustrates these steps.
 
 ```bash
-# Add a pool with ingress Traefik (default), replace ingress IP address by your ingress IP address
-ketch pool add mypool  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
+# Add a framework with ingress Traefik (default), replace ingress IP address by your ingress IP address
+ketch framework add myframework  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
 
 # Create app
-ketch app create bulletinboard --pool mypool
+ketch app create bulletinboard --framework myframework
 
-# Deploy app
+# Deploy a docker image
 ketch app deploy bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0
 
 # Check app status
 ketch app list
 
-NAME             POOL        STATE        ADDRESSES                                      PLATFORM    DESCRIPTION
-bulletinboard    mypool      1 running    http://bulletinboard.35.247.8.23.shipa.cloud
+NAME             FRAMEWORK   STATE             ADDRESSES                                      BUILDER    DESCRIPTION
+bulletinboard    myframework      1 running    http://bulletinboard.35.247.8.23.shipa.cloud
 ```
 After you deploy your application, you can access it at the address associated with it using the `ketch app list`, in
 this example `bulletinboard.35.247.8.23.shipa.cloud`.
@@ -114,8 +114,8 @@ Available Commands:
   cname       Manage cnames of an application
   env         Manage an app's environment variables
   help        Help about any command
-  platform    Manage platforms
-  pool        Manage pool
+  builder     Manage pack builders
+  framework   Manage frameworks
   unit        Manage an app's units
 
 Flags:
