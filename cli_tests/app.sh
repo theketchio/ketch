@@ -56,6 +56,14 @@ setup() {
   [[ $status -eq 0 ]]
 }
 
+@test "app unit set" {
+ run $KETCH app deploy "$APP_NAME" --framework "$FRAMEWORK" -i "$APP_IMAGE" --units 3
+ [[ $status -eq 0 ]]
+  result=$(kubectl describe apps $APP_NAME)
+  echo "RECEIVED:" $result
+ [[ $result =~ "Units:  3" ]] # note two spaces
+}
+
 @test "app list" {
   result=$($KETCH app list)
   headerRegex="NAME[ \t]+FRAMEWORK[ \t]+STATE[ \t]+ADDRESSES[ \t]+BUILDER[ \t]+DESCRIPTION"
@@ -114,30 +122,6 @@ setup() {
   result=$($KETCH app info "$APP_NAME")
   echo "RECEIVED:" $result
   [[ ! $result =~ "Address: http://$CNAME" ]]
-}
-
-@test "unit add" {
- run $KETCH unit add 1 --app "$APP_NAME"
- [[ $status -eq 0 ]]
- result=$(kubectl describe apps $APP_NAME)
- echo "RECEIVED:" $result
- [[ $result =~ "Units:  2" ]] # note two spaces
-}
-
-@test "unit remove" {
- run $KETCH unit remove 1 --app "$APP_NAME"
- [[ $status -eq 0 ]]
-  result=$(kubectl describe apps $APP_NAME)
-  echo "RECEIVED:" $result
- [[ $result =~ "Units:  1" ]] # note two spaces
-}
-
-@test "unit set" {
- run $KETCH unit set 3 --app "$APP_NAME"
- [[ $status -eq 0 ]]
-  result=$(kubectl describe apps $APP_NAME)
-  echo "RECEIVED:" $result
- [[ $result =~ "Units:  3" ]] # note two spaces
 }
 
 @test "env set" {
