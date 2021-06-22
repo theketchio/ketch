@@ -37,6 +37,7 @@ type Configuration struct {
 // KetchConfig contains all the values present in the config.toml
 type KetchConfig struct {
 	AdditionalBuilders []AdditionalBuilder `toml:"additional-builders,omitempty"`
+	DefaultBuilder     string              `toml:"default-builder,omitempty"`
 }
 
 // AdditionalBuilder contains the information of any user added builders
@@ -133,4 +134,18 @@ func Read(path string) KetchConfig {
 		return KetchConfig{}
 	}
 	return ketchConfig
+}
+
+//Write writes the provided KetchConfig to the given path. In the event the path is not found it will be created
+func Write(ketchConfig KetchConfig, path string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
+		return err
+	}
+	w, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	return toml.NewEncoder(w).Encode(ketchConfig)
 }

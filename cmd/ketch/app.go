@@ -14,7 +14,7 @@ import (
 	"github.com/shipa-corp/ketch/internal/pack"
 )
 
-func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client) *cobra.Command {
+func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client, configDefaultBuilder string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "app",
 		Short: "Manage applications",
@@ -33,7 +33,7 @@ func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client) *cobra.Command {
 		Writer:         out,
 	}
 
-	cmd.AddCommand(newAppDeployCmd(params))
+	cmd.AddCommand(newAppDeployCmd(params, configDefaultBuilder))
 	cmd.AddCommand(newAppListCmd(cfg, out))
 	cmd.AddCommand(newAppLogCmd(cfg, out, appLog))
 	cmd.AddCommand(newAppRemoveCmd(cfg, out, appRemove))

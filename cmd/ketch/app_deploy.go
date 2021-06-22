@@ -26,7 +26,7 @@ Deploy from an image:
 )
 
 // NewCommand creates a command that will run the app deploy
-func newAppDeployCmd(params *deploy.Services) *cobra.Command {
+func newAppDeployCmd(params *deploy.Services, configDefaultBuilder string) *cobra.Command {
 	var options deploy.Options
 
 	cmd := &cobra.Command{
@@ -38,6 +38,9 @@ func newAppDeployCmd(params *deploy.Services) *cobra.Command {
 			options.AppName = args[0]
 			if len(args) == 2 {
 				options.AppSourcePath = args[1]
+			}
+			if configDefaultBuilder != "" {
+				deploy.DefaultBuilder = configDefaultBuilder
 			}
 			return deploy.New(options.GetChangeSet(cmd.Flags())).Run(cmd.Context(), params)
 		},

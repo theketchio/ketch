@@ -79,15 +79,15 @@ Thats it!
 Learn more about Ketch at [Ketch documentation](https://learn.theketch.io/docs)
 
 ### Quick Start
-Deploying apps is easy once you've installed Ketch.  First, create a framework. Then create app(s) adding them to the framework and finally
+Deploying apps is easy once you've installed Ketch.  First, create a pool. Then create app(s) adding them to the pool and finally
 deploy the app(s).  The following example illustrates these steps.
 
 ```bash
-# Add a framework with ingress Traefik (default), replace ingress IP address by your ingress IP address
-ketch framework add myframework  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
+# Add a pool with ingress Traefik (default), replace ingress IP address by your ingress IP address
+ketch pool add mypool  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
 
 # Create app
-ketch app create bulletinboard --framework myframework       
+ketch app create bulletinboard --pool mypool
 
 # Deploy app
 ketch app deploy bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0
@@ -95,8 +95,8 @@ ketch app deploy bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0
 # Check app status
 ketch app list
 
-NAME             FRAMEWORK        STATE        ADDRESSES                                      PLATFORM    DESCRIPTION
-bulletinboard    myframework      1 running    http://bulletinboard.35.247.8.23.shipa.cloud
+NAME             POOL        STATE        ADDRESSES                                      PLATFORM    DESCRIPTION
+bulletinboard    mypool      1 running    http://bulletinboard.35.247.8.23.shipa.cloud
 ```
 After you deploy your application, you can access it at the address associated with it using the `ketch app list`, in
 this example `bulletinboard.35.247.8.23.shipa.cloud`.
@@ -115,7 +115,7 @@ Available Commands:
   env         Manage an app's environment variables
   help        Help about any command
   platform    Manage platforms
-  framework        Manage frameworks
+  pool        Manage pool
   unit        Manage an app's units
 
 Flags:
