@@ -86,11 +86,8 @@ deploy the app(s).  The following example illustrates these steps.
 # Add a framework with ingress Traefik (default), replace ingress IP address by your ingress IP address
 ketch framework add myframework  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
 
-# Create app
-ketch app create bulletinboard --framework myframework
-
-# Deploy a docker image
-ketch app deploy bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0
+# Deploy app using docker image
+ketch app deploy -k myframework bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0
 
 # Check app status
 ketch app list
