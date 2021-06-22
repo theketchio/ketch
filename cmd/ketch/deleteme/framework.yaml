@@ -1,0 +1,16 @@
+name: myframework
+namespace: ketch-myframework
+appQuotaLimit: 1
+ingressController:
+  type: traefik
+  serviceEndpoint: 10.111.162.61
+  clusterIssuer: letsencrypt
+  className: traefik
+
+
+
+
+  # ./bin/ketch framework add myframework --ingress-service-endpoint 10.111.162.61 --ingress-class-name traefik --ingress-type traefik
+
+  ## TODO
+  # alias cluster-issuer ingress-cluster-issuer

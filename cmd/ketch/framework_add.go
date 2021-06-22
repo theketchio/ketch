@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag"
@@ -72,6 +75,39 @@ type frameworkAddOptions struct {
 }
 
 func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
+	switch {
+	case validation.ValidateYamlFilename(options.name):
+		// TODO assert no options (except name)
+		fmt.Println(options)
+	case validation.ValidateName(options.name):
+
+	default:
+		return ErrInvalidFrameworkName // TODO update error
+	}
+	return nil
+}
+
+func addFrameworkFile(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
+	f, err := os.Open(options.name)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	var framework ketchv1.Framework
+	err = yaml.NewDecoder(f).Decode(&framework.Spec)
+	if err != nil {
+		return err
+	}
+	framework.ObjectMeta.Name = framework.Spec.Name
+	fmt.Println(framework, framework.TypeMeta, framework.Status)
+	if err := cfg.Client().Create(ctx, &framework); err != nil {
+		return fmt.Errorf("failed to create framework: %w", err)
+	}
+	fmt.Fprintln(out, "Successfully added!")
+	return nil
+}
+
+func addFrameworkArgs(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
 	if !validation.ValidateName(options.name) {
 		return ErrInvalidFrameworkName
 	}

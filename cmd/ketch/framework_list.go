@@ -38,6 +38,7 @@ func frameworkList(ctx context.Context, cfg config, out io.Writer) error {
 	fmt.Fprintln(w, "NAME\tSTATUS\tNAMESPACE\tINGRESS TYPE\tINGRESS CLASS NAME\tCLUSTER ISSUER\tAPPS")
 
 	for _, item := range frameworks.Items {
+		fmt.Println(item.Status)
 		apps := fmt.Sprintf("%d", len(item.Status.Apps))
 		if item.Spec.AppQuotaLimit > 0 {
 			apps = fmt.Sprintf("%d/%d", len(item.Status.Apps), item.Spec.AppQuotaLimit)
