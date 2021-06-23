@@ -22,6 +22,10 @@ setup() {
   TEST_ENVVAR_VALUE="BAR"
 }
 
+teardown() {
+  rm -f framework.yaml
+}
+
 @test "help" {
   result="$($KETCH help)"
   echo "RECEIVED:" $result
@@ -32,6 +36,20 @@ setup() {
 
 @test "framework add" {
   result=$($KETCH framework add "$FRAMEWORK" --ingress-service-endpoint "$INGRESS" --ingress-type "traefik")
+  echo "RECEIVED:" $result
+  [[ $result =~ "Successfully added!" ]]
+}
+
+@test "framework add with yaml file" {
+  cat << EOF > framework.yaml
+name: "$FRAMEWORK-2"
+app-quota-limit: 1
+ingressController:
+  className: traefik
+  serviceEndpoint: 10.10.20.30
+  type: traefik
+EOF
+  result=$($KETCH framework add framework.yaml)
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully added!" ]]
 }
@@ -49,6 +67,26 @@ setup() {
   result=$($KETCH framework update "$FRAMEWORK" --app-quota-limit 1)
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully updated!" ]]
+}
+
+@test "framework update with yaml ile" {
+  cat << EOF > framework.yaml
+name: "$FRAMEWORK-2"
+app-quota-limit: 2
+ingressController:
+  className: istio
+  serviceEndpoint: 10.10.20.30
+  type: istio
+EOF
+  result=$($KETCH framework update framework.yaml)
+  echo "RECEIVED:" $result
+  [[ $result =~ "Successfully updated!" ]]
+
+  # assert update
+  result=$($KETCH framework list)
+  dataRegex="$FRAMEWORK-2[ \t]+ketch-$FRAMEWORK-2[ \t]+istio[ \t]+istio"
+  echo "RECEIVED:" $result
+  [[ $result =~ $dataRegex ]]
 }
 
 @test "app deploy" {
@@ -167,6 +205,12 @@ setup() {
 
 @test "framework remove" {
   result=$(echo "ketch-$FRAMEWORK" | $KETCH framework remove "$FRAMEWORK")
+  echo "RECEIVED:" $result
+  [[ $result =~ "Framework successfully removed!" ]]
+}
+
+@test "framework-2 remove" {
+  result=$(echo "ketch-$FRAMEWORK-2" | $KETCH framework remove "$FRAMEWORK-2")
   echo "RECEIVED:" $result
   [[ $result =~ "Framework successfully removed!" ]]
 }
