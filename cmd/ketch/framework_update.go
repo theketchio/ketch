@@ -129,7 +129,6 @@ func updateFrameworkFromYaml(ctx context.Context, cfg config, options frameworkU
 		return nil, fmt.Errorf("failed to get the framework: %w", err)
 	}
 	framework.Spec = spec
-	framework.ObjectMeta.Name = framework.Spec.Name
 
 	if framework.Spec.NamespaceName == "" {
 		framework.Spec.NamespaceName = fmt.Sprintf("ketch-%s", framework.Spec.Name)

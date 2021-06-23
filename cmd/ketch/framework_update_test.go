@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -94,7 +93,7 @@ func Test_frameworkUpdate(t *testing.T) {
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
-				_, err = io.WriteString(file, `name: frontend-framework
+				_, err = file.WriteString(`name: frontend-framework
 appQuotaLimit: 30
 ingressController:
  type: istio

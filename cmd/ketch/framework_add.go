@@ -38,7 +38,7 @@ var ingressTypeIds = map[ingressType][]string{
 	istio:   {ketchv1.IstioIngressControllerType.String()},
 }
 
-type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer, flagsSet func() bool) error
+type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer, hasFlags func() bool) error
 
 func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) *cobra.Command {
 	options := frameworkAddOptions{}

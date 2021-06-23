@@ -66,7 +66,7 @@ func Test_addFramework(t *testing.T) {
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
-				_, err = io.WriteString(file, `name: hello
+				_, err = file.WriteString(`name: hello
 appQuotaLimit: 5
 ingressController:
  type: istio
@@ -105,7 +105,7 @@ ingressController:
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
-				_, err = io.WriteString(file, `appQuotaLimit: 5
+				_, err = file.WriteString(`appQuotaLimit: 5
 ingressController:
   type: istio
   serviceEndpoint: 10.10.20.30
@@ -323,7 +323,7 @@ func TestNewFrameworkFromYaml(t *testing.T) {
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
-				_, err = io.WriteString(file, `name: hello
+				_, err = file.WriteString(`name: hello
 namespace: my-namespace
 appQuotaLimit: 5
 ingressController:
@@ -360,7 +360,7 @@ ingressController:
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
-				_, err = io.WriteString(file, `appQuotaLimit: 5
+				_, err = file.WriteString(`appQuotaLimit: 5
 ingressController:
  type: istio
  serviceEndpoint: 10.10.20.30
@@ -380,7 +380,7 @@ ingressController:
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
-				_, err = io.WriteString(file, `name: hello
+				_, err = file.WriteString(`name: hello
 appQuotaLimit: 5`)
 				if err != nil {
 					panic(err)
