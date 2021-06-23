@@ -38,8 +38,8 @@ func newEnvGetCmd(cfg config, out io.Writer) *cobra.Command {
 }
 
 type envGetOptions struct {
-	appName string   `json:"appName" yaml:"appName"`
-	envs    []string `json:"envs" yaml:"envs"`
+	appName string
+	envs    []string
 }
 
 func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Writer, flags *pflag.FlagSet) error {
