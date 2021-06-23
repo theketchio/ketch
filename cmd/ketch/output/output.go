@@ -2,36 +2,31 @@ package output
 
 import (
 	"io"
-
-	"github.com/spf13/pflag"
 )
 
-type Writer interface {
-	Write() error
+type writer interface {
+	write() error
 }
 
-func Write(data interface{}, out io.Writer, flags *pflag.FlagSet) error {
-	outputFlag, err := flags.GetString("output")
-	if err != nil {
-		outputFlag = ""
-	}
-	var w Writer
+// Write writes data to out, switching marshaling type based on outputFlag
+func Write(data interface{}, out io.Writer, outputFlag string) error {
+	var w writer
 	switch outputFlag {
 	case "json", "JSON", "Json", "j":
-		w = &JSON{
-			Data:   data,
-			Writer: out,
+		w = &jsonOutput{
+			data:   data,
+			writer: out,
 		}
 	case "yaml", "YAML", "Yaml", "y":
-		w = &YAML{
-			Data:   data,
-			Writer: out,
+		w = &yamlOutput{
+			data:   data,
+			writer: out,
 		}
 	default:
-		w = &Column{
-			Data:   data,
-			Writer: out,
+		w = &columnOutput{
+			data:   data,
+			writer: out,
 		}
 	}
-	return w.Write()
+	return w.write()
 }

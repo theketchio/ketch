@@ -10,10 +10,10 @@ import (
 	"text/tabwriter"
 )
 
-// Column represents data and a writer for standard output type
-type Column struct {
-	Data   interface{}
-	Writer io.Writer
+// columnOutput represents data and a writer for standard output type
+type columnOutput struct {
+	data   interface{}
+	writer io.Writer
 }
 
 // val is a structure for storing a Value and it's column struct tag together
@@ -24,21 +24,21 @@ type val struct {
 
 type valSet []val
 
-// Write implements Writer for type Column
-func (c *Column) Write() error {
-	d, err := c.Marshal(c.Data)
+// write implements Writer for type Column
+func (c *columnOutput) write() error {
+	d, err := c.marshal(c.data)
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintln(c.Writer, string(d))
+	_, err = fmt.Fprintln(c.writer, string(d))
 	return err
 }
 
-// Marshal creates valSets from v, depending on whether it is a slice, struct, map, or pointer.
+// marshal creates valSets from v, depending on whether it is a slice, struct, map, or pointer.
 // Column headings are pulled from the "column" struct tag or spaced-and-capitalized from the field name
 // if the tag does not exist. Data is then printed to the tabwriter. Fields with the dash struct tag, e.g. `column"-"`
 // are omitted. The 'omitempty' tag directive has not been implemented.
-func (c *Column) Marshal(v interface{}) ([]byte, error) {
+func (c *columnOutput) marshal(v interface{}) ([]byte, error) {
 	// create valSets from the ValueOf v, depending on v's underlying kind
 	var valSets []valSet
 	value := reflect.ValueOf(v)

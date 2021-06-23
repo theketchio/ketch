@@ -51,15 +51,14 @@ No environment variables.
 )
 
 type appInfoContext struct {
-	App         ketchv1.App
-	Cnames      []string
-	NoProcesses bool
-	Table       string
+	App         ketchv1.App `json:"app" yaml:"app"`
+	Cnames      []string    `json:"cnames" yaml:"cnames"`
+	NoProcesses bool        `json:"noProcesses" yaml:"noProcesses"`
 }
 
 type appInfoOutput struct {
-	AppInfoContext appInfoContext
-	Deployments    []deploymentOutput
+	AppInfoContext appInfoContext     `json:"appInfoContext" yaml:"appInfoContext"`
+	Deployments    []deploymentOutput `json:"deployments" yaml:"deployments"`
 }
 
 type deploymentOutput struct {
@@ -113,10 +112,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	}
 
 	data := generateAppInfoOutput(app, appPods, framework)
-	outputFlag, err := flags.GetString("output")
-	if err != nil {
-		outputFlag = ""
-	}
+	outputFlag, _ := flags.GetString("output")
 	if outputFlag == "" {
 		buf := bytes.Buffer{}
 		t := template.Must(template.New("app-info").Parse(appInfoTemplate))
@@ -124,9 +120,9 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 			return err
 		}
 		fmt.Fprintf(out, "%v", buf.String())
-		return output.Write(data.Deployments, out, flags)
+		return output.Write(data.Deployments, out, outputFlag)
 	}
-	return output.Write(data, out, flags)
+	return output.Write(data, out, outputFlag)
 }
 
 func generateAppInfoOutput(app ketchv1.App, appPods *v1.PodList, framework *ketchv1.Framework) appInfoOutput {

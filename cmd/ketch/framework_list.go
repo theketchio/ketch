@@ -18,13 +18,13 @@ List all frameworks available for deploy.
 `
 
 type frameworkListOutput struct {
-	Name             string
-	Status           string
-	Namespace        string
-	IngressType      string
-	IngressClassName string
-	ClusterIssuer    string
-	Apps             string
+	Name             string `json:"name" yaml:"name"`
+	Status           string `json:"status" yaml:"status"`
+	Namespace        string `json:"namespace" yaml:"namespace"`
+	IngressType      string `json:"ingressType" yaml:"ingressType"`
+	IngressClassName string `json:"ingressClassName" yaml:"ingressClassName"`
+	ClusterIssuer    string `json:"clusterIssuer" yaml:"clusterIssuer"`
+	Apps             string `json:"apps" yaml:"apps"`
 }
 
 func newFrameworkListCmd(cfg config, out io.Writer) *cobra.Command {
@@ -45,8 +45,8 @@ func frameworkList(ctx context.Context, cfg config, out io.Writer, flags *pflag.
 	if err := cfg.Client().List(ctx, &frameworks); err != nil {
 		return fmt.Errorf("failed to get list of frameworks: %w", err)
 	}
-
-	return output.Write(generateFrameworkListOutput(frameworks), out, flags)
+	outputFlag, _ := flags.GetString("output")
+	return output.Write(generateFrameworkListOutput(frameworks), out, outputFlag)
 }
 
 func generateFrameworkListOutput(frameworks ketchv1.FrameworkList) []frameworkListOutput {

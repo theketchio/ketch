@@ -38,8 +38,8 @@ func newEnvGetCmd(cfg config, out io.Writer) *cobra.Command {
 }
 
 type envGetOptions struct {
-	appName string
-	envs    []string
+	appName string   `json:"appName" yaml:"appName"`
+	envs    []string `json:"envs" yaml:"envs"`
 }
 
 func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Writer, flags *pflag.FlagSet) error {
@@ -47,5 +47,6 @@ func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Write
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get the app: %w", err)
 	}
-	return output.Write(app.Envs(options.envs), out, flags)
+	outputFlag, _ := flags.GetString("output")
+	return output.Write(app.Envs(options.envs), out, outputFlag)
 }

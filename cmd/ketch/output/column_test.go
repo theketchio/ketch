@@ -45,8 +45,8 @@ func TestMarshal(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		c := &Column{}
-		res, err := c.Marshal(test.v)
+		c := &columnOutput{}
+		res, err := c.marshal(test.v)
 		if err != test.err {
 			t.Errorf("expected error %v, got %v", test.err, err)
 		}

@@ -7,18 +7,18 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// YAML represents data and a writer for yaml output type
-type YAML struct {
-	Data   interface{}
-	Writer io.Writer
+// yamlOutput represents data and a writer for yaml output type
+type yamlOutput struct {
+	data   interface{}
+	writer io.Writer
 }
 
-// Write implements Writer for type YAML
-func (y *YAML) Write() error {
-	d, err := yaml.Marshal(y.Data)
+// write implements Writer for type YAML
+func (y *yamlOutput) write() error {
+	d, err := yaml.Marshal(y.data)
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintln(y.Writer, string(d))
+	_, err = fmt.Fprintln(y.writer, string(d))
 	return err
 }

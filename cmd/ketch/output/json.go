@@ -6,18 +6,18 @@ import (
 	"io"
 )
 
-// JSON represents data and a writer for json output type
-type JSON struct {
-	Data   interface{}
-	Writer io.Writer
+// jsonOutput represents data and a writer for json output type
+type jsonOutput struct {
+	data   interface{}
+	writer io.Writer
 }
 
-// Write implements Writer for type JSON
-func (j *JSON) Write() error {
-	d, err := json.MarshalIndent(j.Data, "", "\t")
+// write implements Writer for type JSON
+func (j *jsonOutput) write() error {
+	d, err := json.MarshalIndent(j.data, "", "\t")
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintln(j.Writer, string(d))
+	_, err = fmt.Fprintln(j.writer, string(d))
 	return err
 }
