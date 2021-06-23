@@ -52,6 +52,12 @@ EOF
   result=$($KETCH framework add framework.yaml)
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully added!" ]]
+
+  # assert add
+  result=$($KETCH framework list)
+  dataRegex="$FRAMEWORK-2[ \t]+ketch-$FRAMEWORK-2[ \t]+traefik[ \t]+traefik"
+  echo "RECEIVED:" $result
+  [[ $result =~ $dataRegex ]]
 }
 
 @test "framework list" {
