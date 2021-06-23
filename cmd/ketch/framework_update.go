@@ -7,14 +7,13 @@ import (
 	"io"
 	"os"
 
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/shipa-corp/ketch/internal/validation"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
-
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag"
+	"gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/types"
+
+	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/validation"
 )
 
 const frameworkUpdateHelp = `

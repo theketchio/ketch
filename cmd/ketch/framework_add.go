@@ -7,10 +7,9 @@ import (
 	"io"
 	"os"
 
-	"sigs.k8s.io/kustomize/kyaml/yaml"
-
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag"
+	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
