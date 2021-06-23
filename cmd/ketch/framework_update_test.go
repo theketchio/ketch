@@ -403,8 +403,7 @@ ingressController:
 			},
 			framework: &ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "frontend-framework",
-					ResourceVersion: "999",
+					Name: "frontend-framework",
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Framework",
@@ -442,8 +441,7 @@ appQuotaLimit: 5`)
 			},
 			framework: &ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "frontend-framework",
-					ResourceVersion: "999",
+					Name: "frontend-framework",
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Framework",
@@ -515,8 +513,7 @@ func TestUpdateFrameworkFromArgs(t *testing.T) {
 			},
 			framework: &ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "frontend-framework",
-					ResourceVersion: "999",
+					Name: "frontend-framework",
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Framework",
