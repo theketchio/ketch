@@ -66,12 +66,17 @@ setup() {
 }
 
 @test "app info" {
+  counter=0
   result=$($KETCH app info "$APP_NAME")
-  headerRegex="DEPLOYMENT VERSION[ \t]+IMAGE[ \t]+PROCESS NAME[ \t]+WEIGHT[ \t]+STATE[ \t]+CMD"
-  dataRegex="1[ \t]+$APP_IMAGE[ \t]+web[ \t]+100%[ \t]+created[ \t]"
-  echo "RECEIVED:" $result
-  [[ $result =~ $headerRegex ]]
-  [[ $result =~ $dataRegex ]]
+  while [[ ! $result =~ "deployed" ]]; do
+    result=$($KETCH app info "$APP_NAME")
+    echo $result
+    counter=$((counter+=1))
+    if [ $counter -ge 3 ]; then
+      exit 1;
+    fi;
+    sleep 1
+  done;
 }
 
 @test "app stop" {
