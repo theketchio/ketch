@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -37,7 +38,7 @@ var ingressTypeIds = map[ingressType][]string{
 	istio:   {ketchv1.IstioIngressControllerType.String()},
 }
 
-type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error
+type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer, flagsSet func() bool) error
 
 func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) *cobra.Command {
 	options := frameworkAddOptions{}
@@ -49,7 +50,10 @@ func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.name = args[0]
 			options.ingressClassNameSet = cmd.Flags().Changed("ingress-class-name")
-			return addFramework(cmd.Context(), cfg, options, out)
+			hasFlags := func() bool {
+				return cmd.Flags().NFlag() > 0
+			}
+			return addFramework(cmd.Context(), cfg, options, out, hasFlags)
 		},
 	}
 	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this framework")
@@ -74,49 +78,27 @@ type frameworkAddOptions struct {
 	ingressType            ingressType
 }
 
-func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
+func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer, hasFlags func() bool) error {
+	var framework *ketchv1.Framework
+	var err error
+
 	switch {
 	case validation.ValidateYamlFilename(options.name):
-		// TODO assert no options (except name)
-		fmt.Println(options)
+		if hasFlags() {
+			return errors.New("command line flags are not permitted when passing a framework yaml file")
+		}
+		framework, err = newFrameworkFromYaml(options)
+		if err != nil {
+			return err
+		}
 	case validation.ValidateName(options.name):
-
+		framework = newFrameworkFromArgs(options)
 	default:
-		return ErrInvalidFrameworkName // TODO update error
-	}
-	return nil
-}
-
-func addFrameworkFile(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
-	f, err := os.Open(options.name)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	var framework ketchv1.Framework
-	err = yaml.NewDecoder(f).Decode(&framework.Spec)
-	if err != nil {
-		return err
-	}
-	framework.ObjectMeta.Name = framework.Spec.Name
-	fmt.Println(framework, framework.TypeMeta, framework.Status)
-	if err := cfg.Client().Create(ctx, &framework); err != nil {
-		return fmt.Errorf("failed to create framework: %w", err)
-	}
-	fmt.Fprintln(out, "Successfully added!")
-	return nil
-}
-
-func addFrameworkArgs(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
-	if !validation.ValidateName(options.name) {
 		return ErrInvalidFrameworkName
 	}
-	namespace := fmt.Sprintf("ketch-%s", options.name)
-	if len(options.namespace) > 0 {
-		namespace = options.namespace
-	}
-	if len(options.ingressClusterIssuer) > 0 {
-		exists, err := clusterIssuerExist(cfg.DynamicClient(), ctx, options.ingressClusterIssuer)
+
+	if len(framework.Spec.IngressController.ClusterIssuer) > 0 {
+		exists, err := clusterIssuerExist(cfg.DynamicClient(), ctx, framework.Spec.IngressController.ClusterIssuer)
 		if err != nil {
 			return err
 		}
@@ -124,7 +106,58 @@ func addFrameworkArgs(ctx context.Context, cfg config, options frameworkAddOptio
 			return ErrClusterIssuerNotFound
 		}
 	}
-	framework := ketchv1.Framework{
+
+	if err := cfg.Client().Create(ctx, framework); err != nil {
+		return fmt.Errorf("failed to create framework: %w", err)
+	}
+	fmt.Fprintln(out, "Successfully added!")
+	return nil
+}
+
+// newFrameworkFromYaml imports a Framework definition from a yaml file specified in options.name.
+// It asserts that the framework has a name and assigns a ketch-prefixed namespaceName if one is not specified.
+// It assigns an ingressController className and type if one is not specified, defaulting to traefik.
+func newFrameworkFromYaml(options frameworkAddOptions) (*ketchv1.Framework, error) {
+	f, err := os.Open(options.name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var framework ketchv1.Framework
+	err = yaml.NewDecoder(f).Decode(&framework.Spec)
+	if err != nil {
+		return nil, err
+	}
+	if len(framework.Spec.Name) == 0 {
+		return nil, errors.New("a framework name is required")
+	}
+	framework.ObjectMeta.Name = framework.Spec.Name
+	if framework.Spec.NamespaceName == "" {
+		framework.Spec.NamespaceName = fmt.Sprintf("ketch-%s", framework.Spec.Name)
+	}
+	// default to traefik ingress type and className
+	if len(framework.Spec.IngressController.IngressType) == 0 {
+		framework.Spec.IngressController.IngressType = ketchv1.TraefikIngressControllerType
+	}
+	if len(framework.Spec.IngressController.ClassName) == 0 {
+		if framework.Spec.IngressController.IngressType.String() == defaultIstioIngressClassName {
+			framework.Spec.IngressController.ClassName = defaultIstioIngressClassName
+		} else {
+			framework.Spec.IngressController.ClassName = defaultTraefikIngressClassName
+		}
+	}
+	return &framework, nil
+}
+
+// newFrameworkFromArgs creates a Framework from options. It creates a ketch-prefixed namespace if
+// one is not specified.
+func newFrameworkFromArgs(options frameworkAddOptions) *ketchv1.Framework {
+	namespace := fmt.Sprintf("ketch-%s", options.name)
+	if len(options.namespace) > 0 {
+		namespace = options.namespace
+	}
+
+	framework := &ketchv1.Framework{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: options.name,
@@ -141,11 +174,7 @@ func addFrameworkArgs(ctx context.Context, cfg config, options frameworkAddOptio
 		},
 		Status: ketchv1.FrameworkStatus{},
 	}
-	if err := cfg.Client().Create(ctx, &framework); err != nil {
-		return fmt.Errorf("failed to create framework: %w", err)
-	}
-	fmt.Fprintln(out, "Successfully added!")
-	return nil
+	return framework
 }
 
 func (o frameworkAddOptions) IngressClassName() string {
