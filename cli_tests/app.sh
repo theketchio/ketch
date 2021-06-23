@@ -48,7 +48,7 @@ setup() {
 @test "framework list yaml format" {
   result=$($KETCH framework list -o yaml)
   dataRegex="- Apps: \"0\"
-  ClusterIssuer: \"\""
+  clusterIssuer: \"\""
   echo "RECEIVED:" $result
   [[ $result =~ $dataRegex ]]
 }
