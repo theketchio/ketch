@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shipa-corp/ketch/internal/testutils"
-
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +23,7 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 			},
 			Spec: ketchv1.FrameworkSpec{
 				NamespaceName: "default-namespace",
-				AppQuotaLimit: testutils.IntPtr(100),
+				AppQuotaLimit: 100,
 				IngressController: ketchv1.IngressControllerSpec{
 					IngressType: ketchv1.IstioIngressControllerType,
 				},

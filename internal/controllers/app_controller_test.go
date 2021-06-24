@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shipa-corp/ketch/internal/testutils"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/release"
@@ -53,6 +51,7 @@ func (h *helm) DeleteChart(appName string) error {
 }
 
 func TestAppReconciler_Reconcile(t *testing.T) {
+
 	defaultObjects := []runtime.Object{
 		&ketchv1.Framework{
 			ObjectMeta: metav1.ObjectMeta{
@@ -60,7 +59,7 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			},
 			Spec: ketchv1.FrameworkSpec{
 				NamespaceName: "hello",
-				AppQuotaLimit: testutils.IntPtr(100),
+				AppQuotaLimit: 100,
 				IngressController: ketchv1.IngressControllerSpec{
 					IngressType: ketchv1.IstioIngressControllerType,
 				},
@@ -72,7 +71,7 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			},
 			Spec: ketchv1.FrameworkSpec{
 				NamespaceName: "second-namespace",
-				AppQuotaLimit: testutils.IntPtr(1),
+				AppQuotaLimit: 1,
 				IngressController: ketchv1.IngressControllerSpec{
 					IngressType: ketchv1.IstioIngressControllerType,
 				},

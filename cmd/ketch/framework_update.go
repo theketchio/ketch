@@ -131,9 +131,6 @@ func updateFrameworkFromYaml(ctx context.Context, cfg config, options frameworkU
 	if framework.Spec.Version == "" {
 		framework.Spec.Version = defaultVersion
 	}
-	if framework.Spec.AppQuotaLimit == nil {
-		framework.Spec.AppQuotaLimit = &defaultAppQuotaLimit
-	}
 	if len(framework.Spec.IngressController.IngressType) == 0 {
 		framework.Spec.IngressController.IngressType = ketchv1.TraefikIngressControllerType
 	}
@@ -154,7 +151,7 @@ func updateFrameworkFromArgs(ctx context.Context, cfg config, options frameworkU
 		return nil, fmt.Errorf("failed to get the framework: %w", err)
 	}
 	if options.appQuotaLimitSet {
-		framework.Spec.AppQuotaLimit = &options.appQuotaLimit
+		framework.Spec.AppQuotaLimit = options.appQuotaLimit
 	}
 	if options.namespaceSet {
 		framework.Spec.NamespaceName = options.namespace

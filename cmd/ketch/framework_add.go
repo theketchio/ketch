@@ -31,10 +31,7 @@ const (
 	defaultIstioIngressClassName   = "istio"
 	defaultTraefikIngressClassName = "traefik"
 	defaultVersion                 = "v1"
-)
-
-var (
-	defaultAppQuotaLimit = -1
+	defaultAppQuotaLimit           = -1
 )
 
 var ingressTypeIds = map[ingressType][]string{
@@ -106,6 +103,7 @@ func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, 
 			return ErrClusterIssuerNotFound
 		}
 	}
+	fmt.Println(framework.Spec.Version)
 
 	if err := cfg.Client().Create(ctx, framework); err != nil {
 		return fmt.Errorf("failed to create framework: %w", err)
@@ -138,9 +136,6 @@ func newFrameworkFromYaml(options frameworkAddOptions) (*ketchv1.Framework, erro
 	if framework.Spec.Version == "" {
 		framework.Spec.Version = defaultVersion
 	}
-	if framework.Spec.AppQuotaLimit == nil {
-		framework.Spec.AppQuotaLimit = &defaultAppQuotaLimit
-	}
 	if len(framework.Spec.IngressController.IngressType) == 0 {
 		framework.Spec.IngressController.IngressType = ketchv1.TraefikIngressControllerType
 	}
@@ -169,7 +164,7 @@ func newFrameworkFromArgs(options frameworkAddOptions) *ketchv1.Framework {
 		},
 		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: namespace,
-			AppQuotaLimit: &options.appQuotaLimit,
+			AppQuotaLimit: options.appQuotaLimit,
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       options.IngressClassName(),
 				ServiceEndpoint: options.ingressServiceEndpoint,

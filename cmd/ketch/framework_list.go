@@ -39,8 +39,8 @@ func frameworkList(ctx context.Context, cfg config, out io.Writer) error {
 
 	for _, item := range frameworks.Items {
 		apps := fmt.Sprintf("%d", len(item.Status.Apps))
-		if item.Spec.AppQuotaLimit != nil && *item.Spec.AppQuotaLimit > 0 {
-			apps = fmt.Sprintf("%d/%d", len(item.Status.Apps), *item.Spec.AppQuotaLimit)
+		if item.Spec.AppQuotaLimit > 0 {
+			apps = fmt.Sprintf("%d/%d", len(item.Status.Apps), item.Spec.AppQuotaLimit)
 		}
 		line := []string{
 			item.Name,
