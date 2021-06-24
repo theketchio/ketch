@@ -6,8 +6,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/spf13/pflag"
-
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,14 +35,13 @@ func newAppListCmd(cfg config, out io.Writer) *cobra.Command {
 		Long:  appListHelp,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return appList(cmd.Context(), cfg, out, cmd.Flags())
+			return appList(cmd.Context(), cfg, out)
 		},
 	}
-	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	return cmd
 }
 
-func appList(ctx context.Context, cfg config, out io.Writer, flags *pflag.FlagSet) error {
+func appList(ctx context.Context, cfg config, out io.Writer) error {
 	apps := ketchv1.AppList{}
 	if err := cfg.Client().List(ctx, &apps); err != nil {
 		return fmt.Errorf("failed to list apps: %w", err)

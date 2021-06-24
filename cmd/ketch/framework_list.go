@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/spf13/pflag"
-
-	"github.com/spf13/cobra"
-
 	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/spf13/cobra"
 )
 
 const frameworkListHelp = `
@@ -33,14 +30,13 @@ func newFrameworkListCmd(cfg config, out io.Writer) *cobra.Command {
 		Short: "List all frameworks available for deploy.",
 		Long:  frameworkListHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return frameworkList(cmd.Context(), cfg, out, cmd.Flags())
+			return frameworkList(cmd.Context(), cfg, out)
 		},
 	}
-	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	return cmd
 }
 
-func frameworkList(ctx context.Context, cfg config, out io.Writer, flags *pflag.FlagSet) error {
+func frameworkList(ctx context.Context, cfg config, out io.Writer) error {
 	frameworks := ketchv1.FrameworkList{}
 	if err := cfg.Client().List(ctx, &frameworks); err != nil {
 		return fmt.Errorf("failed to get list of frameworks: %w", err)

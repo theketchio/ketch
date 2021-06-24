@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,7 +82,7 @@ func newAppInfoCmd(cfg config, out io.Writer) *cobra.Command {
 		Long:  appInfoHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.name = args[0]
-			return appInfo(cmd.Context(), cfg, options, out, cmd.Flags())
+			return appInfo(cmd.Context(), cfg, options, out)
 		},
 	}
 	return cmd
@@ -93,7 +92,7 @@ type appInfoOptions struct {
 	name string
 }
 
-func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Writer, flags *pflag.FlagSet) error {
+func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.name}, &app); err != nil {
 		return fmt.Errorf("failed to get app: %w", err)

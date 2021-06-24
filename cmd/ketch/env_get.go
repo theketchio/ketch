@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/output"
@@ -27,11 +26,10 @@ func newEnvGetCmd(cfg config, out io.Writer) *cobra.Command {
 		Long:  envGetHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.envs = args
-			return envGet(cmd.Context(), cfg, options, out, cmd.Flags())
+			return envGet(cmd.Context(), cfg, options, out)
 
 		},
 	}
-	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	cmd.Flags().StringVarP(&options.appName, "app", "a", "", "The name of the app.")
 	cmd.MarkFlagRequired("app")
 	return cmd
@@ -42,7 +40,7 @@ type envGetOptions struct {
 	envs    []string
 }
 
-func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Writer, flags *pflag.FlagSet) error {
+func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get the app: %w", err)

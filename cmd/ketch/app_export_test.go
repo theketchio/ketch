@@ -73,7 +73,6 @@ func (m mockStorage) Update(name string, templates templates.Templates) error {
 var _ templates.Client = &mockStorage{}
 
 func Test_appExport(t *testing.T) {
-	t.Skip()
 	directory1, err := ioutil.TempDir("", "ketch-app-export")
 	require.Nil(t, err)
 
