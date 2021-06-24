@@ -58,7 +58,7 @@ type FrameworkSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	NamespaceName string `json:"namespace" yaml:"namespace"`
 
-	AppQuotaLimit int `json:"appQuotaLimit" yaml:"appQuotaLimit"`
+	AppQuotaLimit *int `json:"appQuotaLimit" yaml:"appQuotaLimit"`
 
 	IngressController IngressControllerSpec `json:"ingressController,omitempty" yaml:"ingressController,omitempty"`
 }

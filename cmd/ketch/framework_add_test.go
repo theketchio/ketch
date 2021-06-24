@@ -8,6 +8,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/shipa-corp/ketch/internal/testutils"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/spf13/pflag"
@@ -75,7 +77,7 @@ ingressController:
 			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "ketch-hello",
-				AppQuotaLimit: 0,
+				AppQuotaLimit: testutils.IntPtr(-1),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "istio",
 					ServiceEndpoint: "10.10.20.30",
@@ -127,7 +129,7 @@ ingressController:
 			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "gke",
-				AppQuotaLimit: 5,
+				AppQuotaLimit: testutils.IntPtr(5),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "istio",
 					ServiceEndpoint: "10.10.20.30",
@@ -156,7 +158,7 @@ ingressController:
 			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "gke",
-				AppQuotaLimit: 5,
+				AppQuotaLimit: testutils.IntPtr(5),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "custom-class-name",
 					ServiceEndpoint: "10.10.20.30",
@@ -181,7 +183,7 @@ ingressController:
 			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "ketch-aws",
-				AppQuotaLimit: 5,
+				AppQuotaLimit: testutils.IntPtr(5),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "traefik",
 					ServiceEndpoint: "10.10.10.10",
@@ -309,7 +311,7 @@ ingressController:
 					Version:       "v1",
 					Name:          "hello",
 					NamespaceName: "my-namespace",
-					AppQuotaLimit: 5,
+					AppQuotaLimit: testutils.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType:     "istio",
 						ServiceEndpoint: "10.10.20.30",
@@ -361,7 +363,7 @@ appQuotaLimit: 5`)
 					Version:       "v1",
 					Name:          "hello",
 					NamespaceName: "ketch-hello",
-					AppQuotaLimit: 5,
+					AppQuotaLimit: testutils.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: "traefik",
 						ClassName:   "traefik",
@@ -411,7 +413,7 @@ func TestNewFrameworkFromArgs(t *testing.T) {
 				},
 				Spec: ketchv1.FrameworkSpec{
 					NamespaceName: "my-namespace",
-					AppQuotaLimit: 5,
+					AppQuotaLimit: testutils.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType:     "istio",
 						ServiceEndpoint: "10.10.20.30",
@@ -433,7 +435,7 @@ func TestNewFrameworkFromArgs(t *testing.T) {
 				},
 				Spec: ketchv1.FrameworkSpec{
 					NamespaceName: "ketch-hello",
-					AppQuotaLimit: 5,
+					AppQuotaLimit: testutils.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: "traefik",
 						ClassName:   "traefik",
