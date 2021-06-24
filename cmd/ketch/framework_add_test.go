@@ -8,6 +8,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/shipa-corp/ketch/internal/testutils"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/spf13/pflag"
@@ -43,7 +45,6 @@ func Test_addFramework(t *testing.T) {
 		frameworkName string
 		cfg           config
 		options       frameworkAddOptions
-		hasFlags      func() bool
 
 		before            func()
 		wantFrameworkSpec ketchv1.FrameworkSpec
@@ -51,23 +52,20 @@ func Test_addFramework(t *testing.T) {
 		wantErr           string
 	}{
 		{
-			name:          "framework from yaml file",
+			name:          "framework from yaml file, ignores flags",
 			frameworkName: "hello",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects:    []runtime.Object{},
 				DynamicClientObjects: []runtime.Object{clusterIssuerLe},
 			},
 			options: frameworkAddOptions{
-				name: file.Name(),
-			},
-			hasFlags: func() bool {
-				return false
+				name:          file.Name(),
+				appQuotaLimit: 10,
 			},
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
 				_, err = file.WriteString(`name: hello
-appQuotaLimit: 5
 ingressController:
  type: istio
  serviceEndpoint: 10.10.20.30
@@ -79,7 +77,7 @@ ingressController:
 			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "ketch-hello",
-				AppQuotaLimit: 5,
+				AppQuotaLimit: testutils.IntPtr(-1),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "istio",
 					ServiceEndpoint: "10.10.20.30",
@@ -99,9 +97,6 @@ ingressController:
 			options: frameworkAddOptions{
 				name: file.Name(),
 			},
-			hasFlags: func() bool {
-				return false
-			},
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
@@ -118,21 +113,6 @@ ingressController:
 			wantErr: "a framework name is required",
 		},
 		{
-			name:          "framework yaml import errors when flags are specified",
-			frameworkName: "",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects:    []runtime.Object{},
-				DynamicClientObjects: []runtime.Object{clusterIssuerLe},
-			},
-			options: frameworkAddOptions{
-				name: file.Name(),
-			},
-			hasFlags: func() bool {
-				return true
-			},
-			wantErr: "command line flags are not permitted when passing a framework yaml file",
-		},
-		{
 			name:          "default class name for istio is istio",
 			frameworkName: "hello",
 			cfg: &mocks.Configuration{
@@ -147,12 +127,9 @@ ingressController:
 				ingressType:            istio,
 				ingressClusterIssuer:   "le-production",
 			},
-			hasFlags: func() bool {
-				return false
-			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "gke",
-				AppQuotaLimit: 5,
+				AppQuotaLimit: testutils.IntPtr(5),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "istio",
 					ServiceEndpoint: "10.10.20.30",
@@ -179,12 +156,9 @@ ingressController:
 				ingressType:            istio,
 				ingressClusterIssuer:   "le-production",
 			},
-			hasFlags: func() bool {
-				return false
-			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "gke",
-				AppQuotaLimit: 5,
+				AppQuotaLimit: testutils.IntPtr(5),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "custom-class-name",
 					ServiceEndpoint: "10.10.20.30",
@@ -207,12 +181,9 @@ ingressController:
 				ingressServiceEndpoint: "10.10.10.10",
 				ingressType:            traefik,
 			},
-			hasFlags: func() bool {
-				return false
-			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "ketch-aws",
-				AppQuotaLimit: 5,
+				AppQuotaLimit: testutils.IntPtr(5),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "traefik",
 					ServiceEndpoint: "10.10.10.10",
@@ -231,9 +202,6 @@ ingressController:
 				name:                 "hello",
 				ingressClusterIssuer: "le-production",
 			},
-			hasFlags: func() bool {
-				return false
-			},
 			wantErr: ErrClusterIssuerNotFound.Error(),
 		},
 	}
@@ -243,7 +211,7 @@ ingressController:
 				tt.before()
 			}
 			out := &bytes.Buffer{}
-			err := addFramework(context.Background(), tt.cfg, tt.options, out, tt.hasFlags)
+			err := addFramework(context.Background(), tt.cfg, tt.options, out)
 			if len(tt.wantErr) > 0 {
 				require.NotNil(t, err)
 				require.Equal(t, tt.wantErr, err.Error())
@@ -271,7 +239,7 @@ func Test_newFrameworkAddCmd(t *testing.T) {
 		{
 			name: "class name is not set",
 			args: []string{"ketch", "gke", "--ingress-type", "istio"},
-			addFramework: func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer, hasFlags func() bool) error {
+			addFramework: func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
 				require.False(t, options.ingressClassNameSet)
 				require.Equal(t, "gke", options.name)
 				return nil
@@ -280,7 +248,7 @@ func Test_newFrameworkAddCmd(t *testing.T) {
 		{
 			name: "class name is set",
 			args: []string{"ketch", "gke", "--ingress-type", "istio", "--ingress-class-name", "custom-istio"},
-			addFramework: func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer, hasFlags func() bool) error {
+			addFramework: func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
 				require.True(t, options.ingressClassNameSet)
 				require.Equal(t, "gke", options.name)
 				require.Equal(t, "custom-istio", options.ingressClassName)
@@ -340,9 +308,10 @@ ingressController:
 					Name: "hello",
 				},
 				Spec: ketchv1.FrameworkSpec{
+					Version:       "v1",
 					Name:          "hello",
 					NamespaceName: "my-namespace",
-					AppQuotaLimit: 5,
+					AppQuotaLimit: testutils.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType:     "istio",
 						ServiceEndpoint: "10.10.20.30",
@@ -373,7 +342,7 @@ ingressController:
 			err: errors.New("a framework name is required"),
 		},
 		{
-			name: "success - default namespace and ingress",
+			name: "success - default version, namespace, and ingress",
 			options: frameworkAddOptions{
 				name: file.Name(),
 			},
@@ -391,9 +360,10 @@ appQuotaLimit: 5`)
 					Name: "hello",
 				},
 				Spec: ketchv1.FrameworkSpec{
+					Version:       "v1",
 					Name:          "hello",
 					NamespaceName: "ketch-hello",
-					AppQuotaLimit: 5,
+					AppQuotaLimit: testutils.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: "traefik",
 						ClassName:   "traefik",
@@ -443,7 +413,7 @@ func TestNewFrameworkFromArgs(t *testing.T) {
 				},
 				Spec: ketchv1.FrameworkSpec{
 					NamespaceName: "my-namespace",
-					AppQuotaLimit: 5,
+					AppQuotaLimit: testutils.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType:     "istio",
 						ServiceEndpoint: "10.10.20.30",
@@ -465,7 +435,7 @@ func TestNewFrameworkFromArgs(t *testing.T) {
 				},
 				Spec: ketchv1.FrameworkSpec{
 					NamespaceName: "ketch-hello",
-					AppQuotaLimit: 5,
+					AppQuotaLimit: testutils.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: "traefik",
 						ClassName:   "traefik",

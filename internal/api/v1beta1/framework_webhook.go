@@ -98,7 +98,7 @@ func (r *Framework) ValidateUpdate(old runtime.Object) error {
 		}
 	}
 	if oldFramework.Spec.AppQuotaLimit != r.Spec.AppQuotaLimit {
-		if r.Spec.AppQuotaLimit < len(r.Status.Apps) && r.Spec.AppQuotaLimit != -1 {
+		if r.Spec.AppQuotaLimit != nil && *r.Spec.AppQuotaLimit < len(r.Status.Apps) && *r.Spec.AppQuotaLimit != -1 {
 			return ErrDecreaseQuota
 		}
 	}

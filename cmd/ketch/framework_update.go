@@ -35,10 +35,7 @@ func newFrameworkUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 			options.ingressServiceEndpointSet = cmd.Flags().Changed("ingress-service-endpoint")
 			options.ingressTypeSet = cmd.Flags().Changed("ingress-type")
 			options.ingressClusterIssuerSet = cmd.Flags().Changed("cluster-issuer")
-			hasFlags := func() bool {
-				return cmd.Flags().NFlag() > 0
-			}
-			return frameworkUpdate(cmd.Context(), cfg, options, out, hasFlags)
+			return frameworkUpdate(cmd.Context(), cfg, options, out)
 		},
 	}
 	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this framework")
@@ -67,14 +64,11 @@ type frameworkUpdateOptions struct {
 	ingressType               ingressType
 }
 
-func frameworkUpdate(ctx context.Context, cfg config, options frameworkUpdateOptions, out io.Writer, hasFlags func() bool) error {
+func frameworkUpdate(ctx context.Context, cfg config, options frameworkUpdateOptions, out io.Writer) error {
 	var framework *ketchv1.Framework
 	var err error
 	switch {
 	case validation.ValidateYamlFilename(options.name):
-		if hasFlags() {
-			return errors.New("command line flags are not permitted when passing a framework yaml file")
-		}
 		framework, err = updateFrameworkFromYaml(ctx, cfg, options)
 		if err != nil {
 			return err
@@ -106,7 +100,8 @@ func frameworkUpdate(ctx context.Context, cfg config, options frameworkUpdateOpt
 }
 
 // updateFrameworkFromYaml imports a FrameworkSpec definition from a yaml file named in options.name.
-// It asserts that the FrameworkSpec has a name and assigns a ketch-prefixed namespaceName if one is not specified.
+// It asserts that the framework has a name. It assigns a ketch-prefixed namespaceName, version,
+// ingressController className, and ingressController type (defaulting to traefik) if values are not specified.
 // It fetches the named Framework, assigns the FrameworkSpec, and returns the Framework.
 func updateFrameworkFromYaml(ctx context.Context, cfg config, options frameworkUpdateOptions) (*ketchv1.Framework, error) {
 	var spec ketchv1.FrameworkSpec
@@ -129,8 +124,25 @@ func updateFrameworkFromYaml(ctx context.Context, cfg config, options frameworkU
 	}
 	framework.Spec = spec
 
+	framework.ObjectMeta.Name = framework.Spec.Name
 	if framework.Spec.NamespaceName == "" {
 		framework.Spec.NamespaceName = fmt.Sprintf("ketch-%s", framework.Spec.Name)
+	}
+	if framework.Spec.Version == "" {
+		framework.Spec.Version = defaultVersion
+	}
+	if framework.Spec.AppQuotaLimit == nil {
+		framework.Spec.AppQuotaLimit = &defaultAppQuotaLimit
+	}
+	if len(framework.Spec.IngressController.IngressType) == 0 {
+		framework.Spec.IngressController.IngressType = ketchv1.TraefikIngressControllerType
+	}
+	if len(framework.Spec.IngressController.ClassName) == 0 {
+		if framework.Spec.IngressController.IngressType.String() == defaultIstioIngressClassName {
+			framework.Spec.IngressController.ClassName = defaultIstioIngressClassName
+		} else {
+			framework.Spec.IngressController.ClassName = defaultTraefikIngressClassName
+		}
 	}
 	return &framework, nil
 }
@@ -142,7 +154,7 @@ func updateFrameworkFromArgs(ctx context.Context, cfg config, options frameworkU
 		return nil, fmt.Errorf("failed to get the framework: %w", err)
 	}
 	if options.appQuotaLimitSet {
-		framework.Spec.AppQuotaLimit = options.appQuotaLimit
+		framework.Spec.AppQuotaLimit = &options.appQuotaLimit
 	}
 	if options.namespaceSet {
 		framework.Spec.NamespaceName = options.namespace

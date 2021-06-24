@@ -30,6 +30,11 @@ const (
 const (
 	defaultIstioIngressClassName   = "istio"
 	defaultTraefikIngressClassName = "traefik"
+	defaultVersion                 = "v1"
+)
+
+var (
+	defaultAppQuotaLimit = -1
 )
 
 var ingressTypeIds = map[ingressType][]string{
@@ -37,7 +42,7 @@ var ingressTypeIds = map[ingressType][]string{
 	istio:   {ketchv1.IstioIngressControllerType.String()},
 }
 
-type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer, hasFlags func() bool) error
+type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error
 
 func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) *cobra.Command {
 	options := frameworkAddOptions{}
@@ -49,14 +54,12 @@ func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.name = args[0]
 			options.ingressClassNameSet = cmd.Flags().Changed("ingress-class-name")
-			hasFlags := func() bool {
-				return cmd.Flags().NFlag() > 0
-			}
-			return addFramework(cmd.Context(), cfg, options, out, hasFlags)
+			return addFramework(cmd.Context(), cfg, options, out)
 		},
 	}
+	cmd.Flags().StringVar(&options.version, "version", defaultVersion, "Version for this framework")
 	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this framework")
-	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", -1, "Quota limit for app when adding it to this framework")
+	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", defaultAppQuotaLimit, "Quota limit for app when adding it to this framework")
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", `if set, it is used as kubernetes.io/ingress.class annotations. Ketch uses "istio" class name for istio ingress controller, if class name is not specified`)
 	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
@@ -65,7 +68,8 @@ func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) 
 }
 
 type frameworkAddOptions struct {
-	name string
+	version string
+	name    string
 
 	appQuotaLimit int
 	namespace     string
@@ -77,15 +81,12 @@ type frameworkAddOptions struct {
 	ingressType            ingressType
 }
 
-func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer, hasFlags func() bool) error {
+func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error {
 	var framework *ketchv1.Framework
 	var err error
 
 	switch {
 	case validation.ValidateYamlFilename(options.name):
-		if hasFlags() {
-			return errors.New("command line flags are not permitted when passing a framework yaml file")
-		}
 		framework, err = newFrameworkFromYaml(options)
 		if err != nil {
 			return err
@@ -114,8 +115,8 @@ func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, 
 }
 
 // newFrameworkFromYaml imports a Framework definition from a yaml file specified in options.name.
-// It asserts that the framework has a name and assigns a ketch-prefixed namespaceName if one is not specified.
-// It assigns an ingressController className and type if one is not specified, defaulting to traefik.
+// It asserts that the framework has a name. It assigns a ketch-prefixed namespaceName, version,
+// ingressController className, and ingressController type (defaulting to traefik) if values are not specified.
 func newFrameworkFromYaml(options frameworkAddOptions) (*ketchv1.Framework, error) {
 	f, err := os.Open(options.name)
 	if err != nil {
@@ -134,7 +135,12 @@ func newFrameworkFromYaml(options frameworkAddOptions) (*ketchv1.Framework, erro
 	if framework.Spec.NamespaceName == "" {
 		framework.Spec.NamespaceName = fmt.Sprintf("ketch-%s", framework.Spec.Name)
 	}
-	// default to traefik ingress type and className
+	if framework.Spec.Version == "" {
+		framework.Spec.Version = defaultVersion
+	}
+	if framework.Spec.AppQuotaLimit == nil {
+		framework.Spec.AppQuotaLimit = &defaultAppQuotaLimit
+	}
 	if len(framework.Spec.IngressController.IngressType) == 0 {
 		framework.Spec.IngressController.IngressType = ketchv1.TraefikIngressControllerType
 	}
@@ -163,7 +169,7 @@ func newFrameworkFromArgs(options frameworkAddOptions) *ketchv1.Framework {
 		},
 		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: namespace,
-			AppQuotaLimit: options.appQuotaLimit,
+			AppQuotaLimit: &options.appQuotaLimit,
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       options.IngressClassName(),
 				ServiceEndpoint: options.ingressServiceEndpoint,
