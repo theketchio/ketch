@@ -53,12 +53,13 @@ type FrameworkList struct {
 
 // FrameworkSpec defines the desired state of Framework
 type FrameworkSpec struct {
+	Name string `json:"-" yaml:"name"`
 	// +kubebuilder:validation:MinLength=1
-	NamespaceName string `json:"namespace"`
+	NamespaceName string `json:"namespace" yaml:"namespaceName"`
 
-	AppQuotaLimit int `json:"appQuotaLimit"`
+	AppQuotaLimit int `json:"appQuotaLimit" yaml:"appQuotaLimit"`
 
-	IngressController IngressControllerSpec `json:"ingressController,omitempty"`
+	IngressController IngressControllerSpec `json:"ingressController,omitempty" yaml:"ingressController,omitempty"`
 }
 
 type FrameworkPhase string
@@ -82,10 +83,10 @@ const (
 
 // IngressControllerSpec contains configuration for an ingress controller.
 type IngressControllerSpec struct {
-	ClassName       string                `json:"className,omitempty"`
-	ServiceEndpoint string                `json:"serviceEndpoint,omitempty"`
-	IngressType     IngressControllerType `json:"type"`
-	ClusterIssuer   string                `json:"clusterIssuer,omitempty"`
+	ClassName       string                `json:"className,omitempty" yaml:"className,omitempty"`
+	ServiceEndpoint string                `json:"serviceEndpoint,omitempty" yaml:"serviceEndpoint,omitempty"`
+	IngressType     IngressControllerType `json:"type" yaml:"type"`
+	ClusterIssuer   string                `json:"clusterIssuer,omitempty" yaml:"clusterIssuer,omitempty"`
 }
 
 // FrameworkStatus defines the observed state of Framework
