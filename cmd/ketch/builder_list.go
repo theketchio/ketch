@@ -53,10 +53,8 @@ func newBuilderListCmd(ketchConfig configuration.KetchConfig, out io.Writer) *co
 		Long:  builderListHelp,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			outputFlag, _ := cmd.Flags().GetString("output")
-			return output.Write(append(builderList, ketchConfig.AdditionalBuilders...), out, outputFlag)
+			return output.Write(append(builderList, ketchConfig.AdditionalBuilders...), out, "column")
 		},
 	}
-	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	return cmd
 }

@@ -47,6 +47,5 @@ func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Write
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get the app: %w", err)
 	}
-	outputFlag, _ := flags.GetString("output")
-	return output.Write(app.Envs(options.envs), out, outputFlag)
+	return output.Write(app.Envs(options.envs), out, "column")
 }

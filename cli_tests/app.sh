@@ -45,14 +45,6 @@ setup() {
   [[ $result =~ $dataRegex ]]
 }
 
-@test "framework list yaml format" {
-  result=$($KETCH framework list -o yaml)
-  dataRegex="- apps: \"0\"
-  clusterIssuer: \"\""
-  echo "RECEIVED:" $result
-  [[ $result =~ $dataRegex ]]
-}
-
 @test "framework update" {
   result=$($KETCH framework update "$FRAMEWORK" --app-quota-limit 1)
   echo "RECEIVED:" $result
@@ -79,13 +71,6 @@ setup() {
   dataRegex="1[ \t]+$APP_IMAGE[ \t]+web[ \t]+100%[ \t]+created[ \t]"
   echo "RECEIVED:" $result
   [[ $result =~ $headerRegex ]]
-  [[ $result =~ $dataRegex ]]
-}
-
-@test "app info json format" {
-  result=$($KETCH app info "$APP_NAME" -o json)
-  dataRegex="\"name\": \"$APP_NAME\""
-  echo "RECEIVED:" $result
   [[ $result =~ $dataRegex ]]
 }
 

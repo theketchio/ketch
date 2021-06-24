@@ -61,8 +61,7 @@ func appList(ctx context.Context, cfg config, out io.Writer, flags *pflag.FlagSe
 	if err != nil {
 		return fmt.Errorf("failed to list apps pods: %w", err)
 	}
-	outputFlag, _ := flags.GetString("output")
-	return output.Write(generateAppListOutput(apps, allPods, frameworksByName), out, outputFlag)
+	return output.Write(generateAppListOutput(apps, allPods, frameworksByName), out, "column")
 }
 
 func generateAppListOutput(apps ketchv1.AppList, allPods *corev1.PodList, frameworksByName map[string]ketchv1.Framework) []appListOutput {

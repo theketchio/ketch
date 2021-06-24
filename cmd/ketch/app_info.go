@@ -86,7 +86,6 @@ func newAppInfoCmd(cfg config, out io.Writer) *cobra.Command {
 			return appInfo(cmd.Context(), cfg, options, out, cmd.Flags())
 		},
 	}
-	cmd.Flags().StringP("output", "o", "", "used to specify output, e.g. --output format=json")
 	return cmd
 }
 
@@ -112,17 +111,15 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	}
 
 	data := generateAppInfoOutput(app, appPods, framework)
-	outputFlag, _ := flags.GetString("output")
-	if outputFlag == "" {
-		buf := bytes.Buffer{}
-		t := template.Must(template.New("app-info").Parse(appInfoTemplate))
-		if err := t.Execute(&buf, data.AppInfoContext); err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "%v", buf.String())
-		return output.Write(data.Deployments, out, outputFlag)
+
+	buf := bytes.Buffer{}
+	t := template.Must(template.New("app-info").Parse(appInfoTemplate))
+	if err := t.Execute(&buf, data.AppInfoContext); err != nil {
+		return err
 	}
-	return output.Write(data, out, outputFlag)
+	fmt.Fprintf(out, "%v", buf.String())
+	return output.Write(data.Deployments, out, "column")
+
 }
 
 func generateAppInfoOutput(app ketchv1.App, appPods *v1.PodList, framework *ketchv1.Framework) appInfoOutput {

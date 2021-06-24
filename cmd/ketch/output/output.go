@@ -12,16 +12,6 @@ type writer interface {
 func Write(data interface{}, out io.Writer, outputFlag string) error {
 	var w writer
 	switch outputFlag {
-	case "json", "JSON", "Json", "j":
-		w = &jsonOutput{
-			data:   data,
-			writer: out,
-		}
-	case "yaml", "YAML", "Yaml", "y":
-		w = &yamlOutput{
-			data:   data,
-			writer: out,
-		}
 	default:
 		w = &columnOutput{
 			data:   data,
