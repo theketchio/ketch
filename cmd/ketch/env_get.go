@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
@@ -44,9 +45,5 @@ func envGet(ctx context.Context, cfg config, options envGetOptions, out io.Write
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get the app: %w", err)
 	}
-	envs := app.Envs(options.envs)
-	for name, value := range envs {
-		fmt.Fprintf(out, "%v=%v\n", name, value)
-	}
-	return nil
+	return output.Write(app.Envs(options.envs), out, "column")
 }

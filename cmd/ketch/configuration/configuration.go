@@ -42,9 +42,9 @@ type KetchConfig struct {
 
 // AdditionalBuilder contains the information of any user added builders
 type AdditionalBuilder struct {
-	Vendor      string `toml:"vendor"`
-	Image       string `toml:"image"`
-	Description string `toml:"description"`
+	Vendor      string `toml:"vendor" json:"vendor" yaml:"vendor"`
+	Image       string `toml:"image" json:"image" yaml:"image"`
+	Description string `toml:"description" json:"description" yaml:"description"`
 }
 
 // Client returns initialized controller-runtime's Client to perform CRUD operations on Kubernetes objects.
