@@ -4,17 +4,25 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
-	"text/tabwriter"
 
-	"github.com/spf13/cobra"
-
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/spf13/cobra"
 )
 
 const frameworkListHelp = `
 List all frameworks available for deploy.
 `
+
+type frameworkListOutput struct {
+	Name             string `json:"name" yaml:"name"`
+	Status           string `json:"status" yaml:"status"`
+	Namespace        string `json:"namespace" yaml:"namespace"`
+	IngressType      string `json:"ingressType" yaml:"ingressType"`
+	IngressClassName string `json:"ingressClassName" yaml:"ingressClassName"`
+	ClusterIssuer    string `json:"clusterIssuer" yaml:"clusterIssuer"`
+	Apps             string `json:"apps" yaml:"apps"`
+}
 
 func newFrameworkListCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
@@ -33,25 +41,25 @@ func frameworkList(ctx context.Context, cfg config, out io.Writer) error {
 	if err := cfg.Client().List(ctx, &frameworks); err != nil {
 		return fmt.Errorf("failed to get list of frameworks: %w", err)
 	}
+	return output.Write(generateFrameworkListOutput(frameworks), out, "column")
+}
 
-	w := tabwriter.NewWriter(out, 0, 4, 4, ' ', 0)
-	fmt.Fprintln(w, "NAME\tSTATUS\tNAMESPACE\tINGRESS TYPE\tINGRESS CLASS NAME\tCLUSTER ISSUER\tAPPS")
-
+func generateFrameworkListOutput(frameworks ketchv1.FrameworkList) []frameworkListOutput {
+	var output []frameworkListOutput
 	for _, item := range frameworks.Items {
 		apps := fmt.Sprintf("%d", len(item.Status.Apps))
 		if item.Spec.AppQuotaLimit > 0 {
 			apps = fmt.Sprintf("%d/%d", len(item.Status.Apps), item.Spec.AppQuotaLimit)
 		}
-		line := []string{
-			item.Name,
-			string(item.Status.Phase),
-			item.Spec.NamespaceName,
-			item.Spec.IngressController.IngressType.String(),
-			item.Spec.IngressController.ClassName,
-			item.Spec.IngressController.ClusterIssuer,
-			apps}
-		fmt.Fprintln(w, strings.Join(line, "\t"))
+		output = append(output, frameworkListOutput{
+			Name:             item.Name,
+			Status:           string(item.Status.Phase),
+			Namespace:        item.Spec.NamespaceName,
+			IngressType:      item.Spec.IngressController.IngressType.String(),
+			IngressClassName: item.Spec.IngressController.ClassName,
+			ClusterIssuer:    item.Spec.IngressController.ClusterIssuer,
+			Apps:             apps,
+		})
 	}
-	w.Flush()
-	return nil
+	return output
 }
