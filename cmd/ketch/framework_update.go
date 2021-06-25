@@ -123,27 +123,7 @@ func updateFrameworkFromYaml(ctx context.Context, cfg config, options frameworkU
 		return nil, fmt.Errorf("failed to get the framework: %w", err)
 	}
 	framework.Spec = spec
-
-	framework.ObjectMeta.Name = framework.Spec.Name
-	if framework.Spec.NamespaceName == "" {
-		framework.Spec.NamespaceName = fmt.Sprintf("ketch-%s", framework.Spec.Name)
-	}
-	if framework.Spec.Version == "" {
-		framework.Spec.Version = defaultVersion
-	}
-	if framework.Spec.AppQuotaLimit == nil {
-		framework.Spec.AppQuotaLimit = &defaultAppQuotaLimit
-	}
-	if len(framework.Spec.IngressController.IngressType) == 0 {
-		framework.Spec.IngressController.IngressType = ketchv1.TraefikIngressControllerType
-	}
-	if len(framework.Spec.IngressController.ClassName) == 0 {
-		if framework.Spec.IngressController.IngressType.String() == defaultIstioIngressClassName {
-			framework.Spec.IngressController.ClassName = defaultIstioIngressClassName
-		} else {
-			framework.Spec.IngressController.ClassName = defaultTraefikIngressClassName
-		}
-	}
+	assignDefaultsToFramework(&framework)
 	return &framework, nil
 }
 
