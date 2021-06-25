@@ -100,7 +100,7 @@ func frameworkUpdate(ctx context.Context, cfg config, options frameworkUpdateOpt
 }
 
 // updateFrameworkFromYaml imports a FrameworkSpec definition from a yaml file named in options.name.
-// It asserts that the framework has a name. It assigns a ketch-prefixed namespaceName, version,
+// It asserts that the framework has a name. It assigns a ketch-prefixed namespaceName, version, appQuotaLimit,
 // ingressController className, and ingressController type (defaulting to traefik) if values are not specified.
 // It fetches the named Framework, assigns the FrameworkSpec, and returns the Framework.
 func updateFrameworkFromYaml(ctx context.Context, cfg config, options frameworkUpdateOptions) (*ketchv1.Framework, error) {

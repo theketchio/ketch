@@ -106,7 +106,6 @@ func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, 
 			return ErrClusterIssuerNotFound
 		}
 	}
-	fmt.Println(framework.Spec.Version)
 
 	if err := cfg.Client().Create(ctx, framework); err != nil {
 		return fmt.Errorf("failed to create framework: %w", err)
@@ -116,7 +115,7 @@ func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, 
 }
 
 // newFrameworkFromYaml imports a Framework definition from a yaml file specified in options.name.
-// It asserts that the framework has a name. It assigns a ketch-prefixed namespaceName, version,
+// It asserts that the framework has a name. It assigns a ketch-prefixed namespaceName, version, appQuotaLimit,
 // ingressController className, and ingressController type (defaulting to traefik) if values are not specified.
 func newFrameworkFromYaml(options frameworkAddOptions) (*ketchv1.Framework, error) {
 	f, err := os.Open(options.name)

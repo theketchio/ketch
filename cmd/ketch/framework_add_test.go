@@ -8,18 +8,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/shipa-corp/ketch/internal/testutils"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/mocks"
+	"github.com/shipa-corp/ketch/internal/testutils"
 )
 
 func Test_addFramework(t *testing.T) {
@@ -342,15 +340,14 @@ ingressController:
 			err: errors.New("a framework name is required"),
 		},
 		{
-			name: "success - default version, namespace, and ingress",
+			name: "success - default version, namespace, appQuotaLimit, and ingress",
 			options: frameworkAddOptions{
 				name: file.Name(),
 			},
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
-				_, err = file.WriteString(`name: hello
-appQuotaLimit: 5`)
+				_, err = file.WriteString(`name: hello`)
 				if err != nil {
 					panic(err)
 				}
@@ -363,7 +360,7 @@ appQuotaLimit: 5`)
 					Version:       "v1",
 					Name:          "hello",
 					NamespaceName: "ketch-hello",
-					AppQuotaLimit: testutils.IntPtr(5),
+					AppQuotaLimit: testutils.IntPtr(-1),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: "traefik",
 						ClassName:   "traefik",

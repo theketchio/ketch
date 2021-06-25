@@ -75,7 +75,7 @@ EOF
   [[ $result =~ "Successfully updated!" ]]
 }
 
-@test "framework update with yaml ile" {
+@test "framework update with yaml file" {
   cat << EOF > framework.yaml
 name: "$FRAMEWORK-2"
 app-quota-limit: 2

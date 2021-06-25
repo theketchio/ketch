@@ -383,7 +383,7 @@ ingressController:
 			},
 		},
 		{
-			name: "success - default version, namespace, and ingress",
+			name: "success - default version, namespace, appQuotaLimit, and ingress",
 			options: frameworkUpdateOptions{
 				name: file.Name(),
 			},
@@ -393,8 +393,7 @@ ingressController:
 			before: func() {
 				file.Truncate(0)
 				file.Seek(0, 0)
-				_, err := file.WriteString(`name: frontend-framework
-appQuotaLimit: 5`)
+				_, err := file.WriteString(`name: frontend-framework`)
 				if err != nil {
 					panic(err)
 				}
@@ -411,7 +410,7 @@ appQuotaLimit: 5`)
 					Version:       "v1",
 					Name:          "frontend-framework",
 					NamespaceName: "ketch-frontend-framework",
-					AppQuotaLimit: testutils.IntPtr(5),
+					AppQuotaLimit: testutils.IntPtr(-1),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: "traefik",
 						ClassName:   "traefik",
