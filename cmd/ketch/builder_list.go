@@ -1,13 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"io"
-	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 )
 
 const builderListHelp = `
@@ -53,22 +52,9 @@ func newBuilderListCmd(ketchConfig configuration.KetchConfig, out io.Writer) *co
 		Short: "list builders",
 		Long:  builderListHelp,
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			writeBuilders(ketchConfig, out)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return output.Write(append(builderList, ketchConfig.AdditionalBuilders...), out, "column")
 		},
 	}
 	return cmd
-}
-
-func writeBuilders(ketchConfig configuration.KetchConfig, out io.Writer) {
-	tw := tabwriter.NewWriter(out, 10, 10, 5, ' ', 0)
-
-	builderList = append(builderList, ketchConfig.AdditionalBuilders...)
-
-	fmt.Fprintln(tw, "VENDOR\tIMAGE\tDESCRIPTION")
-	for _, builder := range builderList {
-		fmt.Fprintf(tw, "%s:\t%s\t%s\t\n", builder.Vendor, builder.Image, builder.Description)
-	}
-
-	tw.Flush()
 }
