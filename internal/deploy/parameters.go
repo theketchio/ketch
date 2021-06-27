@@ -43,6 +43,7 @@ const (
 	FlagFrameworkShort   = "k"
 
 	defaultYamlFile = "ketch.yaml"
+	defaultProcFile = "Procfile"
 )
 
 var (
@@ -173,9 +174,21 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 
 func (c *ChangeSet) getProcfileName() (string, error) {
 	if c.procfileFileName == nil {
-		return "", newMissingError(FlagProcFile)
+		sourcePath, err := c.getSourceDirectory()
+		if !isMissing(err) && isValid(err) {
+			procFilePath := path.Join(sourcePath, defaultProcFile)
+			return procFilePath, nil
+		}
+	} else {
+		givenProcfile := *c.procfileFileName
+		stat, err := os.Stat(givenProcfile)
+		if err == nil && !stat.IsDir() {
+			return givenProcfile, nil
+		} else {
+			return "", newInvalidError("--procfile")
+		}
 	}
-	return *c.procfileFileName, nil
+	return "", newMissingError("no procfile found")
 }
 
 func (c *ChangeSet) getDescription() (string, error) {
