@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -261,10 +262,16 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	return nil
 }
 
-func makeProcfile(cfg *registryv1.ConfigFile, procFileName string) (*chart.Procfile, error) {
-	if procFileName != "" {
-		// validating of path handled by validateSourceDeploy function
-		return chart.NewProcfile(procFileName)
+func makeProcfile(cfg *registryv1.ConfigFile, params *ChangeSet) (*chart.Procfile, error) {
+	procFileName, err := params.getProcfileName()
+	if !isMissing(err) {
+		stat, err := os.Stat(procFileName)
+		if err == nil && !stat.IsDir() {
+			return chart.NewProcfile(procFileName)
+		}
+	}
+	if !isValid(err) {
+		return nil, err
 	}
 
 	// no procfile (not building from source)
