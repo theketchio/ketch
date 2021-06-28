@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"testing"
@@ -826,6 +827,7 @@ func TestNewCommand(t *testing.T) {
 			validate: func(t *testing.T, m deploy.Client) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
+				log.Printf("%+v", mock.app.Spec.Deployments)
 				require.Nil(t, mock.app.Spec.Deployments[0].Processes[0].Units)
 				require.Equal(t, *mock.app.Spec.Deployments[0].Processes[1].Units, 4)
 				require.Equal(t, mock.app.Spec.Framework, "initialframework")
