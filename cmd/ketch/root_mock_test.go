@@ -10,7 +10,7 @@ import (
 
 /*
  Test fixtures for resource interfaces, these are used to mock out interactions with the cluster.  Provide your
- own implementation of f for tests. See platform_add_test.go for an example of usage.
+ own implementation of f for tests.
 */
 
 type resourceCreatorMock struct {
