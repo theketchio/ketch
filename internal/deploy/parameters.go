@@ -198,7 +198,7 @@ func (c *ChangeSet) getProcfileName() (string, error) {
 		if err == nil && !stat.IsDir() {
 			return givenProcfile, nil
 		} else {
-			return "", newInvalidError("--procfile")
+			return "", newInvalidError(FlagProcFile)
 		}
 	}
 	return "", newMissingError("no procfile found")
