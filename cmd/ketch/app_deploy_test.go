@@ -526,7 +526,6 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--platform", "go",
 				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 			},
@@ -621,7 +620,6 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--platform", "go",
 				"--framework", "myframework",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,bobbdobbs",

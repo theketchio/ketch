@@ -103,7 +103,6 @@ type ChangeSet struct {
 	wait                 *bool
 	timeout              *string
 	subPaths             *[]string
-	platform             *string
 	description          *string
 	envs                 *[]string
 	framework            *string
