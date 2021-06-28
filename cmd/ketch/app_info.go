@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"io"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/utils"
 )
@@ -45,18 +46,27 @@ Environment variables:
 {{- else }}
 No environment variables.
 {{- end }}
-{{ if .NoProcesses }}
-No processes.
-{{ else }}
-{{ .Table }}
-{{- end }}`
+`
 )
 
 type appInfoContext struct {
-	App         ketchv1.App
-	Cnames      []string
-	NoProcesses bool
-	Table       string
+	App         ketchv1.App `json:"app" yaml:"app"`
+	Cnames      []string    `json:"cnames" yaml:"cnames"`
+	NoProcesses bool        `json:"noProcesses" yaml:"noProcesses"`
+}
+
+type appInfoOutput struct {
+	AppInfoContext appInfoContext     `json:"appInfoContext" yaml:"appInfoContext"`
+	Deployments    []deploymentOutput `json:"deployments" yaml:"deployments"`
+}
+
+type deploymentOutput struct {
+	DeploymentVersion string `json:"deploymentVersion" yaml:"deploymentVersion"`
+	Image             string `json:"image" yaml:"image"`
+	ProcessName       string `json:"processName" yaml:"processName"`
+	Weight            string `json:"weight" yaml:"weight"`
+	State             string `json:"state" yaml:"state"`
+	Cmd               string `json:"cmd" yaml:"cmd"`
 }
 
 const appInfoHelp = `
@@ -92,46 +102,51 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 		return fmt.Errorf("failed to get framework: %w", err)
 	}
 
-	buf := bytes.Buffer{}
-	t := template.Must(template.New("app-info").Parse(appInfoTemplate))
-	table := &bytes.Buffer{}
-	w := tabwriter.NewWriter(table, 0, 4, 4, ' ', 0)
 	appPods, err := cfg.KubernetesClient().CoreV1().Pods(app.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf(`%s=%s`, utils.KetchAppNameLabel, app.Name),
 	})
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(w, "DEPLOYMENT VERSION\tIMAGE\tPROCESS NAME\tWEIGHT\tSTATE\tCMD")
+
+	data := generateAppInfoOutput(app, appPods, framework)
+
+	buf := bytes.Buffer{}
+	t := template.Must(template.New("app-info").Parse(appInfoTemplate))
+	if err := t.Execute(&buf, data.AppInfoContext); err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "%v", buf.String())
+	return output.Write(data.Deployments, out, "column")
+
+}
+
+func generateAppInfoOutput(app ketchv1.App, appPods *v1.PodList, framework *ketchv1.Framework) appInfoOutput {
 	noProcesses := true
+	var deployments []deploymentOutput
 	for _, deployment := range app.Spec.Deployments {
 		for _, process := range deployment.Processes {
 			noProcesses = false
 			state := appState(filterProcessDeploymentPods(appPods.Items, deployment.Version.String(), process.Name))
-
-			line := []string{
-				deployment.Version.String(),
-				deployment.Image,
-				process.Name,
-				fmt.Sprintf("%v%%", deployment.RoutingSettings.Weight),
-				state,
-				strings.Join(process.Cmd, " "),
-			}
-			fmt.Fprintln(w, strings.Join(line, "\t"))
+			deployments = append(deployments, deploymentOutput{
+				DeploymentVersion: deployment.Version.String(),
+				Image:             deployment.Image,
+				ProcessName:       process.Name,
+				Weight:            fmt.Sprintf("%v%%", deployment.RoutingSettings.Weight),
+				State:             state,
+				Cmd:               strings.Join(process.Cmd, " "),
+			})
 		}
 	}
-	w.Flush()
 	infoContext := appInfoContext{
 		App:         app,
 		Cnames:      app.CNames(framework),
-		Table:       table.String(),
 		NoProcesses: noProcesses,
 	}
-	if err := t.Execute(&buf, infoContext); err != nil {
-		return err
+
+	return appInfoOutput{
+		infoContext, deployments,
 	}
-	fmt.Fprintf(out, "%v", buf.String())
-	return nil
 }
 
 func filterProcessDeploymentPods(appPods []corev1.Pod, version, process string) []corev1.Pod {

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -219,8 +220,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	if err != nil {
 		return err
 	}
-	_, err = params.getProcfileName()
-	procFileProvided := !isMissing(err)
+	procFileProvided := params.procfileFileName != nil
 
 	var updateRequest updateAppCRDRequest
 	updateRequest.image = image
@@ -263,7 +263,13 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 func makeProcfile(cfg *registryv1.ConfigFile, params *ChangeSet) (*chart.Procfile, error) {
 	procFileName, err := params.getProcfileName()
 	if !isMissing(err) {
-		return chart.NewProcfile(procFileName)
+		stat, err := os.Stat(procFileName)
+		if err == nil && !stat.IsDir() {
+			return chart.NewProcfile(procFileName)
+		}
+	}
+	if !isValid(err) {
+		return nil, err
 	}
 
 	cmds := append(cfg.Config.Entrypoint, cfg.Config.Cmd...)
