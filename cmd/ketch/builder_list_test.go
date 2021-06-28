@@ -94,8 +94,8 @@ func TestBuilderList_Names(t *testing.T) {
 				{Image: "img2"},
 				{Image: "img3"},
 			},
-			filter: nil,
-			want:   []string{"img1", "img2", "img3"},
+			filter: []string{"img1", "img2"},
+			want:   []string{"img1", "img2"},
 		},
 		{
 			name: "empty, all filtered",
@@ -104,8 +104,8 @@ func TestBuilderList_Names(t *testing.T) {
 				{Image: "img2"},
 				{Image: "img3"},
 			},
-			filter: []string{"img1", "img2"},
-			want:   []string{"img1", "img2"},
+			filter: []string{"img4"},
+			want:   []string{},
 		},
 	}
 	for _, tt := range tests {
