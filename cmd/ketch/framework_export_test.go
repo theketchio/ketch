@@ -17,6 +17,7 @@ import (
 
 func TestExportFramework(t *testing.T) {
 	mockFramework := &ketchv1.Framework{ObjectMeta: metav1.ObjectMeta{Name: "myframework"}, Spec: ketchv1.FrameworkSpec{
+		Version:       "v1",
 		NamespaceName: "ketch-myframework",
 		Name:          "myframework",
 		AppQuotaLimit: 1,
@@ -42,7 +43,8 @@ func TestExportFramework(t *testing.T) {
 				DynamicClientObjects: []runtime.Object{},
 			},
 			options: frameworkExportOptions{filename: "test-framework.yaml", frameworkName: "myframework"},
-			expected: `name: myframework
+			expected: `version: v1
+name: myframework
 namespace: ketch-myframework
 appQuotaLimit: 1
 ingressController:

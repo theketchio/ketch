@@ -53,7 +53,8 @@ type FrameworkList struct {
 
 // FrameworkSpec defines the desired state of Framework
 type FrameworkSpec struct {
-	Name string `json:"-" yaml:"name"`
+	Version string `json:"-" yaml:"version"`
+	Name    string `json:"-" yaml:"name"`
 	// +kubebuilder:validation:MinLength=1
 	NamespaceName string `json:"namespace" yaml:"namespace"`
 
