@@ -74,6 +74,8 @@ spec:
             namespace:
               minLength: 1
               type: string
+            version:
+              type: string
           required:
           - appQuotaLimit
           - namespace
