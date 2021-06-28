@@ -56,7 +56,7 @@ setup() {
   result=$(cat framework.yaml)
   echo "RECEIVED:" $result
   [[ $result =~ "name: $FRAMEWORK" ]]
-  [[ $result =~ "namespaceName: ketch-$FRAMEWORK" ]]
+  [[ $result =~ "namespace: ketch-$FRAMEWORK" ]]
   [[ $result =~ "appQuotaLimit: 1" ]]
   rm -f framework.yaml
 }

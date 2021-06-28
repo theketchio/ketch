@@ -55,7 +55,7 @@ type FrameworkList struct {
 type FrameworkSpec struct {
 	Name string `json:"-" yaml:"name"`
 	// +kubebuilder:validation:MinLength=1
-	NamespaceName string `json:"namespace" yaml:"namespaceName"`
+	NamespaceName string `json:"namespace" yaml:"namespace"`
 
 	AppQuotaLimit int `json:"appQuotaLimit" yaml:"appQuotaLimit"`
 

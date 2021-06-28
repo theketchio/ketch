@@ -43,7 +43,7 @@ func TestExportFramework(t *testing.T) {
 			},
 			options: frameworkExportOptions{filename: "test-framework.yaml", frameworkName: "myframework"},
 			expected: `name: myframework
-namespaceName: ketch-myframework
+namespace: ketch-myframework
 appQuotaLimit: 1
 ingressController:
     className: traefik
