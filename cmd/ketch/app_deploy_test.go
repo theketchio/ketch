@@ -551,6 +551,41 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 		{
+			name:      "procfile flag with source specified",
+			wantError: true,
+			arguments: []string{
+				"myapp",
+				"src",
+				"--framework", "myframework",
+				"--image", "shipa/go-sample:latest",
+				"--procfile", "./Procfile",
+			},
+			setup: func(t *testing.T) {
+				dir := t.TempDir()
+				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
+				require.Nil(t, os.Chdir(dir))
+			},
+			validate: func(t *testing.T, m deploy.Client) {
+				mock, ok := m.(*mockClient)
+				require.True(t, ok)
+				require.Equal(t, "myframework", mock.app.Spec.Framework)
+			},
+			params: &deploy.Services{
+				Client: func() *mockClient {
+					m := newMockClient()
+					m.get[1] = func(_ *mockClient, _ runtime.Object) error {
+						return errors.NewNotFound(v1.Resource(""), "")
+					}
+					return m
+				}(),
+				KubeClient:     fake.NewSimpleClientset(),
+				Builder:        build.GetSourceHandler(&packMocker{}),
+				GetImageConfig: getImageConfig,
+				Wait:           nil,
+				Writer:         &bytes.Buffer{},
+			},
+		},
+		{
 			name: "with environment variables",
 			arguments: []string{
 				"myapp",
