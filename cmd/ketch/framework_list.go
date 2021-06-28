@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/spf13/cobra"
 )
 
 const frameworkListHelp = `
