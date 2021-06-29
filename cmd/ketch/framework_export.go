@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/yaml"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
@@ -54,5 +54,11 @@ func exportFramework(ctx context.Context, cfg config, options frameworkExportOpt
 	if err != nil {
 		return err
 	}
-	return yaml.NewEncoder(f).Encode(framework.Spec)
+	defer f.Close()
+	b, err := yaml.Marshal(framework.Spec)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(b)
+	return err
 }

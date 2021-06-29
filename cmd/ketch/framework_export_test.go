@@ -5,14 +5,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-
-	"github.com/stretchr/testify/require"
-
 	"github.com/shipa-corp/ketch/internal/mocks"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestExportFramework(t *testing.T) {
@@ -43,15 +41,15 @@ func TestExportFramework(t *testing.T) {
 				DynamicClientObjects: []runtime.Object{},
 			},
 			options: frameworkExportOptions{filename: "test-framework.yaml", frameworkName: "myframework"},
-			expected: `version: v1
+			expected: `appQuotaLimit: 1
+ingressController:
+  className: traefik
+  clusterIssuer: letsencrypt
+  serviceEndpoint: 10.10.20.30
+  type: traefik
 name: myframework
 namespace: ketch-myframework
-appQuotaLimit: 1
-ingressController:
-    className: traefik
-    serviceEndpoint: 10.10.20.30
-    type: traefik
-    clusterIssuer: letsencrypt
+version: v1
 `,
 		},
 		{

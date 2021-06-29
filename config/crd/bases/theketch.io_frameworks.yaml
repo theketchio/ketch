@@ -71,6 +71,8 @@ spec:
               required:
               - type
               type: object
+            name:
+              type: string
             namespace:
               minLength: 1
               type: string
@@ -78,6 +80,7 @@ spec:
               type: string
           required:
           - appQuotaLimit
+          - name
           - namespace
           type: object
         status:
