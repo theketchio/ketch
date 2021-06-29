@@ -30,6 +30,9 @@ func newFrameworkRemoveCmd(cfg config, out io.Writer) *cobra.Command {
 			options.Name = args[0]
 			return frameworkRemove(cmd.Context(), cfg, options, out)
 		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return autoCompleteFrameworkNames(cfg, toComplete)
+		},
 	}
 	return cmd
 }

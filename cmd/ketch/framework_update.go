@@ -37,6 +37,9 @@ func newFrameworkUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 			options.ingressClusterIssuerSet = cmd.Flags().Changed("cluster-issuer")
 			return frameworkUpdate(cmd.Context(), cfg, options, out)
 		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return autoCompleteFrameworkNames(cfg, toComplete)
+		},
 	}
 	cmd.Flags().StringVar(&options.namespace, "namespace", "", "Kubernetes namespace for this framework")
 	cmd.Flags().IntVar(&options.appQuotaLimit, "app-quota-limit", 0, "Quota limit for app when adding it to this framework")
@@ -44,6 +47,9 @@ func newFrameworkUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
 	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
 	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik or istio")
+	cmd.RegisterFlagCompletionFunc("ingress-type", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{defaultIstioIngressClassName, defaultTraefikIngressClassName}, cobra.ShellCompDirectiveDefault
+	})
 	return cmd
 }
 

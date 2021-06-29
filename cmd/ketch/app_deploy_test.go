@@ -623,7 +623,7 @@ func TestNewCommand(t *testing.T) {
 			if tc.setup != nil {
 				tc.setup(t)
 			}
-			cmd := newAppDeployCmd(tc.params, tc.userDefault)
+			cmd := newAppDeployCmd(nil, tc.params, tc.userDefault)
 			cmd.SetArgs(tc.arguments)
 			err = cmd.Execute()
 			if tc.wantError {

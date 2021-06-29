@@ -110,3 +110,24 @@ func filterAppPods(appName string, pods []corev1.Pod) []corev1.Pod {
 	}
 	return appPods
 }
+
+func appListNames(cfg config, nameFilter ...string) ([]string, error) {
+	apps := ketchv1.AppList{}
+	if err := cfg.Client().List(context.TODO(), &apps); err != nil {
+		return nil, fmt.Errorf("failed to list apps: %w", err)
+	}
+
+	appNames := make([]string, 0)
+	for _, a := range apps.Items {
+		if len(nameFilter) == 0 {
+			appNames = append(appNames, a.Name)
+		}
+
+		for _, filter := range nameFilter {
+			if strings.Contains(a.Name, filter) {
+				appNames = append(appNames, a.Name)
+			}
+		}
+	}
+	return appNames, nil
+}

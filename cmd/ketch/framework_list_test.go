@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/shipa-corp/ketch/internal/testutils"
@@ -75,6 +76,82 @@ framework-b              b            traefik         classname-b           lets
 			}
 			if gotOut := out.String(); gotOut != tt.wantOut {
 				t.Errorf("frameworkList() gotOut = \n%v\n, want \n%v\n", gotOut, tt.wantOut)
+			}
+		})
+	}
+}
+
+func Test_frameworkListNames(t *testing.T) {
+	frameworkA := &ketchv1.Framework{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "framework-a",
+		},
+	}
+	frameworkB := &ketchv1.Framework{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "framework-b",
+		},
+	}
+	tests := []struct {
+		name string
+		cfg  config
+
+		filter  []string
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "no filter show all",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{frameworkA, frameworkB},
+			},
+
+			filter:  []string{},
+			want:    []string{"framework-a", "framework-b"},
+			wantErr: false,
+		},
+		{
+			name: "filtered, show framework-a only",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{frameworkA, frameworkB},
+			},
+
+			filter:  []string{"-a"},
+			want:    []string{"framework-a"},
+			wantErr: false,
+		},
+		{
+			name: "no result, random filter",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{frameworkA, frameworkB},
+			},
+
+			filter:  []string{"foo"},
+			want:    []string{},
+			wantErr: false,
+		},
+		{
+			name: "filtered, random filter and framework-a filter",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{frameworkA, frameworkB},
+			},
+
+			filter:  []string{"foo", "-a"},
+			want:    []string{"framework-a"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			names, err := frameworkListNames(tt.cfg, tt.filter...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("frameworkListNames() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(names, tt.want) {
+				t.Errorf("frameworkListNames() got = \n%v\n, want \n%v\n", names, tt.want)
 			}
 		})
 	}

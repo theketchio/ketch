@@ -26,7 +26,7 @@ Deploy from an image:
 )
 
 // NewCommand creates a command that will run the app deploy
-func newAppDeployCmd(params *deploy.Services, configDefaultBuilder string) *cobra.Command {
+func newAppDeployCmd(cfg config, params *deploy.Services, configDefaultBuilder string) *cobra.Command {
 	var options deploy.Options
 
 	cmd := &cobra.Command{
@@ -43,6 +43,9 @@ func newAppDeployCmd(params *deploy.Services, configDefaultBuilder string) *cobr
 				deploy.DefaultBuilder = configDefaultBuilder
 			}
 			return deploy.New(options.GetChangeSet(cmd.Flags())).Run(cmd.Context(), params)
+		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return autoCompleteAppNames(cfg, toComplete)
 		},
 	}
 
@@ -63,5 +66,11 @@ func newAppDeployCmd(params *deploy.Services, configDefaultBuilder string) *cobr
 	cmd.Flags().StringVar(&options.Builder, deploy.FlagBuilder, "", "Builder to use when building from source.")
 	cmd.Flags().StringSliceVar(&options.BuildPacks, deploy.FlagBuildPacks, nil, "A list of build packs")
 
+	cmd.RegisterFlagCompletionFunc(deploy.FlagFramework, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return autoCompleteFrameworkNames(cfg, toComplete)
+	})
+	cmd.RegisterFlagCompletionFunc(deploy.FlagBuilder, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return autoCompleteBuilderNames(cfg, toComplete)
+	})
 	return cmd
 }

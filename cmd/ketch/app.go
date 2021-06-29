@@ -33,7 +33,7 @@ func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client, configDefaultBui
 		Writer:         out,
 	}
 
-	cmd.AddCommand(newAppDeployCmd(params, configDefaultBuilder))
+	cmd.AddCommand(newAppDeployCmd(cfg, params, configDefaultBuilder))
 	cmd.AddCommand(newAppListCmd(cfg, out))
 	cmd.AddCommand(newAppLogCmd(cfg, out, appLog))
 	cmd.AddCommand(newAppRemoveCmd(cfg, out, appRemove))

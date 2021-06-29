@@ -29,6 +29,9 @@ func newAppExportCmd(cfg config, out io.Writer, appExport appExportFn) *cobra.Co
 			options.appName = args[0]
 			return appExport(cmd.Context(), cfg, chart.New, options, out)
 		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return autoCompleteAppNames(cfg, toComplete)
+		},
 	}
 	cmd.Flags().StringVarP(&options.directory, "directory", "d", "", "The directory with the templates")
 	cmd.MarkFlagRequired("directory")
