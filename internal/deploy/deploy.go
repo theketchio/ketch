@@ -5,6 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -210,10 +211,11 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 		return err
 	}
 
-	procfile, err := makeProcfile(imgConfig, params)
+	procfile, err := makeProcfile(imgConfig, params, true)
 	if err != nil {
 		return err
 	}
+	log.Printf("from source %+v", procfile)
 
 	var updateRequest updateAppCRDRequest
 
@@ -267,10 +269,11 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 		return err
 	}
 
-	procfile, err := makeProcfile(imgConfig, params)
+	procfile, err := makeProcfile(imgConfig, params, false)
 	if err != nil {
 		return err
 	}
+	log.Printf("not source %+v", procfile)
 
 	var updateRequest updateAppCRDRequest
 	updateRequest.image = image
@@ -299,18 +302,26 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	return nil
 }
 
-func makeProcfile(cfg *registryv1.ConfigFile, params *ChangeSet) (*chart.Procfile, error) {
+func makeProcfile(cfg *registryv1.ConfigFile, params *ChangeSet, deploymentFromSource bool) (*chart.Procfile, error) {
 	procFileName, err := params.getProcfileName()
 	if !isMissing(err) {
 		stat, err := os.Stat(procFileName)
 		if err == nil && !stat.IsDir() {
-			return chart.NewProcfile(procFileName)
+			return chart.NewProcfile(procFileName, deploymentFromSource)
 		}
 	}
 	if !isValid(err) {
 		return nil, err
 	}
-
+	// no procfile
+	if deploymentFromSource {
+		return &chart.Procfile{
+			Processes: map[string][]string{
+				chart.DefaultRoutableProcessName: []string{chart.DefaultRoutableProcessName},
+			},
+			RoutableProcessName: chart.DefaultRoutableProcessName,
+		}, nil
+	}
 	cmds := append(cfg.Config.Entrypoint, cfg.Config.Cmd...)
 	if len(cmds) == 0 {
 		return nil, fmt.Errorf("can't use image, no entrypoint or commands")
