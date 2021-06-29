@@ -31,6 +31,9 @@ func newAppRemoveCmd(cfg config, out io.Writer, appRemove appRemoveFn) *cobra.Co
 			}
 			return appRemove(cmd.Context(), cfg, appName, out)
 		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return autoCompleteAppNames(cfg, toComplete)
+		},
 	}
 	return cmd
 }

@@ -22,6 +22,7 @@ import (
 
 // Command line flags
 const (
+	FlagApp            = "app"
 	FlagImage          = "image"
 	FlagKetchYaml      = "ketch-yaml"
 	FlagProcFile       = "procfile"
@@ -37,6 +38,7 @@ const (
 	FlagBuilder        = "builder"
 	FlagBuildPacks     = "build-packs"
 
+	FlagAppShort         = "a"
 	FlagImageShort       = "i"
 	FlagDescriptionShort = "d"
 	FlagEnvironmentShort = "e"

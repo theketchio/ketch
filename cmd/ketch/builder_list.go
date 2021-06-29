@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -13,7 +14,24 @@ const builderListHelp = `
 List CNCF registered builders, along with any additional builders defined by the user in config.toml (default path: $HOME/.ketch)
 `
 
-var builderList = []configuration.AdditionalBuilder{
+type BuilderList []configuration.AdditionalBuilder
+
+func (b BuilderList) Names(filter ...string) []string {
+	builderNames := make([]string, 0)
+	for _, b := range b {
+		if len(filter) == 0 {
+			builderNames = append(builderNames, b.Image)
+		}
+		for _, f := range filter {
+			if strings.Contains(f, b.Image) {
+				builderNames = append(builderNames, b.Image)
+			}
+		}
+	}
+	return builderNames
+}
+
+var builderList = BuilderList{
 	{
 		Vendor:      "Google",
 		Image:       "gcr.io/buildpacks/builder:v1",
