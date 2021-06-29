@@ -84,10 +84,10 @@ const (
 
 // IngressControllerSpec contains configuration for an ingress controller.
 type IngressControllerSpec struct {
-	ClassName       string                `json:"className,omitempty" yaml:"className,omitempty"`
-	ServiceEndpoint string                `json:"serviceEndpoint,omitempty" yaml:"serviceEndpoint,omitempty"`
-	IngressType     IngressControllerType `json:"type" yaml:"type"`
-	ClusterIssuer   string                `json:"clusterIssuer,omitempty" yaml:"clusterIssuer,omitempty"`
+	ClassName       string                `json:"className,omitempty"`
+	ServiceEndpoint string                `json:"serviceEndpoint,omitempty"`
+	IngressType     IngressControllerType `json:"type"`
+	ClusterIssuer   string                `json:"clusterIssuer,omitempty"`
 }
 
 // FrameworkStatus defines the observed state of Framework
