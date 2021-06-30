@@ -186,6 +186,7 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
+	sourceProcFilePath := path.Join(sourcePath, defaultProcFile)
 
 	if err := svc.Builder(
 		ctx,
@@ -211,8 +212,7 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 		return err
 	}
 
-	sourceProcFilePath := path.Join(sourcePath, defaultProcFile)
-	procfile, err := makeProcfile(imgConfig, sourceProcFilePath)
+	procfile, err := makeProcfile(nil, sourceProcFilePath)
 	if err != nil {
 		return err
 	}

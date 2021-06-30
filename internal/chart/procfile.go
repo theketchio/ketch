@@ -3,7 +3,6 @@ package chart
 import (
 	"errors"
 	"io/ioutil"
-	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -25,7 +24,6 @@ type Procfile struct {
 
 // NewProcfile creates a Procfile from a file.
 func NewProcfile(fileName string) (*Procfile, error) {
-	log.Println("creating new procfile")
 	content, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err

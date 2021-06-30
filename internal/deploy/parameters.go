@@ -164,16 +164,6 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 	return &cs
 }
 
-/*func (c *ChangeSet) getSourceProcfilePath() (string, error) {
-	sourcePath, err := c.getSourceDirectory()
-	if !isMissing(err) && isValid(err) {
-		procFilePath := path.Join(sourcePath, defaultProcFile)
-		stat, err
-		return procFilePath, nil
-	}
-	return "", newMissingError("no procfile found")
-}*/
-
 func (c *ChangeSet) getDescription() (string, error) {
 	if c.description == nil {
 		return "", newMissingError(FlagDescription)
