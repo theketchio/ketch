@@ -48,7 +48,6 @@ func (p *Procfile) SortedNames() []string {
 
 // ParseProcfile parses the content of Procfile and returns a Procfile instance.
 func ParseProcfile(content string, deploymentFromSource bool) (*Procfile, error) {
-	log.Println("parsing procfile")
 	procfile := strings.Split(content, "\n")
 	processes := make(map[string][]string, len(procfile))
 	var names []string

@@ -14,13 +14,11 @@ Deploy from source code. <source> is path to source code. The image in this case
 and will be built using the selected source code and builder and will be used to deploy the app.
   ketch app deploy <app name> <source> -i myregistry/myimage:latest
 
-  Ketch looks for Procfile and ketch.yaml inside the source directory by default
-  but you can provide a custom path with --procfile or --ketch-yaml.
+  Ketch looks for ketch.yaml inside the source directory by default
+  but you can provide a custom path with --ketch-yaml.
 
 Deploy from an image:
   ketch app deploy <app name> -i myregistry/myimage:latest
-
-  Ketch uses the image's cmd and entrypoint but you can redefine what exactly to run with --procfile.
 
 `
 )
@@ -49,7 +47,6 @@ func newAppDeployCmd(params *deploy.Services, configDefaultBuilder string) *cobr
 	cmd.Flags().StringVarP(&options.Image, deploy.FlagImage, deploy.FlagImageShort, "", "Name of the image to be deployed.")
 	cmd.Flags().StringVar(&options.KetchYamlFileName, deploy.FlagKetchYaml, "", "Path to ketch.yaml.")
 
-	cmd.Flags().StringVar(&options.ProcfileFileName, deploy.FlagProcFile, "", "Path to procfile.")
 	cmd.Flags().BoolVar(&options.StrictKetchYamlDecoding, deploy.FlagStrict, false, "Enforces strict decoding of ketch.yaml.")
 	cmd.Flags().IntVar(&options.Steps, deploy.FlagSteps, 0, "Number of steps for a canary deployment.")
 	cmd.Flags().StringVar(&options.StepTimeInterval, deploy.FlagStepInterval, "", "Time interval between canary deployment steps. Supported min: m, hour:h, second:s. ex. 1m, 60s, 1h.")

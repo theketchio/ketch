@@ -215,7 +215,6 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 	if err != nil {
 		return err
 	}
-	log.Printf("from source %+v", procfile)
 
 	var updateRequest updateAppCRDRequest
 
@@ -273,7 +272,6 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	if err != nil {
 		return err
 	}
-	log.Printf("not source %+v", procfile)
 
 	var updateRequest updateAppCRDRequest
 	updateRequest.image = image
@@ -314,6 +312,7 @@ func makeProcfile(cfg *registryv1.ConfigFile, params *ChangeSet, deploymentFromS
 		return nil, err
 	}
 	// no procfile
+	log.Println("No procfile specified")
 	if deploymentFromSource {
 		return &chart.Procfile{
 			Processes: map[string][]string{
