@@ -24,13 +24,13 @@ type Procfile struct {
 }
 
 // NewProcfile creates a Procfile from a file.
-func NewProcfile(fileName string, deploymentFromSource bool) (*Procfile, error) {
+func NewProcfile(fileName string) (*Procfile, error) {
 	log.Println("creating new procfile")
 	content, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-	return ParseProcfile(string(content), deploymentFromSource)
+	return ParseProcfile(string(content))
 }
 
 func (p *Procfile) IsRoutable(processName string) bool {
@@ -47,19 +47,14 @@ func (p *Procfile) SortedNames() []string {
 }
 
 // ParseProcfile parses the content of Procfile and returns a Procfile instance.
-func ParseProcfile(content string, deploymentFromSource bool) (*Procfile, error) {
+func ParseProcfile(content string) (*Procfile, error) {
 	procfile := strings.Split(content, "\n")
 	processes := make(map[string][]string, len(procfile))
 	var names []string
 	for _, process := range procfile {
 		if p := procfileRegex.FindStringSubmatch(process); p != nil {
 			name := p[1]
-			cmd := p[2]
-			processes[name] = []string{strings.TrimSpace(cmd)}
-			if deploymentFromSource {
-				// TODO: a comment why we need this
-				processes[name] = []string{strings.TrimSpace(name)}
-			}
+			processes[name] = []string{strings.TrimSpace(name)}
 			names = append(names, name)
 		}
 	}

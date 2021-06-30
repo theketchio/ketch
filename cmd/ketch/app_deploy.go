@@ -12,6 +12,9 @@ Roll out a new version of an application with an image.
 
 Deploy from source code. <source> is path to source code. The image in this case is required
 and will be built using the selected source code and builder and will be used to deploy the app.
+
+Similarly, the source path's root directory must contain Procfile as specified by pack.
+Details about Procfile conventions can be found here: https://devcenter.heroku.com/articles/procfile
   ketch app deploy <app name> <source> -i myregistry/myimage:latest
 
   Ketch looks for ketch.yaml inside the source directory by default
