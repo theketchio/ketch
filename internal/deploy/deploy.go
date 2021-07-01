@@ -5,7 +5,6 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"log"
 	"path"
 	"time"
 
@@ -171,7 +170,6 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 }
 
 func buildFromSource(ctx context.Context, svc *Services, app *ketchv1.App, appName, image, sourcePath string) error {
-	log.Println("building from source")
 	return svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
@@ -304,7 +302,7 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			return errors.Wrap(err, "could not get app to deploy %q", appName)
 		}
 
-		// previous deployment found with no procFile provided, and not a canary deployment
+		// not building from source, previous deployment found, and not a canary deployment
 		usePrevious := false
 		if !args.fromSource && len(updated.Spec.Deployments) > 0 && args.steps < 2 {
 			usePrevious = true
