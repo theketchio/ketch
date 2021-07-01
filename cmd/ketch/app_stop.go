@@ -28,6 +28,9 @@ func newAppStopCmd(cfg config, out io.Writer, appStop appStopFn) *cobra.Command 
 			options.appName = args[0]
 			return appStop(cmd.Context(), cfg, options, out)
 		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return autoCompleteAppNames(cfg, toComplete)
+		},
 	}
 
 	cmd.Flags().StringVarP(&options.processName, "process", "p", "", "Process name.")

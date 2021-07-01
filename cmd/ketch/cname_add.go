@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/deploy"
 	"github.com/shipa-corp/ketch/internal/validation"
 )
 
@@ -28,8 +29,11 @@ func newCnameAddCmd(cfg config, out io.Writer) *cobra.Command {
 			return cnameAdd(cmd.Context(), cfg, options, out)
 		},
 	}
-	cmd.Flags().StringVarP(&options.appName, "app", "a", "", "The name of the app.")
+	cmd.Flags().StringVarP(&options.appName, deploy.FlagApp, deploy.FlagAppShort, "", "The name of the app.")
 	cmd.MarkFlagRequired("app")
+	cmd.RegisterFlagCompletionFunc(deploy.FlagApp, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return autoCompleteAppNames(cfg, toComplete)
+	})
 	return cmd
 }
 

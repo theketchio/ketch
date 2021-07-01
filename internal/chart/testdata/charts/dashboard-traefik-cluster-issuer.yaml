@@ -79,7 +79,7 @@ spec:
     spec:
       containers:
         - name: dashboard-web-3
-          command: ["web"]
+          command: ["python"]
           env:
             - name: port
               value: "9090"
@@ -125,7 +125,7 @@ spec:
     spec:
       containers:
         - name: dashboard-worker-3
-          command: ["worker"]
+          command: ["celery"]
           env:
             - name: port
               value: "9090"

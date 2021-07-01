@@ -32,6 +32,9 @@ func newAppStartCmd(cfg config, out io.Writer, appStart appStartFn) *cobra.Comma
 			}
 			return appStart(cmd.Context(), cfg, options, out)
 		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return autoCompleteAppNames(cfg, toComplete)
+		},
 	}
 
 	cmd.Flags().StringVarP(&options.processName, "process", "p", "", "Process name.")

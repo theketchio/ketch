@@ -45,6 +45,9 @@ func newAppLogCmd(cfg config, out io.Writer, appLog appLogFn) *cobra.Command {
 			}
 			return appLog(cmd.Context(), cfg, options, out, watchLogs)
 		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return autoCompleteAppNames(cfg, toComplete)
+		},
 	}
 	cmd.Flags().StringVarP(&options.processName, "process", "p", "", "Process name")
 	cmd.Flags().IntVarP(&options.deploymentVersion, "version", "v", 0, "Deployment version")

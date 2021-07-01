@@ -147,9 +147,8 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 		for _, processSpec := range deploymentSpec.Processes {
 			name := processSpec.Name
 			isRoutable := procfile.IsRoutable(name)
-			cmd := []string{name}
 			process, err := newProcess(name, isRoutable,
-				withCmd(cmd),
+				withCmd(c.procfile.Processes[name]),
 				withUnits(processSpec.Units),
 				withPortsAndProbes(c),
 				withLifecycle(c.Lifecycle()),

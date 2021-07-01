@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
+	"path"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -27,6 +27,7 @@ const (
 	defaultTrafficWeight = 100
 	minimumSteps         = 2
 	maximumSteps         = 100
+	defaultProcFile      = "Procfile"
 )
 
 // Client represents go sdk k8s client operations that we need.
@@ -197,12 +198,14 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	image, _ := params.getImage()
 
 	fromSource := params.sourcePath != nil
+	var procFilePath string
 	// build image from source if valid path provided
 	if fromSource {
 		sourcePath, _ := params.getSourceDirectory()
 		if err := buildFromSource(ctx, svc, app, params.appName, image, sourcePath); err != nil {
 			return errors.Wrap(err, "failed to build image from source path %q", sourcePath)
 		}
+		procFilePath = path.Join(sourcePath, defaultProcFile)
 	}
 
 	imageRequest := ImageConfigRequest{
@@ -216,11 +219,10 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 		return err
 	}
 
-	procfile, err := makeProcfile(imgConfig, params)
+	procfile, err := makeProcfile(imgConfig, procFilePath)
 	if err != nil {
 		return err
 	}
-	procFileProvided := params.procfileFileName != nil
 
 	var updateRequest updateAppCRDRequest
 	updateRequest.image = image
@@ -229,7 +231,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	stepWeight, _ := params.getStepWeight()
 	updateRequest.stepWeight = stepWeight
 	updateRequest.procFile = procfile
-	updateRequest.procFileProvided = procFileProvided
+	updateRequest.fromSource = fromSource
 	updateRequest.ketchYaml = ketchYaml
 	updateRequest.configFile = imgConfig
 	interval, _ := params.getStepInterval()
@@ -260,18 +262,13 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	return nil
 }
 
-func makeProcfile(cfg *registryv1.ConfigFile, params *ChangeSet) (*chart.Procfile, error) {
-	procFileName, err := params.getProcfileName()
-	if !isMissing(err) {
-		stat, err := os.Stat(procFileName)
-		if err == nil && !stat.IsDir() {
-			return chart.NewProcfile(procFileName)
-		}
-	}
-	if !isValid(err) {
-		return nil, err
+func makeProcfile(cfg *registryv1.ConfigFile, procFileName string) (*chart.Procfile, error) {
+	if procFileName != "" {
+		// validating of path handled by validateSourceDeploy function
+		return chart.NewProcfile(procFileName)
 	}
 
+	// no procfile (not building from source)
 	cmds := append(cfg.Config.Entrypoint, cfg.Config.Cmd...)
 	if len(cmds) == 0 {
 		return nil, fmt.Errorf("can't use image, no entrypoint or commands")
@@ -289,7 +286,7 @@ type updateAppCRDRequest struct {
 	steps             int
 	stepWeight        uint8
 	procFile          *chart.Procfile
-	procFileProvided  bool
+	fromSource        bool
 	ketchYaml         *ketchv1.KetchYamlData
 	configFile        *registryv1.ConfigFile
 	nextScheduledTime time.Time
@@ -309,7 +306,7 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 
 		// previous deployment found with no procFile provided, and not a canary deployment
 		usePrevious := false
-		if !args.procFileProvided && len(updated.Spec.Deployments) > 0 && args.steps < 2 {
+		if !args.fromSource && len(updated.Spec.Deployments) > 0 && args.steps < 2 {
 			usePrevious = true
 			for i := range updated.Spec.Deployments {
 				// default procfile is based on the imgConfig, so a new image means a new procfile

@@ -22,9 +22,9 @@ import (
 
 // Command line flags
 const (
+	FlagApp            = "app"
 	FlagImage          = "image"
 	FlagKetchYaml      = "ketch-yaml"
-	FlagProcFile       = "procfile"
 	FlagStrict         = "strict"
 	FlagSteps          = "steps"
 	FlagStepInterval   = "step-interval"
@@ -40,13 +40,13 @@ const (
 	FlagVersion        = "unit-version"
 	FlagProcess        = "unit-process"
 
+	FlagAppShort         = "a"
 	FlagImageShort       = "i"
 	FlagDescriptionShort = "d"
 	FlagEnvironmentShort = "e"
 	FlagFrameworkShort   = "k"
 
 	defaultYamlFile = "ketch.yaml"
-	defaultProcFile = "Procfile"
 )
 
 var (
@@ -77,7 +77,6 @@ type Options struct {
 	AppName                 string
 	Image                   string
 	KetchYamlFileName       string
-	ProcfileFileName        string
 	StrictKetchYamlDecoding bool
 	Steps                   int
 	StepTimeInterval        string
@@ -104,13 +103,11 @@ type ChangeSet struct {
 	sourcePath           *string
 	image                *string
 	ketchYamlFileName    *string
-	procfileFileName     *string
 	steps                *int
 	stepTimeInterval     *string
 	wait                 *bool
 	timeout              *string
 	subPaths             *[]string
-	platform             *string
 	description          *string
 	envs                 *[]string
 	framework            *string
@@ -139,9 +136,6 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		},
 		FlagKetchYaml: func(c *ChangeSet) {
 			c.ketchYamlFileName = &o.KetchYamlFileName
-		},
-		FlagProcFile: func(c *ChangeSet) {
-			c.procfileFileName = &o.ProcfileFileName
 		},
 		FlagSteps: func(c *ChangeSet) {
 			c.steps = &o.Steps
@@ -189,25 +183,6 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		}
 	}
 	return &cs
-}
-
-func (c *ChangeSet) getProcfileName() (string, error) {
-	if c.procfileFileName == nil {
-		sourcePath, err := c.getSourceDirectory()
-		if !isMissing(err) && isValid(err) {
-			procFilePath := path.Join(sourcePath, defaultProcFile)
-			return procFilePath, nil
-		}
-	} else {
-		givenProcfile := *c.procfileFileName
-		stat, err := os.Stat(givenProcfile)
-		if err == nil && !stat.IsDir() {
-			return givenProcfile, nil
-		} else {
-			return "", newInvalidValueError(FlagProcFile)
-		}
-	}
-	return "", newMissingError("no procfile found")
 }
 
 func (c *ChangeSet) getDescription() (string, error) {

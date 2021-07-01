@@ -84,6 +84,9 @@ func newAppInfoCmd(cfg config, out io.Writer) *cobra.Command {
 			options.name = args[0]
 			return appInfo(cmd.Context(), cfg, options, out)
 		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return autoCompleteAppNames(cfg, toComplete)
+		},
 	}
 	return cmd
 }
