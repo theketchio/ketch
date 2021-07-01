@@ -5,6 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"path"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -25,6 +26,7 @@ const (
 	defaultTrafficWeight = 100
 	minimumSteps         = 2
 	maximumSteps         = 100
+	defaultProcFile      = "Procfile"
 )
 
 // Client represents go sdk k8s client operations that we need.
@@ -184,6 +186,7 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 
 	image, _ := params.getImage()
 	sourcePath, _ := params.getSourceDirectory()
+	sourceProcFilePath := path.Join(sourcePath, defaultProcFile)
 
 	if err := svc.Builder(
 		ctx,
@@ -209,7 +212,7 @@ func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, para
 		return err
 	}
 
-	procfile, err := makeProcfile(imgConfig, params)
+	procfile, err := makeProcfile(nil, sourceProcFilePath)
 	if err != nil {
 		return err
 	}
@@ -266,7 +269,7 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 		return err
 	}
 
-	procfile, err := makeProcfile(imgConfig, params)
+	procfile, err := makeProcfile(imgConfig, "")
 	if err != nil {
 		return err
 	}
@@ -298,12 +301,13 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	return nil
 }
 
-func makeProcfile(cfg *registryv1.ConfigFile, params *ChangeSet) (*chart.Procfile, error) {
-	procFileName, err := params.getProcfileName()
-	if !isMissing(err) {
+func makeProcfile(cfg *registryv1.ConfigFile, procFileName string) (*chart.Procfile, error) {
+	if procFileName != "" {
+		// validating of path handled by validateSourceDeploy function
 		return chart.NewProcfile(procFileName)
 	}
 
+	// no procfile (not building from source)
 	cmds := append(cfg.Config.Entrypoint, cfg.Config.Cmd...)
 	if len(cmds) == 0 {
 		return nil, fmt.Errorf("can't use image, no entrypoint or commands")
