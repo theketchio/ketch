@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -215,7 +216,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 		return err
 	}
 
-	procfile, err := makeProcfile(imgConfig, "")
+	procfile, err := makeProcfile(imgConfig)
 	if err != nil {
 		return err
 	}
@@ -260,19 +261,13 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	return nil
 }
 
-func makeProcfile(cfg *registryv1.ConfigFile, params *ChangeSet) (*chart.Procfile, error) {
-	procFileName, err := params.getProcfileName()
-	if !isMissing(err) {
-		stat, err := os.Stat(procFileName)
-		if err == nil && !stat.IsDir() {
-			return chart.NewProcfile(procFileName)
-		}
+func makeProcfile(cfg *registryv1.ConfigFile) (*chart.Procfile, error) {
+	if val, ok := cfg.Config.Labels["io.buildpacks.build.metadata"]; ok {
+		// the above label contains an escaped json string of build details
+		unquoted := strings.ReplaceAll(val, "\\", "")
+		return chart.CreateProcfile(unquoted)
 	}
-	if !isValid(err) {
-		return nil, err
-	}
-
-	// no procfile (not building from source)
+	// images not created by pack
 	cmds := append(cfg.Config.Entrypoint, cfg.Config.Cmd...)
 	if len(cmds) == 0 {
 		return nil, fmt.Errorf("can't use image, no entrypoint or commands")

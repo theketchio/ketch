@@ -151,6 +151,7 @@ kubernetes:
 web: python app.py
 worker: python app.py
 `
+	packBuildMetadata string = "{\"bom\":null,\"buildpacks\":[{\"id\":\"heroku/python\",\"version\":\"0.3.1\"},{\"id\":\"heroku/procfile\",\"version\":\"0.6.2\"}],\"launcher\":{\"version\":\"0.11.3\",\"source\":{\"git\":{\"repository\":\"github.com/buildpacks/lifecycle\",\"commit\":\"aa4bbac\"}}},\"processes\":[{\"type\":\"web\",\"command\":\"python app.py\",\"args\":null,\"direct\":false,\"buildpackID\":\"heroku/procfile\"},{\"type\":\"worker\",\"command\":\"python app.py\",\"args\":null,\"direct\":false,\"buildpackID\":\"heroku/procfile\"},{\"type\":\"worker1\",\"command\":\"python app.py\",\"args\":null,\"direct\":false,\"buildpackID\":\"heroku/procfile\"}]}"
 )
 
 func TestNewCommand(t *testing.T) {
@@ -767,6 +768,9 @@ func TestNewCommand(t *testing.T) {
 			validate: func(t *testing.T, m deploy.Client) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
+				// changes from the previous deployment defined below to the one created by procfile variable above
+				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Name, "worker")
+				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Cmd[0], "worker")
 				for _, process := range mock.app.Spec.Deployments[0].Processes {
 					require.Equal(t, *process.Units, 4)
 				}
@@ -803,11 +807,19 @@ func TestNewCommand(t *testing.T) {
 					return m
 				}(),
 
-				KubeClient:     fake.NewSimpleClientset(),
-				Builder:        build.GetSourceHandler(&packMocker{}),
-				GetImageConfig: getImageConfig,
-				Wait:           nil,
-				Writer:         &bytes.Buffer{},
+				KubeClient: fake.NewSimpleClientset(),
+				Builder:    build.GetSourceHandler(&packMocker{}),
+
+				GetImageConfig: func(ctx context.Context, args deploy.ImageConfigRequest) (*registryv1.ConfigFile, error) {
+					return &registryv1.ConfigFile{
+						Config: registryv1.Config{
+							Cmd:    []string{"/bin/eatme"},
+							Labels: map[string]string{"io.buildpacks.build.metadata": packBuildMetadata},
+						},
+					}, nil
+				},
+				Wait:   nil,
+				Writer: &bytes.Buffer{},
 			},
 		},
 		{
@@ -859,11 +871,18 @@ func TestNewCommand(t *testing.T) {
 					return m
 				}(),
 
-				KubeClient:     fake.NewSimpleClientset(),
-				Builder:        build.GetSourceHandler(&packMocker{}),
-				GetImageConfig: getImageConfig,
-				Wait:           nil,
-				Writer:         &bytes.Buffer{},
+				KubeClient: fake.NewSimpleClientset(),
+				Builder:    build.GetSourceHandler(&packMocker{}),
+				GetImageConfig: func(ctx context.Context, args deploy.ImageConfigRequest) (*registryv1.ConfigFile, error) {
+					return &registryv1.ConfigFile{
+						Config: registryv1.Config{
+							Cmd:    []string{"/bin/eatme"},
+							Labels: map[string]string{"io.buildpacks.build.metadata": packBuildMetadata},
+						},
+					}, nil
+				},
+				Wait:   nil,
+				Writer: &bytes.Buffer{},
 			},
 		},
 		{
