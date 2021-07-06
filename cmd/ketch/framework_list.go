@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -64,24 +63,4 @@ func generateFrameworkListOutput(frameworks ketchv1.FrameworkList) []frameworkLi
 		})
 	}
 	return output
-}
-
-func frameworkListNames(cfg config, nameFilter ...string) ([]string, error) {
-	frameworks := ketchv1.FrameworkList{}
-	if err := cfg.Client().List(context.TODO(), &frameworks); err != nil {
-		return nil, fmt.Errorf("failed to get list of frameworks: %w", err)
-	}
-
-	frameworkNames := make([]string, 0)
-	for _, a := range frameworks.Items {
-		if len(nameFilter) == 0 {
-			frameworkNames = append(frameworkNames, a.Name)
-		}
-		for _, filter := range nameFilter {
-			if strings.Contains(a.Name, filter) {
-				frameworkNames = append(frameworkNames, a.Name)
-			}
-		}
-	}
-	return frameworkNames, nil
 }

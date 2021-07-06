@@ -75,6 +75,7 @@ EOF
   [[ $result =~ "Successfully updated!" ]]
 }
 
+
 @test "framework update with yaml file" {
   cat << EOF > framework.yaml
 name: "$FRAMEWORK-2"
@@ -92,7 +93,16 @@ EOF
   result=$($KETCH framework list)
   dataRegex="$FRAMEWORK-2[ \t]+ketch-$FRAMEWORK-2[ \t]+istio[ \t]+istio"
   echo "RECEIVED:" $result
-  [[ $result =~ $dataRegex ]]
+}
+
+@test "framework export" {
+  run $KETCH framework export "$FRAMEWORK"
+  result=$(cat framework.yaml)
+  echo "RECEIVED:" $result
+  [[ $result =~ "name: $FRAMEWORK" ]]
+  [[ $result =~ "namespace: ketch-$FRAMEWORK" ]]
+  [[ $result =~ "appQuotaLimit: 1" ]]
+  rm -f framework.yaml
 }
 
 @test "app deploy" {
