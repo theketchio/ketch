@@ -5,7 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"path"
+	"strings"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -196,14 +196,12 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	image, _ := params.getImage()
 
 	fromSource := params.sourcePath != nil
-	var procFilePath string
 	// build image from source if valid path provided
 	if fromSource {
 		sourcePath, _ := params.getSourceDirectory()
 		if err := buildFromSource(ctx, svc, app, params.appName, image, sourcePath); err != nil {
 			return errors.Wrap(err, "failed to build image from source path %q", sourcePath)
 		}
-		procFilePath = path.Join(sourcePath, defaultProcFile)
 	}
 
 	imageRequest := ImageConfigRequest{
@@ -217,7 +215,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 		return err
 	}
 
-	procfile, err := makeProcfile(imgConfig, procFilePath)
+	procfile, err := makeProcfile(imgConfig)
 	if err != nil {
 		return err
 	}
@@ -260,13 +258,13 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	return nil
 }
 
-func makeProcfile(cfg *registryv1.ConfigFile, procFileName string) (*chart.Procfile, error) {
-	if procFileName != "" {
-		// validating of path handled by validateSourceDeploy function
-		return chart.NewProcfile(procFileName)
+func makeProcfile(cfg *registryv1.ConfigFile) (*chart.Procfile, error) {
+	if val, ok := cfg.Config.Labels["io.buildpacks.build.metadata"]; ok {
+		// the above label contains an escaped json string of build details
+		unquoted := strings.ReplaceAll(val, "\\", "")
+		return chart.CreateProcfile(unquoted)
 	}
-
-	// no procfile (not building from source)
+	// images not created by pack
 	cmds := append(cfg.Config.Entrypoint, cfg.Config.Cmd...)
 	if len(cmds) == 0 {
 		return nil, fmt.Errorf("can't use image, no entrypoint or commands")
