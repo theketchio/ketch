@@ -71,6 +71,16 @@ func TestParseProcfile(t *testing.T) {
 			},
 		},
 		{
+			name:    "ignore illicit name",
+			content: "{\"processes\":[{\"type\":\"web\"},{\"type\":\"bad.name\"}]}",
+			want: &Procfile{
+				Processes: map[string][]string{
+					"web": {"web"},
+				},
+				RoutableProcessName: "web",
+			},
+		},
+		{
 			name:    "broken json",
 			content: "",
 			wantErr: true,
