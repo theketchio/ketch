@@ -706,6 +706,7 @@ func TestNewCommand(t *testing.T) {
 				dir := t.TempDir()
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
+				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
 			params: &deploy.Services{
 				Client: func() *mockClient {
@@ -736,6 +737,7 @@ func TestNewCommand(t *testing.T) {
 				dir := t.TempDir()
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
+				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
 			params: &deploy.Services{
 				Client: func() *mockClient {
@@ -753,7 +755,7 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 		{
-			name: "happy path with --units build from source",
+			name: "happy path with --units build from source, update deployment spec",
 			arguments: []string{
 				"myapp",
 				"src",
@@ -764,10 +766,12 @@ func TestNewCommand(t *testing.T) {
 				dir := t.TempDir()
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
+				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
 			validate: func(t *testing.T, m deploy.Client) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
+				log.Printf("%+v", mock.app.Spec.Deployments)
 				// changes from the previous deployment defined below to the one created by procfile variable above
 				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Name, "worker")
 				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Cmd[0], "worker")
@@ -823,25 +827,28 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 		{
-			name: "happy path with --units and --unit-process build from source",
+			name: "happy path with --units and --unit-process build from source, update deployment spec",
 			arguments: []string{
 				"myapp",
 				"src",
 				"--units", "4",
-				"--unit-process", "worker1",
+				"--unit-process", "worker",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
 				dir := t.TempDir()
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
+				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
 			validate: func(t *testing.T, m deploy.Client) {
 				mock, ok := m.(*mockClient)
 				require.True(t, ok)
-				log.Printf("%+v", mock.app.Spec.Deployments)
 				require.Nil(t, mock.app.Spec.Deployments[0].Processes[0].Units)
 				require.Equal(t, *mock.app.Spec.Deployments[0].Processes[1].Units, 4)
+				// changes from the previous deployment defined below to the one created by procfile variable above
+				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Name, "worker")
+				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Cmd[0], "worker")
 				require.Equal(t, mock.app.Spec.Framework, "initialframework")
 
 			},
@@ -886,10 +893,9 @@ func TestNewCommand(t *testing.T) {
 			},
 		},
 		{
-			name: "happy path with --units, --unit-process, and --unit-version build from source",
+			name: "happy path with --units, --unit-process, and --unit-version build from image",
 			arguments: []string{
 				"myapp",
-				"src",
 				"--units", "4",
 				"--unit-process", "worker1",
 				"--unit-version", "1",

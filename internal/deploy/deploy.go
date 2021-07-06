@@ -5,7 +5,6 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -220,8 +219,6 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	if err != nil {
 		return err
 	}
-	_, err = params.getProcfileName()
-	procFileProvided := !isMissing(err)
 
 	var updateRequest updateAppCRDRequest
 	updateRequest.image = image
@@ -230,7 +227,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	stepWeight, _ := params.getStepWeight()
 	updateRequest.stepWeight = stepWeight
 	updateRequest.procFile = procfile
-	updateRequest.procFileProvided = procFileProvided
+	updateRequest.fromSource = fromSource
 	updateRequest.ketchYaml = ketchYaml
 	updateRequest.configFile = imgConfig
 	interval, _ := params.getStepInterval()
@@ -285,7 +282,7 @@ type updateAppCRDRequest struct {
 	steps             int
 	stepWeight        uint8
 	procFile          *chart.Procfile
-	procFileProvided  bool
+	fromSource        bool
 	ketchYaml         *ketchv1.KetchYamlData
 	configFile        *registryv1.ConfigFile
 	nextScheduledTime time.Time
@@ -305,7 +302,7 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 
 		// not building from source, previous deployment found, and not a canary deployment
 		usePrevious := false
-		if !args.procFileProvided && len(updated.Spec.Deployments) > 0 && args.steps < 2 {
+		if !args.fromSource && len(updated.Spec.Deployments) > 0 && args.steps < 2 {
 			usePrevious = true
 			for i := range updated.Spec.Deployments {
 				// default procfile is based on the imgConfig, so a new image means a new procfile

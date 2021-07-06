@@ -130,10 +130,8 @@ func validateDeploy(cs *ChangeSet, app *ketchv1.App) error {
 }
 
 func validateSourceDeploy(cs *ChangeSet) error {
-	if cs.procfileFileName != nil {
-		return fmt.Errorf("cannot build from source with %s specified", FlagProcFile)
-	}
-	if _, err := cs.getSourceDirectory(); err != nil {
+	sourcePath, err := cs.getSourceDirectory()
+	if err != nil {
 		return err
 	}
 	stat, err := os.Stat(path.Join(sourcePath, defaultProcFile))
