@@ -17,13 +17,19 @@ import (
 )
 
 const frameworkUpdateHelp = `
-Update a framework.
+Update a framework. Users can specify an existing framework by name and command-line flags or
+by passing a filename such as framework.yaml containing fields like:
+	name: framework1
+	ingressController:
+	  name: istio
+	  endpoint: 10.10.10.20 # load balancer ingress ip
+	  type: istio
 `
 
 func newFrameworkUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 	options := frameworkUpdateOptions{}
 	cmd := &cobra.Command{
-		Use:   "update FRAMEWORK",
+		Use:   "update [FRAMEWORK|FILENAME]",
 		Args:  cobra.ExactValidArgs(1),
 		Short: "Update a framework.",
 		Long:  frameworkUpdateHelp,

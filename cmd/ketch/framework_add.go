@@ -17,7 +17,13 @@ import (
 )
 
 const frameworkAddHelp = `
-Add a new framework.
+Add a new framework. Users can specify a new framework by name and command-line flags or
+by passing a filename such as framework.yaml containing fields like:
+	name: framework1
+	ingressController:
+	  name: istio
+	  endpoint: 10.10.10.20 # load balancer ingress ip
+	  type: istio
 `
 
 type ingressType enumflag.Flag
@@ -37,7 +43,7 @@ type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOp
 func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) *cobra.Command {
 	options := frameworkAddOptions{}
 	cmd := &cobra.Command{
-		Use:   "add FRAMEWORK",
+		Use:   "add [FRAMEWORK|FILENAME]",
 		Args:  cobra.ExactValidArgs(1),
 		Short: "Add a new framework.",
 		Long:  frameworkAddHelp,
