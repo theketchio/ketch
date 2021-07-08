@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
-	"log"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path"
 	"testing"
@@ -12,7 +12,6 @@ import (
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
@@ -161,7 +160,7 @@ func TestNewCommand(t *testing.T) {
 		arguments   []string
 		setup       func(t *testing.T)
 		userDefault string
-		validate    func(t *testing.T, m deploy.Client)
+		validate    func(t *testing.T, m *mockClient)
 		wantError   bool
 	}{
 		{
@@ -178,9 +177,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Equal(t, "some other builder", mock.app.Spec.Builder)
 			},
 			params: &deploy.Services{
@@ -210,9 +207,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Equal(t, "superduper builder", mock.app.Spec.Builder)
 			},
 			params: &deploy.Services{
@@ -242,9 +237,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Equal(t, deploy.DefaultBuilder, mock.app.Spec.Builder)
 			},
 			params: &deploy.Services{
@@ -277,9 +270,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
 			userDefault: "newDefault",
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Equal(t, "newDefault", mock.app.Spec.Builder)
 			},
 			params: &deploy.Services{
@@ -311,9 +302,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
 			userDefault: "newDefault",
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Equal(t, mock.app.Spec.Builder, "initialBuilder")
 
 			},
@@ -358,9 +347,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Equal(t, "superduper", mock.app.Spec.Builder)
 				require.Equal(t, []string{"pack1", "pack2"}, mock.app.Spec.BuildPacks)
 			},
@@ -397,9 +384,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, ioutil.WriteFile("src/ketch.yaml", []byte(ketchYaml), 0600))
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Equal(t, "myframework", mock.app.Spec.Framework)
 				require.Equal(t, "newbuilder", mock.app.Spec.Builder)
 				require.Len(t, mock.app.Spec.Deployments, 1)
@@ -443,9 +428,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, ioutil.WriteFile("config/ketch.yaml", []byte(ketchYaml), 0600))
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Len(t, mock.app.Spec.Deployments, 1)
 				require.Len(t, mock.app.Spec.Deployments[0].KetchYaml.Kubernetes.Processes, 3)
 				require.Len(t, mock.app.Spec.Env, 2)
@@ -479,9 +462,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Equal(t, mock.app.Spec.Framework, "initialframework")
 
 			},
@@ -581,9 +562,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Equal(t, "myframework", mock.app.Spec.Framework)
 			},
 			params: &deploy.Services{
@@ -768,10 +747,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
-				log.Printf("%+v", mock.app.Spec.Deployments)
+			validate: func(t *testing.T, mock *mockClient) {
 				// changes from the previous deployment defined below to the one created by procfile variable above
 				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Name, "worker")
 				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Cmd[0], "worker")
@@ -841,9 +817,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Nil(t, mock.app.Spec.Deployments[0].Processes[0].Units)
 				require.Equal(t, *mock.app.Spec.Deployments[0].Processes[1].Units, 4)
 				// changes from the previous deployment defined below to the one created by procfile variable above
@@ -906,9 +880,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Mkdir(path.Join(dir, "src"), 0700))
 				require.Nil(t, os.Chdir(dir))
 			},
-			validate: func(t *testing.T, m deploy.Client) {
-				mock, ok := m.(*mockClient)
-				require.True(t, ok)
+			validate: func(t *testing.T, mock *mockClient) {
 				require.Nil(t, mock.app.Spec.Deployments[0].Processes[0].Units)
 				require.Equal(t, *mock.app.Spec.Deployments[0].Processes[1].Units, 4)
 				require.Nil(t, mock.app.Spec.Deployments[1].Processes[0].Units)
@@ -992,7 +964,9 @@ func TestNewCommand(t *testing.T) {
 
 			require.Nil(t, err)
 			if tc.validate != nil {
-				tc.validate(t, tc.params.Client)
+				mock, ok := tc.params.Client.(*mockClient)
+				require.True(t, ok)
+				tc.validate(t, mock)
 			}
 		})
 	}
