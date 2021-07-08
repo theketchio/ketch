@@ -891,6 +891,8 @@ func TestNewCommand(t *testing.T) {
 			params: &deploy.Services{
 				Client: func() *mockClient {
 					m := newMockClient()
+					// must be canary to have more than one deployment
+					m.app.Spec.Canary.Active = true
 					m.app.Spec.Deployments = []ketchv1.AppDeploymentSpec{
 						{
 							Image:   "shipa/go-sample:latest",

@@ -300,78 +300,101 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			return errors.Wrap(err, "could not get app to deploy %q", appName)
 		}
 
-		// not building from source, previous deployment found, and not a canary deployment
-		usePrevious := false
-		if !args.fromSource && len(updated.Spec.Deployments) > 0 && args.steps < 2 {
-			usePrevious = true
-			for i := range updated.Spec.Deployments {
-				// default procfile is based on the imgConfig, so a new image means a new procfile
-				if updated.Spec.Deployments[i].Image != args.image {
-					usePrevious = false
-					break
+		if len(updated.Spec.Deployments) > 1 && !updated.Spec.Canary.Active {
+			return errors.New("cannot have more than one deployment per app, unless canary")
+		}
+
+		// allow user to update units on canary deployments
+		if updated.Spec.Canary.Active {
+			if args.units > 0 {
+				s := ketchv1.NewSelector(args.version, args.process)
+				if err := updated.SetUnits(s, args.units); err != nil {
+					return err
 				}
-				// ketchYaml found, update
-				if args.ketchYaml != nil {
-					updated.Spec.Deployments[i].KetchYaml = args.ketchYaml
-				}
+			}
+
+			return svc.Client.Update(ctx, &updated)
+		}
+
+		// if the previous deployment's image is the same as the user provided image we want to reuse
+		// certain details like the number of units per process
+		var usePreviousDeploymentSpecs bool
+		if len(updated.Spec.Deployments) == 1 {
+			if updated.Spec.Deployments[0].Image == args.image {
+				usePreviousDeploymentSpecs = true
 			}
 		}
 
-		if !usePrevious {
-			processes := make([]ketchv1.ProcessSpec, 0, len(args.procFile.Processes))
-			for _, processName := range args.procFile.SortedNames() {
-				cmd := args.procFile.Processes[processName]
-				processes = append(processes, ketchv1.ProcessSpec{
-					Name: processName,
-					Cmd:  cmd,
-				})
+		processes := make([]ketchv1.ProcessSpec, 0, len(args.procFile.Processes))
+		for _, processName := range args.procFile.SortedNames() {
+			cmd := args.procFile.Processes[processName]
+			ps := ketchv1.ProcessSpec{
+				Name: processName,
+				Cmd:  cmd,
 			}
-			exposedPorts := make([]ketchv1.ExposedPort, 0, len(args.configFile.Config.ExposedPorts))
-			for port := range args.configFile.Config.ExposedPorts {
-				exposedPort, err := ketchv1.NewExposedPort(port)
-				if err != nil {
-					// Shouldn't happen
-					return err
+
+			if usePreviousDeploymentSpecs {
+				for _, previousProcess := range updated.Spec.Deployments[0].Processes {
+					// if the process names for the new and previous deployments match update units to
+					// reflect the previous deployment's value
+					if previousProcess.Name == processName {
+						ps.Units = previousProcess.Units
+					}
 				}
-				exposedPorts = append(exposedPorts, *exposedPort)
 			}
 
-			// default deployment spec for an app
-			deploymentSpec := ketchv1.AppDeploymentSpec{
-				Image:     args.image,
-				Version:   ketchv1.DeploymentVersion(updated.Spec.DeploymentsCount + 1),
-				Processes: processes,
-				KetchYaml: args.ketchYaml,
-				RoutingSettings: ketchv1.RoutingSettings{
-					Weight: defaultTrafficWeight,
-				},
-				ExposedPorts: exposedPorts,
-			}
+			processes = append(processes, ps)
+		}
 
+		exposedPorts := make([]ketchv1.ExposedPort, 0, len(args.configFile.Config.ExposedPorts))
+		for port := range args.configFile.Config.ExposedPorts {
+			exposedPort, err := ketchv1.NewExposedPort(port)
+			if err != nil {
+				// Shouldn't happen
+				return err
+			}
+			exposedPorts = append(exposedPorts, *exposedPort)
+		}
+
+		// default deployment spec for an app
+		deploymentSpec := ketchv1.AppDeploymentSpec{
+			Image:     args.image,
+			Version:   ketchv1.DeploymentVersion(updated.Spec.DeploymentsCount),
+			Processes: processes,
+			KetchYaml: args.ketchYaml,
+			RoutingSettings: ketchv1.RoutingSettings{
+				Weight: defaultTrafficWeight,
+			},
+			ExposedPorts: exposedPorts,
+		}
+
+		// update deployment and version only for canary deployment or a new deployment
+		if !usePreviousDeploymentSpecs || args.steps > 1 {
+			deploymentSpec.Version += 1
 			updated.Spec.DeploymentsCount += 1
+		}
 
-			if args.steps > 1 {
-				nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
-				started := metav1.NewTime(args.started)
-				updated.Spec.Canary = ketchv1.CanarySpec{
-					Steps:             args.steps,
-					StepWeight:        args.stepWeight,
-					StepTimeInteval:   args.stepTimeInterval,
-					NextScheduledTime: &nextScheduledTime,
-					CurrentStep:       1,
-					Active:            true,
-					Started:           &started,
-				}
-
-				// set initial weight for canary deployment to zero.
-				// App controller will update the weight once all pods for canary will be on running state.
-				deploymentSpec.RoutingSettings.Weight = 0
-
-				// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
-				updated.Spec.Deployments = append(updated.Spec.Deployments, deploymentSpec)
-			} else {
-				updated.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
+		if args.steps > 1 {
+			nextScheduledTime := metav1.NewTime(args.nextScheduledTime)
+			started := metav1.NewTime(args.started)
+			updated.Spec.Canary = ketchv1.CanarySpec{
+				Steps:             args.steps,
+				StepWeight:        args.stepWeight,
+				StepTimeInteval:   args.stepTimeInterval,
+				NextScheduledTime: &nextScheduledTime,
+				CurrentStep:       1,
+				Active:            true,
+				Started:           &started,
 			}
+
+			// set initial weight for canary deployment to zero.
+			// App controller will update the weight once all pods for canary will be on running state.
+			deploymentSpec.RoutingSettings.Weight = 0
+
+			// For a canary deployment, canary should be enabled by adding another deployment to the deployment list.
+			updated.Spec.Deployments = append(updated.Spec.Deployments, deploymentSpec)
+		} else {
+			updated.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
 		}
 
 		if args.units > 0 {
