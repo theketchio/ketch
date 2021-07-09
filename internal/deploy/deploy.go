@@ -5,7 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"path"
+	"strings"
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
@@ -58,11 +58,7 @@ func (r Runner) Run(ctx context.Context, svc *Services) error {
 		return err
 	}
 
-	if r.params.sourcePath != nil {
-		return deployFromSource(ctx, svc, app, r.params)
-	}
-
-	return deployFromImage(ctx, svc, app, r.params)
+	return deployImage(ctx, svc, app, r.params)
 }
 
 type appUpdater func(ctx context.Context, app *ketchv1.App, changed bool) error
@@ -173,79 +169,20 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 	return app, err
 }
 
-func deployFromSource(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
-	ketchYaml, err := params.getKetchYaml()
-	if err != nil {
-		return err
-	}
-
-	var framework ketchv1.Framework
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
-		return errors.Wrap(err, "failed to get framework %s", app.Spec.Framework)
-	}
-
-	image, _ := params.getImage()
-	sourcePath, _ := params.getSourceDirectory()
-	sourceProcFilePath := path.Join(sourcePath, defaultProcFile)
-
-	if err := svc.Builder(
+func buildFromSource(ctx context.Context, svc *Services, app *ketchv1.App, appName, image, sourcePath string) error {
+	return svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
 			Image:      image,
-			AppName:    params.appName,
+			AppName:    appName,
 			Builder:    app.Spec.Builder,
 			BuildPacks: app.Spec.BuildPacks,
 		},
 		build.WithWorkingDirectory(sourcePath),
-	); err != nil {
-		return err
-	}
-
-	imageRequest := ImageConfigRequest{
-		imageName:       image,
-		secretName:      app.Spec.DockerRegistry.SecretName,
-		secretNamespace: framework.Spec.NamespaceName,
-		client:          svc.KubeClient,
-	}
-	imgConfig, err := svc.GetImageConfig(ctx, imageRequest)
-	if err != nil {
-		return err
-	}
-
-	procfile, err := makeProcfile(nil, sourceProcFilePath)
-	if err != nil {
-		return err
-	}
-
-	var updateRequest updateAppCRDRequest
-
-	updateRequest.image = image
-	steps, _ := params.getSteps()
-	updateRequest.steps = steps
-	stepWeight, _ := params.getStepWeight()
-	updateRequest.stepWeight = stepWeight
-	updateRequest.ketchYaml = ketchYaml
-	updateRequest.configFile = imgConfig
-	updateRequest.procFile = procfile
-	interval, _ := params.getStepInterval()
-	updateRequest.stepTimeInterval = interval
-	updateRequest.nextScheduledTime = time.Now().Add(interval)
-	updateRequest.started = time.Now()
-
-	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
-		return errors.Wrap(err, "deploy from source failed")
-	}
-
-	wait, _ := params.getWait()
-	if wait {
-		timeout, _ := params.getTimeout()
-		return svc.Wait(ctx, svc, app, timeout)
-	}
-
-	return nil
+	)
 }
 
-func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
+func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *ChangeSet) error {
 	ketchYaml, err := params.getKetchYaml()
 	if err != nil {
 		return err
@@ -258,6 +195,15 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 
 	image, _ := params.getImage()
 
+	fromSource := params.sourcePath != nil
+	// build image from source if valid path provided
+	if fromSource {
+		sourcePath, _ := params.getSourceDirectory()
+		if err := buildFromSource(ctx, svc, app, params.appName, image, sourcePath); err != nil {
+			return errors.Wrap(err, "failed to build image from source path %q", sourcePath)
+		}
+	}
+
 	imageRequest := ImageConfigRequest{
 		imageName:       image,
 		secretName:      app.Spec.DockerRegistry.SecretName,
@@ -269,7 +215,7 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 		return err
 	}
 
-	procfile, err := makeProcfile(imgConfig, "")
+	procfile, err := makeProcfile(imgConfig)
 	if err != nil {
 		return err
 	}
@@ -281,15 +227,26 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	stepWeight, _ := params.getStepWeight()
 	updateRequest.stepWeight = stepWeight
 	updateRequest.procFile = procfile
+	updateRequest.fromSource = fromSource
 	updateRequest.ketchYaml = ketchYaml
 	updateRequest.configFile = imgConfig
 	interval, _ := params.getStepInterval()
 	updateRequest.stepTimeInterval = interval
 	updateRequest.nextScheduledTime = time.Now().Add(interval)
 	updateRequest.started = time.Now()
+	units, _ := params.getUnits()
+	updateRequest.units = units
+	version, _ := params.getVersion()
+	updateRequest.version = version
+	process, _ := params.getProcess()
+	updateRequest.process = process
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
-		return errors.Wrap(err, "deploy from image failed")
+		deploymentType := "image"
+		if fromSource {
+			deploymentType = "source"
+		}
+		return errors.Wrap(err, fmt.Sprintf("deploy from %s failed", deploymentType))
 	}
 
 	wait, _ := params.getWait()
@@ -301,13 +258,13 @@ func deployFromImage(ctx context.Context, svc *Services, app *ketchv1.App, param
 	return nil
 }
 
-func makeProcfile(cfg *registryv1.ConfigFile, procFileName string) (*chart.Procfile, error) {
-	if procFileName != "" {
-		// validating of path handled by validateSourceDeploy function
-		return chart.NewProcfile(procFileName)
+func makeProcfile(cfg *registryv1.ConfigFile) (*chart.Procfile, error) {
+	if val, ok := cfg.Config.Labels["io.buildpacks.build.metadata"]; ok {
+		// the above label contains an escaped json string of build details
+		unquoted := strings.ReplaceAll(val, "\\", "")
+		return chart.CreateProcfile(unquoted)
 	}
-
-	// no procfile (not building from source)
+	// images not created by pack
 	cmds := append(cfg.Config.Entrypoint, cfg.Config.Cmd...)
 	if len(cmds) == 0 {
 		return nil, fmt.Errorf("can't use image, no entrypoint or commands")
@@ -325,11 +282,15 @@ type updateAppCRDRequest struct {
 	steps             int
 	stepWeight        uint8
 	procFile          *chart.Procfile
+	fromSource        bool
 	ketchYaml         *ketchv1.KetchYamlData
 	configFile        *registryv1.ConfigFile
 	nextScheduledTime time.Time
 	started           time.Time
 	stepTimeInterval  time.Duration
+	units             int
+	version           int
+	process           string
 }
 
 func updateAppCRD(ctx context.Context, svc *Services, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
@@ -339,14 +300,52 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			return errors.Wrap(err, "could not get app to deploy %q", appName)
 		}
 
+		if len(updated.Spec.Deployments) > 1 && !updated.Spec.Canary.Active {
+			return errors.New("cannot have more than one deployment per app, unless canary")
+		}
+
+		// allow user to update units on canary deployments
+		if updated.Spec.Canary.Active {
+			if args.units > 0 {
+				s := ketchv1.NewSelector(args.version, args.process)
+				if err := updated.SetUnits(s, args.units); err != nil {
+					return err
+				}
+			}
+
+			return svc.Client.Update(ctx, &updated)
+		}
+
+		// if the previous deployment's image is the same as the user provided image we want to reuse
+		// certain details like the number of units per process
+		var usePreviousDeploymentSpecs bool
+		if len(updated.Spec.Deployments) == 1 {
+			if updated.Spec.Deployments[0].Image == args.image {
+				usePreviousDeploymentSpecs = true
+			}
+		}
+
 		processes := make([]ketchv1.ProcessSpec, 0, len(args.procFile.Processes))
 		for _, processName := range args.procFile.SortedNames() {
 			cmd := args.procFile.Processes[processName]
-			processes = append(processes, ketchv1.ProcessSpec{
+			ps := ketchv1.ProcessSpec{
 				Name: processName,
 				Cmd:  cmd,
-			})
+			}
+
+			if usePreviousDeploymentSpecs {
+				for _, previousProcess := range updated.Spec.Deployments[0].Processes {
+					// if the process names for the new and previous deployments match update units to
+					// reflect the previous deployment's value
+					if previousProcess.Name == processName {
+						ps.Units = previousProcess.Units
+					}
+				}
+			}
+
+			processes = append(processes, ps)
 		}
+
 		exposedPorts := make([]ketchv1.ExposedPort, 0, len(args.configFile.Config.ExposedPorts))
 		for port := range args.configFile.Config.ExposedPorts {
 			exposedPort, err := ketchv1.NewExposedPort(port)
@@ -360,13 +359,19 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 		// default deployment spec for an app
 		deploymentSpec := ketchv1.AppDeploymentSpec{
 			Image:     args.image,
-			Version:   ketchv1.DeploymentVersion(updated.Spec.DeploymentsCount + 1),
+			Version:   ketchv1.DeploymentVersion(updated.Spec.DeploymentsCount),
 			Processes: processes,
 			KetchYaml: args.ketchYaml,
 			RoutingSettings: ketchv1.RoutingSettings{
 				Weight: defaultTrafficWeight,
 			},
 			ExposedPorts: exposedPorts,
+		}
+
+		// update deployment and version only for canary deployment or a new deployment
+		if !usePreviousDeploymentSpecs || args.steps > 1 {
+			deploymentSpec.Version += 1
+			updated.Spec.DeploymentsCount += 1
 		}
 
 		if args.steps > 1 {
@@ -392,7 +397,12 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			updated.Spec.Deployments = []ketchv1.AppDeploymentSpec{deploymentSpec}
 		}
 
-		updated.Spec.DeploymentsCount += 1
+		if args.units > 0 {
+			s := ketchv1.NewSelector(args.version, args.process)
+			if err := updated.SetUnits(s, args.units); err != nil {
+				return err
+			}
+		}
 
 		return svc.Client.Update(ctx, &updated)
 	})
