@@ -3,6 +3,8 @@ package chart
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -100,4 +102,19 @@ func routableProcess(names []string) string {
 	}
 	sort.Strings(names)
 	return names[0]
+}
+
+func WriteProcfile(processes []ketchv1.ProcessSpec, dest string) error {
+	f, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	for _, process := range processes {
+		_, err = fmt.Fprintf(f, "%s: %s\n", process.Name, strings.Join(process.Cmd, " "))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

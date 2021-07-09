@@ -5,6 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -23,10 +24,11 @@ import (
 )
 
 const (
-	defaultTrafficWeight = 100
-	minimumSteps         = 2
-	maximumSteps         = 100
-	defaultProcFile      = "Procfile"
+	defaultTrafficWeight   = 100
+	minimumSteps           = 2
+	maximumSteps           = 100
+	defaultProcFile        = "Procfile"
+	defaultUnitsPerProcess = 1
 )
 
 // Client represents go sdk k8s client operations that we need.
@@ -70,12 +72,19 @@ func getAppWithUpdater(ctx context.Context, client Client, cs *ChangeSet) (*ketc
 		if err = validateCreateApp(ctx, client, cs.appName, cs); err != nil {
 			return nil, nil, err
 		}
+		generateDefaultCName := true
+		var cname ketchv1.CnameList
+		if cs.cname != nil {
+			generateDefaultCName = false
+			cname = *cs.cname
+		}
 
 		return &app, func(ctx context.Context, app *ketchv1.App, _ bool) error {
 			app.ObjectMeta.Name = cs.appName
 			app.Spec.Deployments = []ketchv1.AppDeploymentSpec{}
 			app.Spec.Ingress = ketchv1.IngressSpec{
-				GenerateDefaultCname: true,
+				GenerateDefaultCname: generateDefaultCName,
+				Cnames:               cname,
 			}
 			return client.Create(ctx, app)
 		}, nil
@@ -104,9 +113,16 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 		app = a
 
 		if cs.sourcePath != nil {
+			if cs.processes != nil {
+				err = chart.WriteProcfile(*cs.processes, path.Join(*cs.sourcePath, defaultProcFile))
+				if err != nil {
+					return err
+				}
+			}
 			if err := validateSourceDeploy(cs); err != nil {
 				return err
 			}
+
 			builder := cs.getBuilder(app.Spec)
 			if builder != app.Spec.Builder {
 				app.Spec.Builder = builder
@@ -219,8 +235,8 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	if err != nil {
 		return err
 	}
-
 	var updateRequest updateAppCRDRequest
+	updateRequest.appVersion = params.appVersion
 	updateRequest.image = image
 	steps, _ := params.getSteps()
 	updateRequest.steps = steps
@@ -278,6 +294,7 @@ func makeProcfile(cfg *registryv1.ConfigFile) (*chart.Procfile, error) {
 }
 
 type updateAppCRDRequest struct {
+	appVersion        *string
 	image             string
 	steps             int
 	stepWeight        uint8
@@ -299,6 +316,7 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 		if err := svc.Client.Get(ctx, types.NamespacedName{Name: appName}, &updated); err != nil {
 			return errors.Wrap(err, "could not get app to deploy %q", appName)
 		}
+		updated.Spec.Version = args.appVersion
 
 		if len(updated.Spec.Deployments) > 1 && !updated.Spec.Canary.Active {
 			return errors.New("cannot have more than one deployment per app, unless canary")
@@ -403,7 +421,6 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 				return err
 			}
 		}
-
 		return svc.Client.Update(ctx, &updated)
 	})
 	return &updated, err
