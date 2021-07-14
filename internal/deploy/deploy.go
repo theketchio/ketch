@@ -24,11 +24,10 @@ import (
 )
 
 const (
-	defaultTrafficWeight   = 100
-	minimumSteps           = 2
-	maximumSteps           = 100
-	defaultProcFile        = "Procfile"
-	defaultUnitsPerProcess = 1
+	defaultTrafficWeight = 100
+	minimumSteps         = 2
+	maximumSteps         = 100
+	defaultProcFile      = "Procfile"
 )
 
 // Client represents go sdk k8s client operations that we need.
