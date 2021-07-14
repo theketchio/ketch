@@ -256,6 +256,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	updateRequest.version = version
 	process, _ := params.getProcess()
 	updateRequest.process = process
+	updateRequest.processes = params.processes
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		deploymentType := "image"
@@ -308,6 +309,7 @@ type updateAppCRDRequest struct {
 	units             int
 	version           int
 	process           string
+	processes         *[]ketchv1.ProcessSpec
 }
 
 func updateAppCRD(ctx context.Context, svc *Services, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
