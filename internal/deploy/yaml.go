@@ -1,13 +1,14 @@
 package deploy
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
-	"github.com/shipa-corp/ketch/internal/errors"
 	"sigs.k8s.io/yaml"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/errors"
 	"github.com/shipa-corp/ketch/internal/utils"
 	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
@@ -18,16 +19,16 @@ type Application struct {
 	Version        *string   `json:"version"`
 	Type           *string   `json:"type"`
 	Name           *string   `json:"name"`
-	Image          *string   `json:"image"`
+	Image          *string   `json:"image,omitempty"`
 	Framework      *string   `json:"framework"`
-	Description    *string   `json:"description"`
-	Environment    []string  `json:"environment"`
-	RegistrySecret *string   `json:"registrySecret"`
-	Builder        *string   `json:"builder"`
-	BuildPacks     []string  `json:"buildPacks"`
-	Processes      []Process `json:"processes"`
-	CName          *CName    `json:"cname"`
-	AppUnit        *int      `json:"appUnit"`
+	Description    *string   `json:"description,omitempty"`
+	Environment    []string  `json:"environment,omitempty"`
+	RegistrySecret *string   `json:"registrySecret,omitempty"`
+	Builder        *string   `json:"builder,omitempty"`
+	BuildPacks     []string  `json:"buildPacks,omitempty"`
+	Processes      []Process `json:"processes,omitempty"`
+	CName          *CName    `json:"cname,omitempty"`
+	AppUnit        *int      `json:"appUnit,omitempty"`
 }
 
 type Process struct {
@@ -206,4 +207,94 @@ func (c *ChangeSet) validate() error {
 		return errors.New("running defined processes require a sourcePath")
 	}
 	return nil
+}
+
+// GetApplicationFromKetchApp takes an App parameter and returns a yaml-file friendly Application
+func GetApplicationFromKetchApp(app ketchv1.App) *Application {
+	application := &Application{
+		Version:   app.Spec.Version,
+		Type:      conversions.StrPtr(typeApplication),
+		Name:      &app.Name,
+		Framework: &app.Spec.Framework,
+	}
+
+	deployment := getLatestDeployment(app.Spec.Deployments)
+	if deployment != nil {
+		application.Image = &deployment.Image
+		var processes []Process
+		if deployment.KetchYaml != nil {
+			var hooks Hooks
+			if deployment.KetchYaml.Hooks != nil {
+				hooks = Hooks{
+					Restart: Restart{
+						Before: strings.Join(deployment.KetchYaml.Hooks.Restart.Before, " "),
+						After:  strings.Join(deployment.KetchYaml.Hooks.Restart.After, " "),
+					},
+				}
+			}
+
+			if deployment.KetchYaml.Kubernetes != nil && deployment.KetchYaml.Kubernetes.Processes != nil {
+				for _, process := range deployment.Processes {
+					var ports []Port
+					if processConfig, ok := deployment.KetchYaml.Kubernetes.Processes[process.Name]; ok {
+						for _, port := range processConfig.Ports {
+							ports = append(ports, Port{
+								Protocol:   port.Protocol,
+								Port:       port.Port,
+								TargetPort: port.TargetPort,
+							})
+						}
+					}
+					processes = append(processes, Process{
+						Name:  process.Name,
+						Cmd:   strings.Join(process.Cmd, " "),
+						Units: process.Units,
+						Ports: ports,
+						Hooks: hooks,
+					})
+				}
+				application.Processes = processes
+			}
+		}
+	}
+
+	if len(app.Spec.Ingress.Cnames) > 0 {
+		application.CName = &CName{
+			DNSName: app.Spec.Ingress.Cnames[0],
+		}
+	}
+	if app.Spec.Description != "" {
+		application.Description = &app.Spec.Description
+	}
+	if app.Spec.DockerRegistry.SecretName != "" {
+		application.RegistrySecret = &app.Spec.DockerRegistry.SecretName
+	}
+	if app.Spec.Builder != "" {
+		application.Builder = &app.Spec.Builder
+	}
+	if len(app.Spec.BuildPacks) > 0 {
+		application.BuildPacks = app.Spec.BuildPacks
+	}
+	var environment []string
+	for _, env := range app.Spec.Env {
+		environment = append(environment, fmt.Sprintf("%s=%s", env.Name, env.Value))
+		application.Environment = environment
+	}
+
+	return application
+}
+
+// getLatestDeployment returns the AppDeploymentSpec of the highest Version or nil
+func getLatestDeployment(deployments []ketchv1.AppDeploymentSpec) *ketchv1.AppDeploymentSpec {
+	if len(deployments) == 0 {
+		return nil
+	}
+	latestIndex := 0
+	for i, deployment := range deployments {
+		if deployment.Version > deployments[latestIndex].Version {
+			deployments[latestIndex].Version = deployment.Version
+			latestIndex = i
+		}
+	}
+	return &deployments[latestIndex]
 }
