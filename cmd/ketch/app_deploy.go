@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/shipa-corp/ketch/internal/deploy"
+	"github.com/shipa-corp/ketch/internal/validation"
 )
 
 const (
@@ -23,6 +24,10 @@ Details about Procfile conventions can be found here: https://devcenter.heroku.c
 Deploy from an image:
   ketch app deploy <app name> -i myregistry/myimage:latest
 
+Users can deploy from image or source code by passing a filename such as app.yaml containing fields like:
+	name: test
+	image: gcr.io/shipa-ci/sample-go-app:latest
+	framework: myframework
 `
 )
 
@@ -31,7 +36,7 @@ func newAppDeployCmd(cfg config, params *deploy.Services, configDefaultBuilder s
 	var options deploy.Options
 
 	cmd := &cobra.Command{
-		Use:   "deploy APPNAME [SOURCE DIRECTORY]",
+		Use:   "deploy [APPNAME|FILENAME] [SOURCE DIRECTORY]",
 		Short: "Deploy an app.",
 		Long:  appDeployHelp,
 		Args:  cobra.RangeArgs(1, 2),
@@ -43,7 +48,7 @@ func newAppDeployCmd(cfg config, params *deploy.Services, configDefaultBuilder s
 			if configDefaultBuilder != "" {
 				deploy.DefaultBuilder = configDefaultBuilder
 			}
-			return deploy.New(options.GetChangeSet(cmd.Flags())).Run(cmd.Context(), params)
+			return appDeploy(cmd, options, params)
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return autoCompleteAppNames(cfg, toComplete)
@@ -77,4 +82,19 @@ func newAppDeployCmd(cfg config, params *deploy.Services, configDefaultBuilder s
 		return autoCompleteBuilderNames(cfg, toComplete)
 	})
 	return cmd
+}
+
+func appDeploy(cmd *cobra.Command, options deploy.Options, params *deploy.Services) error {
+	var changeSet *deploy.ChangeSet
+	var err error
+	switch {
+	case validation.ValidateYamlFilename(options.AppName):
+		changeSet, err = options.GetChangeSetFromYaml(options.AppName)
+		if err != nil {
+			return err
+		}
+	default:
+		changeSet = options.GetChangeSet(cmd.Flags())
+	}
+	return deploy.New(changeSet).Run(cmd.Context(), params)
 }

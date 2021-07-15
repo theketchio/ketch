@@ -114,6 +114,12 @@ type ChangeSet struct {
 	dockerRegistrySecret *string
 	builder              *string
 	buildPacks           *[]string
+	appVersion           *string
+	appType              *string
+	appUnit              *int
+	processes            *[]ketchv1.ProcessSpec
+	ketchYamlData        *ketchv1.KetchYamlData
+	cname                *ketchv1.CnameList
 	units                *int
 	version              *int
 	process              *string
@@ -366,6 +372,9 @@ func (c *ChangeSet) getBuildPacks() ([]string, error) {
 }
 
 func (c *ChangeSet) getKetchYaml() (*ketchv1.KetchYamlData, error) {
+	if c.ketchYamlData != nil {
+		return c.ketchYamlData, nil
+	}
 	var fileName string
 	// try to find yaml file in default location
 	sourcePath, err := c.getSourceDirectory()
@@ -401,4 +410,8 @@ func (c *ChangeSet) getKetchYaml() (*ketchv1.KetchYamlData, error) {
 		return nil, err
 	}
 	return data, nil
+}
+
+func (c *ChangeSet) getAppUnit() int {
+	return *c.appUnit
 }

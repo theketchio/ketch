@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shipa-corp/ketch/internal/testutils"
-
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
 
 func TestFrameworkReconciler_Reconcile(t *testing.T) {
@@ -25,7 +24,7 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 			},
 			Spec: ketchv1.FrameworkSpec{
 				NamespaceName: "default-namespace",
-				AppQuotaLimit: testutils.IntPtr(100),
+				AppQuotaLimit: conversions.IntPtr(100),
 				IngressController: ketchv1.IngressControllerSpec{
 					IngressType: ketchv1.IstioIngressControllerType,
 				},
@@ -50,7 +49,7 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 					Name: "framework-2",
 				},
 				Spec: ketchv1.FrameworkSpec{
-					AppQuotaLimit: testutils.IntPtr(1),
+					AppQuotaLimit: conversions.IntPtr(1),
 					NamespaceName: "default-namespace",
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: ketchv1.IstioIngressControllerType,
@@ -67,7 +66,7 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 					Name: "framework-3",
 				},
 				Spec: ketchv1.FrameworkSpec{
-					AppQuotaLimit: testutils.IntPtr(1),
+					AppQuotaLimit: conversions.IntPtr(1),
 					NamespaceName: "another-namespace-3",
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: ketchv1.IstioIngressControllerType,
@@ -86,7 +85,7 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 					Name: "framework-4",
 				},
 				Spec: ketchv1.FrameworkSpec{
-					AppQuotaLimit: testutils.IntPtr(1),
+					AppQuotaLimit: conversions.IntPtr(1),
 					NamespaceName: "another-namespace-4",
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: ketchv1.TraefikIngressControllerType,

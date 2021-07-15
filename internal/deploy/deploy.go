@@ -5,6 +5,8 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -70,12 +72,19 @@ func getAppWithUpdater(ctx context.Context, client Client, cs *ChangeSet) (*ketc
 		if err = validateCreateApp(ctx, client, cs.appName, cs); err != nil {
 			return nil, nil, err
 		}
+		generateDefaultCName := true
+		var cname ketchv1.CnameList
+		if cs.cname != nil {
+			generateDefaultCName = false
+			cname = *cs.cname
+		}
 
 		return &app, func(ctx context.Context, app *ketchv1.App, _ bool) error {
 			app.ObjectMeta.Name = cs.appName
 			app.Spec.Deployments = []ketchv1.AppDeploymentSpec{}
 			app.Spec.Ingress = ketchv1.IngressSpec{
-				GenerateDefaultCname: true,
+				GenerateDefaultCname: generateDefaultCName,
+				Cnames:               cname,
 			}
 			return client.Create(ctx, app)
 		}, nil
@@ -104,9 +113,20 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 		app = a
 
 		if cs.sourcePath != nil {
+			if cs.processes != nil {
+				err = chart.AssertProcfileNotExist()
+				if err != nil {
+					return fmt.Errorf("%s: building from source writes specified processes to a Procfile in the project root", err.Error())
+				}
+				err = chart.WriteProcfile(*cs.processes, path.Join(*cs.sourcePath, defaultProcFile))
+				if err != nil {
+					return err
+				}
+			}
 			if err := validateSourceDeploy(cs); err != nil {
 				return err
 			}
+
 			builder := cs.getBuilder(app.Spec)
 			if builder != app.Spec.Builder {
 				app.Spec.Builder = builder
@@ -202,6 +222,13 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 		if err := buildFromSource(ctx, svc, app, params.appName, image, sourcePath); err != nil {
 			return errors.Wrap(err, "failed to build image from source path %q", sourcePath)
 		}
+		if params.processes != nil {
+			// clean up generated Procfile when built from source using yaml-specified processes
+			err = os.Remove("Procfile")
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	imageRequest := ImageConfigRequest{
@@ -219,8 +246,8 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	if err != nil {
 		return err
 	}
-
 	var updateRequest updateAppCRDRequest
+	updateRequest.appVersion = params.appVersion
 	updateRequest.image = image
 	steps, _ := params.getSteps()
 	updateRequest.steps = steps
@@ -240,6 +267,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	updateRequest.version = version
 	process, _ := params.getProcess()
 	updateRequest.process = process
+	updateRequest.processes = params.processes
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		deploymentType := "image"
@@ -278,6 +306,7 @@ func makeProcfile(cfg *registryv1.ConfigFile) (*chart.Procfile, error) {
 }
 
 type updateAppCRDRequest struct {
+	appVersion        *string
 	image             string
 	steps             int
 	stepWeight        uint8
@@ -291,6 +320,7 @@ type updateAppCRDRequest struct {
 	units             int
 	version           int
 	process           string
+	processes         *[]ketchv1.ProcessSpec
 }
 
 func updateAppCRD(ctx context.Context, svc *Services, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
@@ -299,6 +329,7 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 		if err := svc.Client.Get(ctx, types.NamespacedName{Name: appName}, &updated); err != nil {
 			return errors.Wrap(err, "could not get app to deploy %q", appName)
 		}
+		updated.Spec.Version = args.appVersion
 
 		if len(updated.Spec.Deployments) > 1 && !updated.Spec.Canary.Active {
 			return errors.New("cannot have more than one deployment per app, unless canary")
@@ -403,7 +434,6 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 				return err
 			}
 		}
-
 		return svc.Client.Update(ctx, &updated)
 	})
 	return &updated, err
