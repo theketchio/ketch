@@ -5,6 +5,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -220,6 +221,13 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 		sourcePath, _ := params.getSourceDirectory()
 		if err := buildFromSource(ctx, svc, app, params.appName, image, sourcePath); err != nil {
 			return errors.Wrap(err, "failed to build image from source path %q", sourcePath)
+		}
+		if params.processes != nil {
+			// clean up generated Procfile when built from source using yaml-specified processes
+			err = os.Remove("Procfile")
+			if err != nil {
+				return err
+			}
 		}
 	}
 
