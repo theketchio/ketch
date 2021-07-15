@@ -113,6 +113,10 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 
 		if cs.sourcePath != nil {
 			if cs.processes != nil {
+				err = chart.AssertProcfileNotExist()
+				if err != nil {
+					return fmt.Errorf("%s: building from source writes specified processes to a Procfile in the project root", err.Error())
+				}
 				err = chart.WriteProcfile(*cs.processes, path.Join(*cs.sourcePath, defaultProcFile))
 				if err != nil {
 					return err

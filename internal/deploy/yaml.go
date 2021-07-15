@@ -14,19 +14,19 @@ import (
 // Application represents the fields in an application.yaml file that will be
 // transitioned to a ChangeSet.
 type Application struct {
-	Version        *string    `json:"version"`
-	Type           *string    `json:"type"`
-	Name           *string    `json:"name"`
-	Image          *string    `json:"image"`
-	Framework      *string    `json:"framework"`
-	Description    *string    `json:"description"`
-	Environment    *[]string  `json:"environment"`
-	RegistrySecret *string    `json:"registrySecret"`
-	Builder        *string    `json:"builder"`
-	BuildPacks     *[]string  `json:"buildPacks"`
-	Processes      *[]Process `json:"processes"`
-	CName          *CName     `json:"cname"`
-	AppUnit        *int       `json:"appUnit"`
+	Version        *string   `json:"version"`
+	Type           *string   `json:"type"`
+	Name           *string   `json:"name"`
+	Image          *string   `json:"image"`
+	Framework      *string   `json:"framework"`
+	Description    *string   `json:"description"`
+	Environment    []string  `json:"environment"`
+	RegistrySecret *string   `json:"registrySecret"`
+	Builder        *string   `json:"builder"`
+	BuildPacks     []string  `json:"buildPacks"`
+	Processes      []Process `json:"processes"`
+	CName          *CName    `json:"cname"`
+	AppUnit        *int      `json:"appUnit"`
 }
 
 type Process struct {
@@ -78,7 +78,7 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 
 	var envs []ketchv1.Env
 	if application.Environment != nil {
-		envs, err = utils.MakeEnvironments(*application.Environment)
+		envs, err = utils.MakeEnvironments(application.Environment)
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +90,7 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 		var beforeHooks []string
 		var afterHooks []string
 		ketchYamlProcessConfig := make(map[string]ketchv1.KetchYamlProcessConfig)
-		for _, process := range *application.Processes {
+		for _, process := range application.Processes {
 			processes = append(processes, ketchv1.ProcessSpec{
 				Name:  process.Name,
 				Cmd:   strings.Split(process.Cmd, " "),
@@ -140,11 +140,9 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 		appType:              application.Type,
 		image:                application.Image,
 		description:          application.Description,
-		envs:                 application.Environment,
 		framework:            application.Framework,
 		dockerRegistrySecret: application.RegistrySecret,
 		builder:              application.Builder,
-		buildPacks:           application.BuildPacks,
 		appUnit:              application.AppUnit,
 		timeout:              &o.Timeout,
 		wait:                 &o.Wait,
@@ -154,6 +152,12 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 	}
 	if application.CName != nil {
 		c.cname = &ketchv1.CnameList{application.CName.DNSName}
+	}
+	if application.Environment != nil {
+		c.envs = &application.Environment
+	}
+	if application.BuildPacks != nil {
+		c.buildPacks = &application.BuildPacks
 	}
 	if len(processes) > 0 {
 		c.processes = &processes
