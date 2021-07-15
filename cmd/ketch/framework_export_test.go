@@ -11,7 +11,7 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/mocks"
-	"github.com/shipa-corp/ketch/internal/testutils"
+	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
 
 func TestExportFramework(t *testing.T) {
@@ -19,7 +19,7 @@ func TestExportFramework(t *testing.T) {
 		Version:       "v1",
 		NamespaceName: "ketch-myframework",
 		Name:          "myframework",
-		AppQuotaLimit: testutils.IntPtr(1),
+		AppQuotaLimit: conversions.IntPtr(1),
 		IngressController: ketchv1.IngressControllerSpec{
 			ClassName:       "traefik",
 			ServiceEndpoint: "10.10.20.30",

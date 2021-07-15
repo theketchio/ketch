@@ -9,6 +9,7 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/utils"
+	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
 
 // Application represents the fields in an application.yaml file that will be
@@ -56,7 +57,7 @@ type CName struct {
 	DNSName string `json:"dnsName"`
 }
 
-var (
+const (
 	defaultVersion  = "v1"
 	defaultAppUnit  = 1
 	typeApplication = "Application"
@@ -170,16 +171,16 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 // apply defaults sets default values for a ChangeSet
 func (c *ChangeSet) applyDefaults() {
 	if c.appVersion == nil {
-		c.appVersion = &defaultVersion
+		c.appVersion = conversions.StrPtr(defaultVersion)
 	}
 	if c.appType == nil {
-		c.appType = &typeApplication
+		c.appType = conversions.StrPtr(typeApplication)
 	}
 	c.yamlStrictDecoding = true
 
 	// default to AppUnits if process.Units is unset
 	if c.appUnit == nil {
-		c.appUnit = &defaultAppUnit
+		c.appUnit = conversions.IntPtr(defaultAppUnit)
 	}
 	if c.processes != nil {
 		for i := range *c.processes {

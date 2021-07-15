@@ -6,8 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/shipa-corp/ketch/internal/testutils"
-
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -16,6 +14,7 @@ import (
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/mocks"
+	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
 
 func Test_frameworkUpdate(t *testing.T) {
@@ -50,7 +49,7 @@ func Test_frameworkUpdate(t *testing.T) {
 		},
 		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "frontend",
-			AppQuotaLimit: testutils.IntPtr(30),
+			AppQuotaLimit: conversions.IntPtr(30),
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       "default-classname",
 				ServiceEndpoint: "192.168.1.17",
@@ -92,7 +91,7 @@ ingressController:
 				Name:          "frontend-framework",
 				Version:       "v1",
 				NamespaceName: "ketch-frontend-framework",
-				AppQuotaLimit: testutils.IntPtr(30),
+				AppQuotaLimit: conversions.IntPtr(30),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.18",
@@ -116,7 +115,7 @@ ingressController:
 			wantOut: "Successfully updated!\n",
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
-				AppQuotaLimit: testutils.IntPtr(30),
+				AppQuotaLimit: conversions.IntPtr(30),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.18",
@@ -140,7 +139,7 @@ ingressController:
 			wantOut: "Successfully updated!\n",
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
-				AppQuotaLimit: testutils.IntPtr(30),
+				AppQuotaLimit: conversions.IntPtr(30),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "traefik",
 					ServiceEndpoint: "192.168.1.17",
@@ -164,7 +163,7 @@ ingressController:
 			wantOut: "Successfully updated!\n",
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "new-namespace",
-				AppQuotaLimit: testutils.IntPtr(30),
+				AppQuotaLimit: conversions.IntPtr(30),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.17",
@@ -188,7 +187,7 @@ ingressController:
 			wantOut: "Successfully updated!\n",
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
-				AppQuotaLimit: testutils.IntPtr(50),
+				AppQuotaLimit: conversions.IntPtr(50),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.17",
@@ -212,7 +211,7 @@ ingressController:
 			wantOut: "Successfully updated!\n",
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
-				AppQuotaLimit: testutils.IntPtr(30),
+				AppQuotaLimit: conversions.IntPtr(30),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.17",
@@ -236,7 +235,7 @@ ingressController:
 			wantOut: "Successfully updated!\n",
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
 				NamespaceName: "frontend",
-				AppQuotaLimit: testutils.IntPtr(30),
+				AppQuotaLimit: conversions.IntPtr(30),
 				IngressController: ketchv1.IngressControllerSpec{
 					ClassName:       "default-classname",
 					ServiceEndpoint: "192.168.1.17",
@@ -308,7 +307,7 @@ func TestUpdateFrameworkFromYaml(t *testing.T) {
 		},
 		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "frontend",
-			AppQuotaLimit: testutils.IntPtr(30),
+			AppQuotaLimit: conversions.IntPtr(30),
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       "default-classname",
 				ServiceEndpoint: "192.168.1.17",
@@ -350,7 +349,7 @@ ingressController:
 					Version:       "v1",
 					Name:          "frontend-framework",
 					NamespaceName: "my-namespace",
-					AppQuotaLimit: testutils.IntPtr(5),
+					AppQuotaLimit: conversions.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType:     "traefik",
 						ServiceEndpoint: "192.168.1.18",
@@ -379,7 +378,7 @@ ingressController:
 					Version:       "v1",
 					Name:          "frontend-framework",
 					NamespaceName: "ketch-frontend-framework",
-					AppQuotaLimit: testutils.IntPtr(-1),
+					AppQuotaLimit: conversions.IntPtr(-1),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: "traefik",
 						ClassName:   "traefik",
@@ -414,7 +413,7 @@ func TestUpdateFrameworkFromArgs(t *testing.T) {
 		},
 		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "frontend",
-			AppQuotaLimit: testutils.IntPtr(30),
+			AppQuotaLimit: conversions.IntPtr(30),
 			IngressController: ketchv1.IngressControllerSpec{
 				ClassName:       "default-classname",
 				ServiceEndpoint: "192.168.1.17",
@@ -459,7 +458,7 @@ func TestUpdateFrameworkFromArgs(t *testing.T) {
 				},
 				Spec: ketchv1.FrameworkSpec{
 					NamespaceName: "my-namespace",
-					AppQuotaLimit: testutils.IntPtr(5),
+					AppQuotaLimit: conversions.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType:     "istio",
 						ServiceEndpoint: "10.10.20.30",

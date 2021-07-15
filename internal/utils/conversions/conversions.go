@@ -1,4 +1,4 @@
-package testutils
+package conversions
 
 func IntPtr(i int) *int {
 	return &i

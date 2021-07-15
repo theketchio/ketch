@@ -1,11 +1,10 @@
 package main
 
 import (
-	"github.com/shipa-corp/ketch/internal/validation"
-
 	"github.com/spf13/cobra"
 
 	"github.com/shipa-corp/ketch/internal/deploy"
+	"github.com/shipa-corp/ketch/internal/validation"
 )
 
 const (
