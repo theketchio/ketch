@@ -28,7 +28,7 @@ func Test_newAppExportCmd(t *testing.T) {
 	}{
 		{
 			name: "happy path",
-			args: []string{"ketch", "foo-bar"},
+			args: []string{"foo-bar"},
 			appExport: func(ctx context.Context, cfg config, options appExportOptions) error {
 				require.Equal(t, "foo-bar", options.appName)
 				return nil
@@ -36,14 +36,14 @@ func Test_newAppExportCmd(t *testing.T) {
 		},
 		{
 			name:    "missing arg",
-			args:    []string{"ketch"},
+			args:    []string{},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Args = tt.args
 			cmd := newAppExportCmd(nil, tt.appExport)
+			cmd.SetArgs(tt.args)
 			err := cmd.Execute()
 			if tt.wantErr {
 				require.NotNil(t, err)
