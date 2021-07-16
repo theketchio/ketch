@@ -170,6 +170,16 @@ EOF
   [[ $result =~ $dataRegex ]]
 }
 
+@test "app export" {
+  run $KETCH app export "$APP_NAME"
+  result=$(cat app.yaml)
+  echo "RECEIVED:" $result
+  [[ $result =~ "name: $APP_NAME" ]]
+  [[ $result =~ "type: Application" ]]
+  [[ $result =~ "framework: $FRAMEWORK" ]]
+  rm -f framework.yaml
+}
+
 @test "app stop" {
   result=$($KETCH app stop "$APP_NAME")
   echo "RECEIVED:" $result

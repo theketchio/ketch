@@ -3,72 +3,66 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/yaml"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/chart"
+	"github.com/shipa-corp/ketch/internal/deploy"
 )
 
 const appExportHelp = `
-Export an application as a helm chart.
+Export an application as a yaml file.
 `
 
-type appExportFn func(ctx context.Context, cfg config, chartNew chartNewFn, options appExportOptions, out io.Writer) error
+type appExportFn func(ctx context.Context, cfg config, options appExportOptions) error
 
-func newAppExportCmd(cfg config, out io.Writer, appExport appExportFn) *cobra.Command {
+func newAppExportCmd(cfg config, appExport appExportFn) *cobra.Command {
 	options := appExportOptions{}
 	cmd := &cobra.Command{
 		Use:   "export APPNAME",
-		Short: "Export an app's chart templates",
+		Short: "Export an app's yaml",
 		Long:  appExportHelp,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
-			return appExport(cmd.Context(), cfg, chart.New, options, out)
+			return appExport(cmd.Context(), cfg, options)
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return autoCompleteAppNames(cfg, toComplete)
 		},
 	}
-	cmd.Flags().StringVarP(&options.directory, "directory", "d", "", "The directory with the templates")
-	cmd.MarkFlagRequired("directory")
+	cmd.Flags().StringVarP(&options.filename, "file", "f", "app.yaml", "filename for app export")
 	return cmd
 }
 
 type appExportOptions struct {
-	appName   string
-	directory string
+	appName  string
+	filename string
 }
 
-type chartNewFn func(application *ketchv1.App, framework *ketchv1.Framework, opts ...chart.Option) (*chart.ApplicationChart, error)
-
-func appExport(ctx context.Context, cfg config, chartNew chartNewFn, options appExportOptions, out io.Writer) error {
+func exportApp(ctx context.Context, cfg config, options appExportOptions) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
-	framework := ketchv1.Framework{}
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
-		return fmt.Errorf("failed to get framework: %w", err)
+	application := deploy.GetApplicationFromKetchApp(app)
+	// open file, err if exist, write application
+	_, err := os.Stat(options.filename)
+	if !os.IsNotExist(err) {
+		return errFileExists
 	}
-	tpls, err := cfg.Storage().Get(app.TemplatesConfigMapName(framework.Spec.IngressController.IngressType))
+	f, err := os.Create(options.filename)
 	if err != nil {
-		return fmt.Errorf("failed to get the app's templates: %w", err)
+		return err
 	}
-	chartOptions := []chart.Option{
-		chart.WithExposedPorts(app.ExposedPorts()),
-		chart.WithTemplates(*tpls),
-	}
-	appChrt, err := chartNew(&app, &framework, chartOptions...)
+	defer f.Close()
+	b, err := yaml.Marshal(application)
 	if err != nil {
-		return fmt.Errorf("failed to create helm chart: %w", err)
+		return err
 	}
-	if err := appChrt.ExportToDirectory(options.directory, chart.NewChartConfig(app)); err != nil {
-		return fmt.Errorf("failed to export the app's chart: %w", err)
-	}
-	fmt.Fprintln(out, "Successfully exported!")
-	return nil
+	_, err = f.Write(b)
+	return err
 }

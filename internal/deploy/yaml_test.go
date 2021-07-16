@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/stretchr/testify/require"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -275,6 +277,147 @@ environment:
 				require.Nil(t, err)
 				require.Equal(t, tt.changeSet, cs)
 			}
+		})
+	}
+}
+
+func TestGetApplicationFromKetchApp(t *testing.T) {
+	tests := []struct {
+		description string
+		app         ketchv1.App
+		application *Application
+	}{
+		{
+			description: "minimum required fields",
+			app: ketchv1.App{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: ketchv1.AppSpec{
+					Framework: "myframework",
+				},
+			},
+			application: &Application{
+				Type:      conversions.StrPtr(typeApplication),
+				Name:      conversions.StrPtr("test"),
+				Framework: conversions.StrPtr("myframework"),
+			},
+		},
+		{
+			description: "all fields",
+			app: ketchv1.App{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: ketchv1.AppSpec{
+					Framework:      "myframework",
+					Version:        conversions.StrPtr("v1"),
+					Description:    "a test",
+					Env:            []ketchv1.Env{{Name: "TEST_KEY", Value: "TEST_VALUE"}},
+					DockerRegistry: ketchv1.DockerRegistrySpec{SecretName: "a_secret"},
+					Builder:        "builder",
+					BuildPacks:     []string{"test/buildpack"},
+					Deployments: []ketchv1.AppDeploymentSpec{
+						{
+							Version: ketchv1.DeploymentVersion(1), // not latest deployment
+							Image:   "gcr.io/shipa-ci/sample-go-app:not_latest",
+						},
+						{
+							Version: ketchv1.DeploymentVersion(3),
+							Image:   "gcr.io/shipa-ci/sample-go-app:latest",
+							KetchYaml: &ketchv1.KetchYamlData{
+								Hooks: &ketchv1.KetchYamlHooks{
+									Restart: ketchv1.KetchYamlRestartHooks{
+										Before: []string{"echo before"},
+										After:  []string{"echo after"},
+									},
+								},
+								Kubernetes: &ketchv1.KetchYamlKubernetesConfig{
+									Processes: map[string]ketchv1.KetchYamlProcessConfig{
+										"process-1": {
+											Ports: []ketchv1.KetchYamlProcessPortConfig{
+												{Port: 8080, Protocol: "TCP", TargetPort: 80},
+											},
+										},
+										"process-2": {
+											Ports: []ketchv1.KetchYamlProcessPortConfig{
+												{Port: 9000, Protocol: "UDP", TargetPort: 9000},
+											},
+										},
+									},
+								},
+							},
+
+							Processes: []ketchv1.ProcessSpec{
+								{Name: "process-1", Cmd: []string{"python", "app.py"}, Units: conversions.IntPtr(1)},
+								{Name: "process-2", Cmd: []string{"go", "run", "main.go"}, Units: conversions.IntPtr(2)},
+								{Name: "process-3", Cmd: []string{"./bin/test"}, Units: conversions.IntPtr(1)},
+							},
+						},
+						{
+							Version: ketchv1.DeploymentVersion(2), // not latest deployment
+							Image:   "gcr.io/shipa-ci/sample-go-app:not_latest",
+						},
+					},
+					Ingress: ketchv1.IngressSpec{Cnames: []string{"test.com", "another.com"}},
+				},
+			},
+			application: &Application{
+				Version:        conversions.StrPtr("v1"),
+				Type:           conversions.StrPtr(typeApplication),
+				Name:           conversions.StrPtr("test"),
+				Image:          conversions.StrPtr("gcr.io/shipa-ci/sample-go-app:latest"),
+				Framework:      conversions.StrPtr("myframework"),
+				Description:    conversions.StrPtr("a test"),
+				Environment:    []string{"TEST_KEY=TEST_VALUE"},
+				RegistrySecret: conversions.StrPtr("a_secret"),
+				Builder:        conversions.StrPtr("builder"),
+				BuildPacks:     []string{"test/buildpack"},
+				CName: &CName{
+					DNSName: "test.com",
+				},
+				Processes: []Process{
+					{
+						Name:  "process-1",
+						Cmd:   "python app.py",
+						Units: conversions.IntPtr(1),
+						Ports: []Port{
+							{Port: 8080, Protocol: "TCP", TargetPort: 80},
+						},
+						Hooks: Hooks{Restart: Restart{
+							Before: "echo before",
+							After:  "echo after",
+						}},
+					},
+					{
+						Name:  "process-2",
+						Cmd:   "go run main.go",
+						Units: conversions.IntPtr(2),
+						Ports: []Port{
+							{Port: 9000, Protocol: "UDP", TargetPort: 9000},
+						},
+						Hooks: Hooks{Restart: Restart{
+							Before: "echo before",
+							After:  "echo after",
+						}},
+					},
+					{
+						Name:  "process-3",
+						Cmd:   "./bin/test",
+						Units: conversions.IntPtr(1),
+						Hooks: Hooks{Restart: Restart{
+							Before: "echo before",
+							After:  "echo after",
+						}},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.description, func(t *testing.T) {
+			res := GetApplicationFromKetchApp(tt.app)
+			require.Equal(t, tt.application, res)
 		})
 	}
 }
