@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -17,9 +18,9 @@ const appExportHelp = `
 Export an application as a yaml file.
 `
 
-type appExportFn func(ctx context.Context, cfg config, options appExportOptions) error
+type appExportFn func(ctx context.Context, cfg config, options appExportOptions, out io.Writer) error
 
-func newAppExportCmd(cfg config, appExport appExportFn) *cobra.Command {
+func newAppExportCmd(cfg config, appExport appExportFn, out io.Writer) *cobra.Command {
 	options := appExportOptions{}
 	cmd := &cobra.Command{
 		Use:   "export APPNAME",
@@ -28,13 +29,13 @@ func newAppExportCmd(cfg config, appExport appExportFn) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.appName = args[0]
-			return appExport(cmd.Context(), cfg, options)
+			return appExport(cmd.Context(), cfg, options, out)
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return autoCompleteAppNames(cfg, toComplete)
 		},
 	}
-	cmd.Flags().StringVarP(&options.filename, "file", "f", "app.yaml", "filename for app export")
+	cmd.Flags().StringVarP(&options.filename, "file", "f", "", "filename for app export")
 	return cmd
 }
 
@@ -43,26 +44,29 @@ type appExportOptions struct {
 	filename string
 }
 
-func exportApp(ctx context.Context, cfg config, options appExportOptions) error {
+func exportApp(ctx context.Context, cfg config, options appExportOptions, out io.Writer) error {
 	app := ketchv1.App{}
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
 	application := deploy.GetApplicationFromKetchApp(app)
-	// open file, err if exist, write application
-	_, err := os.Stat(options.filename)
-	if !os.IsNotExist(err) {
-		return errFileExists
+	if options.filename != "" {
+		// open file, err if exist, write application
+		_, err := os.Stat(options.filename)
+		if !os.IsNotExist(err) {
+			return errFileExists
+		}
+		f, err := os.Create(options.filename)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		out = f
 	}
-	f, err := os.Create(options.filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 	b, err := yaml.Marshal(application)
 	if err != nil {
 		return err
 	}
-	_, err = f.Write(b)
+	_, err = out.Write(b)
 	return err
 }

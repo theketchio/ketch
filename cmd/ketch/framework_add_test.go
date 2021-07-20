@@ -106,6 +106,7 @@ ingressController:
 				ingressClusterIssuer:   "le-production",
 			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
+				Name:          "hello",
 				NamespaceName: "gke",
 				AppQuotaLimit: conversions.IntPtr(5),
 				IngressController: ketchv1.IngressControllerSpec{
@@ -135,6 +136,7 @@ ingressController:
 				ingressClusterIssuer:   "le-production",
 			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
+				Name:          "hello",
 				NamespaceName: "gke",
 				AppQuotaLimit: conversions.IntPtr(5),
 				IngressController: ketchv1.IngressControllerSpec{
@@ -160,6 +162,7 @@ ingressController:
 				ingressType:            traefik,
 			},
 			wantFrameworkSpec: ketchv1.FrameworkSpec{
+				Name:          "aws",
 				NamespaceName: "ketch-aws",
 				AppQuotaLimit: conversions.IntPtr(5),
 				IngressController: ketchv1.IngressControllerSpec{
@@ -367,6 +370,7 @@ func TestNewFrameworkFromArgs(t *testing.T) {
 					Name: "hello",
 				},
 				Spec: ketchv1.FrameworkSpec{
+					Name:          "hello",
 					NamespaceName: "my-namespace",
 					AppQuotaLimit: conversions.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
@@ -389,6 +393,7 @@ func TestNewFrameworkFromArgs(t *testing.T) {
 					Name: "hello",
 				},
 				Spec: ketchv1.FrameworkSpec{
+					Name:          "hello",
 					NamespaceName: "ketch-hello",
 					AppQuotaLimit: conversions.IntPtr(5),
 					IngressController: ketchv1.IngressControllerSpec{
