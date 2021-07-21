@@ -12,12 +12,12 @@ import (
 )
 
 type YamlFile struct {
-	Name      string
-	Traefik   bool
-	Istio     bool
-	Common    bool
-	NoIngress bool
-	Content   string
+	Name    string
+	Traefik bool
+	Istio   bool
+	Common  bool
+	Job     bool
+	Content string
 }
 
 type context struct {
@@ -33,7 +33,7 @@ package templates
 type Yamls struct {
 	TraefikYamls map[string]string
 	IstioYamls map[string]string
-	NoIngressYamls map[string]string
+	JobYamls map[string]string
 }
 
 var GeneratedYamls = Yamls{
@@ -53,9 +53,9 @@ var GeneratedYamls = Yamls{
 {{- end }}
 {{- end }}
 },
-  NoIngressYamls: map[string]string {
+  JobYamls: map[string]string {
 {{- range $_, $yaml := .Yamls }}
-{{- if $yaml.NoIngress  }} 
+{{- if $yaml.Job  }} 
     "{{ $yaml.Name }}": 
 {{ $yaml.Content }},
 {{- end }}
@@ -112,12 +112,12 @@ func readDir(dir string) []YamlFile {
 			panic(err)
 		}
 		yamls = append(yamls, YamlFile{
-			Name:      info.Name(),
-			Traefik:   dir == "traefik",
-			Istio:     dir == "istio",
-			Common:    dir == "common",
-			NoIngress: dir != "traefik" && dir != "istio" && dir != "common",
-			Content:   fmt.Sprintf("`%s`", string(content)),
+			Name:    info.Name(),
+			Traefik: dir == "traefik",
+			Istio:   dir == "istio",
+			Common:  dir == "common",
+			Job:     dir == "job",
+			Content: fmt.Sprintf("`%s`", string(content)),
 		})
 	}
 	return yamls

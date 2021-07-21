@@ -87,7 +87,7 @@ func main() {
 		setupLog.Error(err, "unable to set default templates")
 		os.Exit(1)
 	}
-	if err = storage.Update(templates.IngressConfigMapName("none"), templates.NoIngressTemplates); err != nil {
+	if err = storage.Update(templates.IngressConfigMapName("none"), templates.JobTemplates); err != nil {
 		setupLog.Error(err, "unable to set default templates")
 		os.Exit(1)
 	}

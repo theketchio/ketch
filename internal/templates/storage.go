@@ -71,8 +71,8 @@ var (
 	TraefikDefaultTemplates = Templates{
 		Yamls: GeneratedYamls.TraefikYamls,
 	}
-	NoIngressTemplates = Templates{
-		Yamls: GeneratedYamls.NoIngressYamls,
+	JobTemplates = Templates{
+		Yamls: GeneratedYamls.JobYamls,
 	}
 )
 
