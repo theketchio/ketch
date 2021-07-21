@@ -91,7 +91,7 @@ func init() {
 
 // TemplatesConfigMapName returns a name of a configmap that contains templates used to render a helm chart.
 func (j *Job) TemplatesConfigMapName() string {
-	return templates.IngressConfigMapName("none")
+	return templates.JobConfigMapName()
 }
 
 // Condition looks for a condition with the provided type in the condition list and returns it.

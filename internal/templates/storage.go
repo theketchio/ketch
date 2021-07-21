@@ -81,6 +81,11 @@ func IngressConfigMapName(ingress string) string {
 	return fmt.Sprintf("ingress-%s-templates", ingress)
 }
 
+// JobConfigMapName returns a name of a configmap to store the job's templates to render the helm chart
+func JobConfigMapName() string {
+	return "job-templates"
+}
+
 // Get returns templates stored in a configmap with the provided name.
 func (s *Storage) Get(name string) (*Templates, error) {
 	ctx := context.TODO()
