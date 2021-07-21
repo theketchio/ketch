@@ -71,11 +71,19 @@ var (
 	TraefikDefaultTemplates = Templates{
 		Yamls: GeneratedYamls.TraefikYamls,
 	}
+	JobTemplates = Templates{
+		Yamls: GeneratedYamls.JobYamls,
+	}
 )
 
 // IngressConfigMapName returns a name of a configmap to store the ingress' templates to render helm chart.
 func IngressConfigMapName(ingress string) string {
 	return fmt.Sprintf("ingress-%s-templates", ingress)
+}
+
+// JobConfigMapName returns a name of a configmap to store the job's templates to render the helm chart
+func JobConfigMapName() string {
+	return "job-templates"
 }
 
 // Get returns templates stored in a configmap with the provided name.

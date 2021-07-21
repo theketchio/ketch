@@ -16,6 +16,7 @@ type YamlFile struct {
 	Traefik bool
 	Istio   bool
 	Common  bool
+	Job     bool
 	Content string
 }
 
@@ -32,6 +33,7 @@ package templates
 type Yamls struct {
 	TraefikYamls map[string]string
 	IstioYamls map[string]string
+	JobYamls map[string]string
 }
 
 var GeneratedYamls = Yamls{
@@ -51,6 +53,14 @@ var GeneratedYamls = Yamls{
 {{- end }}
 {{- end }}
 },
+  JobYamls: map[string]string {
+{{- range $_, $yaml := .Yamls }}
+{{- if $yaml.Job  }} 
+    "{{ $yaml.Name }}": 
+{{ $yaml.Content }},
+{{- end }}
+{{- end }}
+},
 }
 `
 )
@@ -60,6 +70,7 @@ func main() {
 	yamls := readDir("common")
 	yamls = append(yamls, readDir("traefik")...)
 	yamls = append(yamls, readDir("istio")...)
+	yamls = append(yamls, readDir("job")...)
 
 	tmpl, err := template.New("tpl").Parse(yamlsTemplate)
 
@@ -105,6 +116,7 @@ func readDir(dir string) []YamlFile {
 			Traefik: dir == "traefik",
 			Istio:   dir == "istio",
 			Common:  dir == "common",
+			Job:     dir == "job",
 			Content: fmt.Sprintf("`%s`", string(content)),
 		})
 	}
