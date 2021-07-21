@@ -4,6 +4,7 @@
 resources:
 - bases/theketch.io_apps.yaml
 - bases/theketch.io_frameworks.yaml
+- bases/theketch.io_jobs.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

@@ -42,3 +42,4 @@ jobs:
         - bash cli_tests/install_bats.sh
         - bash cli_tests/install_ketch.sh
         - bats cli_tests/app.sh
+        - bats cli_tests/job.sh

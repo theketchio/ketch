@@ -7,16 +7,16 @@ metadata:
   name: {{ $.Values.job.name }}
 spec:
   {{- if $.Values.job.parallelism }}
-{{ $.Values.job.parallelism | toYaml | indent 4 }}
+  parallelism: {{ $.Values.job.parallelism }}
   {{- end }}
   {{- if $.Values.job.parallelism }}
-{{ $.Values.job.parallelism | toYaml | indent 4 }}
+  completions: {{ $.Values.job.completions }}
   {{- end }}
   {{- if $.Values.job.backoffLimit }}
-{{ $.Values.job.backoffLimit | toYaml | indent 4 }}
+  backoffLimit: {{ $.Values.job.backoffLimit }}
   {{- end }}
   {{- if $.Values.job.suspend }}
-{{ $.Values.job.suspend | toYaml | indent 4 }}
+  suspend: {{ $.Values.job.suspend }}
   {{- end }}
   template:
     spec:
