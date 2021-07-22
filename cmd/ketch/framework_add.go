@@ -150,6 +150,7 @@ func newFrameworkFromArgs(options frameworkAddOptions) *ketchv1.Framework {
 			Name: options.name,
 		},
 		Spec: ketchv1.FrameworkSpec{
+			Name:          options.name,
 			NamespaceName: namespace,
 			AppQuotaLimit: &options.appQuotaLimit,
 			IngressController: ketchv1.IngressControllerSpec{

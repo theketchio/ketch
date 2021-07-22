@@ -16,7 +16,7 @@ import (
 // Application represents the fields in an application.yaml file that will be
 // transitioned to a ChangeSet.
 type Application struct {
-	Version        *string   `json:"version"`
+	Version        *string   `json:"version,omitempty"`
 	Type           *string   `json:"type"`
 	Name           *string   `json:"name"`
 	Image          *string   `json:"image,omitempty"`

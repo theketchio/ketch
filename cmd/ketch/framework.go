@@ -39,7 +39,7 @@ func newFrameworkCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.AddCommand(newFrameworkAddCmd(cfg, out, addFramework))
 	cmd.AddCommand(newFrameworkRemoveCmd(cfg, out))
 	cmd.AddCommand(newFrameworkUpdateCmd(cfg, out))
-	cmd.AddCommand(newFrameworkExportCmd(cfg))
+	cmd.AddCommand(newFrameworkExportCmd(cfg, out))
 	return cmd
 }
 

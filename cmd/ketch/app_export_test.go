@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,7 +31,7 @@ func Test_newAppExportCmd(t *testing.T) {
 		{
 			name: "happy path",
 			args: []string{"foo-bar"},
-			appExport: func(ctx context.Context, cfg config, options appExportOptions) error {
+			appExport: func(ctx context.Context, cfg config, options appExportOptions, out io.Writer) error {
 				require.Equal(t, "foo-bar", options.appName)
 				return nil
 			},
@@ -42,7 +44,7 @@ func Test_newAppExportCmd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := newAppExportCmd(nil, tt.appExport)
+			cmd := newAppExportCmd(nil, tt.appExport, &bytes.Buffer{})
 			cmd.SetArgs(tt.args)
 			err := cmd.Execute()
 			if tt.wantErr {
@@ -113,6 +115,27 @@ func Test_appExport(t *testing.T) {
 				},
 			},
 			options: appExportOptions{
+				appName:  "dashboard",
+				filename: "app.yaml",
+			},
+			wantOut: `framework: gke
+name: dashboard
+type: Application
+version: v1
+`,
+		},
+		{
+			name: "success - stdout",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{dashboard, gke},
+				StorageInstance: &mockStorage{
+					OnGet: func(name string) (*templates.Templates, error) {
+						require.Equal(t, templates.IngressConfigMapName(ketchv1.IstioIngressControllerType.String()), name)
+						return &templates.Templates{}, nil
+					},
+				},
+			},
+			options: appExportOptions{
 				appName: "dashboard",
 			},
 			wantOut: `framework: gke
@@ -136,15 +159,20 @@ version: v1
 		t.Run(tt.name, func(t *testing.T) {
 			tt.options.filename = filepath.Join(t.TempDir(), "app.yaml")
 			defer os.Remove(tt.options.filename)
-
-			err := exportApp(context.Background(), tt.cfg, tt.options)
+			buf := &bytes.Buffer{}
+			err := exportApp(context.Background(), tt.cfg, tt.options, buf)
 			if tt.wantErr != "" {
 				require.Equal(t, err.Error(), tt.wantErr)
+				return
 			} else {
 				require.Nil(t, err)
+			}
+			if tt.options.filename != "" {
 				b, err := os.ReadFile(tt.options.filename)
 				require.Nil(t, err)
 				require.Equal(t, tt.wantOut, string(b))
+			} else {
+				require.Equal(t, tt.wantOut, buf.String())
 			}
 		})
 	}
