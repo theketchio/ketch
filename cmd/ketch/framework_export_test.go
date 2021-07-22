@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"testing"
@@ -54,6 +55,24 @@ version: v1
 `,
 		},
 		{
+			name: "success - stdout",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects:    []runtime.Object{mockFramework},
+				DynamicClientObjects: []runtime.Object{},
+			},
+			options: frameworkExportOptions{frameworkName: "myframework"},
+			expected: `appQuotaLimit: 1
+ingressController:
+  className: traefik
+  clusterIssuer: letsencrypt
+  serviceEndpoint: 10.10.20.30
+  type: traefik
+name: myframework
+namespace: ketch-myframework
+version: v1
+`,
+		},
+		{
 			name: "error - file exists",
 			cfg: &mocks.Configuration{
 				CtrlClientObjects:    []runtime.Object{mockFramework},
@@ -72,16 +91,21 @@ version: v1
 			if tt.before != nil {
 				tt.before()
 			}
-			err := exportFramework(context.Background(), tt.cfg, tt.options)
+			buf := &bytes.Buffer{}
+			err := exportFramework(context.Background(), tt.cfg, tt.options, buf)
 			if tt.err != nil {
 				require.Equal(t, tt.err, err)
 				return
 			} else {
 				require.Nil(t, err)
 			}
-			data, err := os.ReadFile(tt.options.filename)
-			require.Nil(t, err)
-			require.Equal(t, tt.expected, string(data))
+			if tt.options.filename != "" {
+				data, err := os.ReadFile(tt.options.filename)
+				require.Nil(t, err)
+				require.Equal(t, tt.expected, string(data))
+			} else {
+				require.Equal(t, tt.expected, buf.String())
+			}
 		})
 	}
 }

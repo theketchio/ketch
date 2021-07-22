@@ -40,7 +40,7 @@ func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client, configDefaultBui
 	cmd.AddCommand(newAppInfoCmd(cfg, out))
 	cmd.AddCommand(newAppStartCmd(cfg, out, appStart))
 	cmd.AddCommand(newAppStopCmd(cfg, out, appStop))
-	cmd.AddCommand(newAppExportCmd(cfg, exportApp))
+	cmd.AddCommand(newAppExportCmd(cfg, exportApp, out))
 	return cmd
 }
 

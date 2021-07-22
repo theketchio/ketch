@@ -77,7 +77,7 @@ EOF
 }
 
 @test "framework export" {
-  run $KETCH framework export "$FRAMEWORK"
+  run $KETCH framework export "$FRAMEWORK" -f framework.yaml
   result=$(cat framework.yaml)
   echo "RECEIVED:" $result
   [[ $result =~ "name: $FRAMEWORK" ]]
@@ -171,13 +171,13 @@ EOF
 }
 
 @test "app export" {
-  run $KETCH app export "$APP_NAME"
+  run $KETCH app export "$APP_NAME" -f app.yaml
   result=$(cat app.yaml)
   echo "RECEIVED:" $result
   [[ $result =~ "name: $APP_NAME" ]]
   [[ $result =~ "type: Application" ]]
   [[ $result =~ "framework: $FRAMEWORK" ]]
-  rm -f framework.yaml
+  rm -f app.yaml
 }
 
 @test "app stop" {
