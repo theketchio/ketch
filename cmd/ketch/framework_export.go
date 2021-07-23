@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/yaml"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -44,18 +43,5 @@ func exportFramework(ctx context.Context, cfg config, options frameworkExportOpt
 	}
 	framework.Spec.Name = framework.Name
 
-	if options.filename != "" {
-		f, err := output.GetOutputFile(options.filename)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		out = f
-	}
-	b, err := yaml.Marshal(framework.Spec)
-	if err != nil {
-		return err
-	}
-	_, err = out.Write(b)
-	return err
+	return output.WriteToFileOrOut(framework.Spec, out, options.filename)
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/yaml"
 
 	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -49,18 +48,5 @@ func jobExport(ctx context.Context, cfg config, options jobExportOptions, out io
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.name}, &job); err != nil {
 		return err
 	}
-	if options.filename != "" {
-		f, err := output.GetOutputFile(options.filename)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		out = f
-	}
-	b, err := yaml.Marshal(job.Spec)
-	if err != nil {
-		return err
-	}
-	_, err = out.Write(b)
-	return err
+	return output.WriteToFileOrOut(job.Spec, out, options.filename)
 }
