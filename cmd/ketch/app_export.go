@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/deploy"
 )
@@ -51,12 +51,7 @@ func exportApp(ctx context.Context, cfg config, options appExportOptions, out io
 	}
 	application := deploy.GetApplicationFromKetchApp(app)
 	if options.filename != "" {
-		// open file, err if exist, write application
-		_, err := os.Stat(options.filename)
-		if !os.IsNotExist(err) {
-			return errFileExists
-		}
-		f, err := os.Create(options.filename)
+		f, err := output.GetOutputFile(options.filename)
 		if err != nil {
 			return err
 		}

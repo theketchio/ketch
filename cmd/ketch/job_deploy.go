@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -55,25 +55,16 @@ func jobDeploy(ctx context.Context, cfg config, filename string, out io.Writer) 
 		return err
 	}
 
-	var job ketchv1.Job
-	err = cfg.Client().Get(ctx, types.NamespacedName{Name: spec.Name}, &job)
+	job := &ketchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: spec.Name}}
+	_, err = controllerutil.CreateOrUpdate(ctx, cfg.Client(), job, func() error {
+		job.Spec = spec
+		return nil
+	})
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			job.ObjectMeta.Name = spec.Name
-			job.Spec = spec
-			if err := cfg.Client().Create(ctx, &job); err != nil {
-				return fmt.Errorf("failed to create job: %w", err)
-			}
-			fmt.Fprintln(out, "Successfully added!")
-			return nil
-		}
 		return err
 	}
-	job.Spec = spec
-	if err := cfg.Client().Update(ctx, &job); err != nil {
-		return fmt.Errorf("failed to create job: %w", err)
-	}
-	fmt.Fprintln(out, "Successfully updated!")
+
+	fmt.Fprintln(out, "Successfully added!")
 	return nil
 }
 

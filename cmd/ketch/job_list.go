@@ -59,7 +59,7 @@ func generateJobListOutput(jobs ketchv1.JobList) []jobListOutput {
 func jobListNames(cfg config, nameFilter ...string) ([]string, error) {
 	jobs := ketchv1.JobList{}
 	if err := cfg.Client().List(context.TODO(), &jobs); err != nil {
-		return nil, fmt.Errorf("failed to list apps: %w", err)
+		return nil, fmt.Errorf("failed to list jobs: %w", err)
 	}
 
 	jobNames := make([]string, 0)

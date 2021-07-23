@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"errors"
 	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
@@ -19,8 +18,6 @@ type frameworkExportOptions struct {
 }
 
 const frameworkExportHelp = `Export a framework's configuration file.`
-
-var errFileExists = errors.New("file already exists")
 
 func newFrameworkExportCmd(cfg config, out io.Writer) *cobra.Command {
 	var options frameworkExportOptions
@@ -48,12 +45,7 @@ func exportFramework(ctx context.Context, cfg config, options frameworkExportOpt
 	framework.Spec.Name = framework.Name
 
 	if options.filename != "" {
-		// open file, err if exist, write framework.Spec
-		_, err = os.Stat(options.filename)
-		if !os.IsNotExist(err) {
-			return errFileExists
-		}
-		f, err := os.Create(options.filename)
+		f, err := output.GetOutputFile(options.filename)
 		if err != nil {
 			return err
 		}

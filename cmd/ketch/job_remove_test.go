@@ -72,9 +72,8 @@ func TestJobRemove(t *testing.T) {
 				require.NotNil(t, err)
 				require.Equal(t, tt.wantErr, err.Error())
 				return
-			} else {
-				require.Nil(t, err)
 			}
+			require.Nil(t, err)
 			require.Equal(t, tt.wantOut, out.String())
 		})
 	}
