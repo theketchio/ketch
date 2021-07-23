@@ -22,7 +22,7 @@ getPlatform() {
   case "${UNAME}" in
   Darwin)
     OSX_ARCH=$(uname -m)
-    if [ "${OSX_ARCH}" = "x86_64" ]; then
+    if [ "${OSX_ARCH}" = "x86_64" ] || [ "${OSX_ARCH}" = "arm64" ]; then
       PLATFORM="darwin-amd64"
     else
       echo "Sorry, architecture not supported: ${OSX_ARCH}. Download binary from ${RELEASE_DOWNLOAD_URL}"
