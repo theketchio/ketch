@@ -87,3 +87,11 @@ func autoCompleteFrameworkNames(cfg config, toComplete ...string) ([]string, cob
 func autoCompleteBuilderNames(cfg config, toComplete ...string) ([]string, cobra.ShellCompDirective) {
 	return builderList.Names(toComplete...), cobra.ShellCompDirectiveNoSpace
 }
+
+func autoCompleteJobNames(cfg config, toComplete ...string) ([]string, cobra.ShellCompDirective) {
+	names, err := jobListNames(cfg, toComplete...)
+	if err != nil {
+		return []string{err.Error()}, cobra.ShellCompDirectiveError
+	}
+	return names, cobra.ShellCompDirectiveNoSpace
+}

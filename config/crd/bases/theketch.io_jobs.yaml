@@ -8,13 +8,17 @@ metadata:
   creationTimestamp: null
   name: jobs.theketch.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.Framework
+    name: Framework
+    type: string
   group: theketch.io
   names:
     kind: Job
     listKind: JobList
     plural: jobs
     singular: job
-  scope: Namespaced
+  scope: Cluster
   subresources:
     status: {}
   validation:
@@ -71,8 +75,6 @@ spec:
               properties:
                 restartPolicy:
                   type: string
-              required:
-              - restartPolicy
               type: object
             suspend:
               type: boolean
@@ -81,12 +83,9 @@ spec:
             version:
               type: string
           required:
-          - description
           - framework
           - name
-          - policy
           - type
-          - version
           type: object
         status:
           description: JobStatus defines the observed state of Job

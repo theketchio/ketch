@@ -1,6 +1,5 @@
 /*
 Copyright 2021.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -18,23 +17,24 @@ package v1beta1
 
 import (
 	"github.com/shipa-corp/ketch/internal/templates"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // JobSpec defines the desired state of Job
 type JobSpec struct {
-	Version      string      `json:"version"`
+	Version      string      `json:"version,omitempty"`
 	Type         string      `json:"type"`
 	Name         string      `json:"name"`
 	Framework    string      `json:"framework"`
-	Description  string      `json:"description"`
+	Description  string      `json:"description,omitempty"`
 	Parallelism  int         `json:"parallelism,omitempty"`
 	Completions  int         `json:"completions,omitempty"`
 	Suspend      bool        `json:"suspend,omitempty"`
 	BackoffLimit int         `json:"backoffLimit,omitempty"`
 	Containers   []Container `json:"containers,omitempty"`
-	Policy       Policy      `json:"policy"`
+	Policy       Policy      `json:"policy,omitempty"`
 }
 
 // JobStatus defines the observed state of Job
@@ -45,6 +45,8 @@ type JobStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster
+// +kubebuilder:printcolumn:name="Framework",type=string,JSONPath=`.spec.Framework`
 
 // Job is the Schema for the jobs API
 type Job struct {
@@ -66,7 +68,7 @@ type JobList struct {
 
 // Policy represents the policy types a job can have
 type Policy struct {
-	RestartPolicy RestartPolicy `json:"restartPolicy"`
+	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
 }
 
 // Container represents a single container run in a Job

@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/shipa-corp/ketch/cmd/ketch/output"
+
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -82,7 +84,7 @@ version: v1
 			before: func() {
 				os.WriteFile("test-framework.yaml", []byte("data"), os.ModePerm)
 			},
-			err: errFileExists,
+			err: output.ErrFileExists,
 		},
 	}
 	for _, tt := range tests {

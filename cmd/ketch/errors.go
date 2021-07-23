@@ -15,6 +15,9 @@ const (
 	ErrInvalidAppName cliError = "invalid app name, app name should have at most 40 " +
 		"characters, containing only lower case letters, numbers or dashes, starting with a letter"
 
+	ErrInvalidJobName cliError = "invalid job name, job name should have at most 40 " +
+		"characters, containing only lower case letters, numbers or dashes, starting with a letter"
+
 	ErrNoEntrypointAndCmd   cliError = "image doesn't have entrypoint and cmd set"
 	ErrLogUnknownTimeFormat cliError = "unknown time format"
 
