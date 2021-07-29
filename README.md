@@ -12,7 +12,7 @@ Ketch is an application delivery framework that facilitates the deployment and m
 # Contents
 * [Ketch Overview](https://learn.theketch.io/docs/overview)
 * [Architecture](https://learn.theketch.io/docs/architecture)
-* [Getting Started](#getting-started)
+* [Getting Started](https://learn.theketch.io/docs/getting-started)
 * [Deploying a sample application](https://learn.theketch.io/docs/getting-started#deploying-an-application)  
 * [Get Involved](#get-involved)
   * [Office Hours](#office-hours)
@@ -20,59 +20,6 @@ Ketch is an application delivery framework that facilitates the deployment and m
 
 ## Architecture Diagram
 ![Architecture](./img/ketch-architecture.png)
-
-## Getting Started
-
-### Download and Install Ketch
-The latest Ketch release can be found [here](https://github.com/shipa-corp/ketch/releases). Use the following commands
-to install Ketch,
-
-Install latest at /usr/local/bin default location
-
-```bash
-curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | bash
-```
-
-Alternatively, you can install specific tag at a target location, for example command below installs ketch version v0.4.0 in current directory:
-
-```bash
-curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | INSTALL_DIR=. TAG=v0.4.0  bash
-```
-
-
-
-### Install Ingress Controller
-
-At present, Ketch supports Istio and Traefik ingress controllers.
-
-Here is how you can install Traefik:
-
-Use [Helm](https://helm.sh/docs/intro/install/) to install Traefik.
-
-```bash
-helm repo add traefik https://helm.traefik.io/traefik
-helm repo update
-helm install traefik traefik/traefik
-```
-
-Or you can install Istio:
-
-```bash
-curl -Ls https://istio.io/downloadIstio | ISTIO_VERSION=1.9.0 sh -
-export PATH=$PWD/istio-1.9.0/bin:$PATH
-istioctl install --set profile=demo
-```
-
-### Install Cert Manager.
-```bash
-kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.0.3/cert-manager.yaml
-```
-### Install Ketch controller.
-```bash
-kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/v0.4.0/ketch-controller.yaml
-```
-
-Thats it!
 
 ## Using Ketch
 
