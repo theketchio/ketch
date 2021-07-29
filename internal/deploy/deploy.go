@@ -5,8 +5,6 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -113,16 +111,6 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 		app = a
 
 		if cs.sourcePath != nil {
-			if cs.processes != nil {
-				err = chart.AssertProcfileNotExist()
-				if err != nil {
-					return fmt.Errorf("%s: building from source writes specified processes to a Procfile in the project root", err.Error())
-				}
-				err = chart.WriteProcfile(*cs.processes, path.Join(*cs.sourcePath, defaultProcFile))
-				if err != nil {
-					return err
-				}
-			}
 			if err := validateSourceDeploy(cs); err != nil {
 				return err
 			}
@@ -221,13 +209,6 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 		sourcePath, _ := params.getSourceDirectory()
 		if err := buildFromSource(ctx, svc, app, params.appName, image, sourcePath); err != nil {
 			return errors.Wrap(err, "failed to build image from source path %q", sourcePath)
-		}
-		if params.processes != nil {
-			// clean up generated Procfile when built from source using yaml-specified processes
-			err = os.Remove("Procfile")
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -432,6 +413,14 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			s := ketchv1.NewSelector(args.version, args.process)
 			if err := updated.SetUnits(s, args.units); err != nil {
 				return err
+			}
+		}
+		if args.processes != nil {
+			for _, process := range *args.processes {
+				s := ketchv1.NewSelector(1, process.Name) // no process versions other than 1 w/ app.yaml (potentially multiple args.processes)
+				if err := updated.SetUnits(s, *process.Units); err != nil {
+					return err
+				}
 			}
 		}
 		return svc.Client.Update(ctx, &updated)

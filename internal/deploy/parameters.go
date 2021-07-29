@@ -116,7 +116,6 @@ type ChangeSet struct {
 	buildPacks           *[]string
 	appVersion           *string
 	appType              *string
-	appUnit              *int
 	processes            *[]ketchv1.ProcessSpec
 	ketchYamlData        *ketchv1.KetchYamlData
 	cname                *ketchv1.CnameList
@@ -329,7 +328,7 @@ func (c *ChangeSet) getBuilder(spec ketchv1.AppSpec) string {
 
 func (c *ChangeSet) getUnits() (int, error) {
 	if c.units == nil {
-		return 0, nil
+		return 1, nil
 	}
 	if *c.units < 1 {
 		return 0, fmt.Errorf("%w %s must be 1 or greater",
@@ -410,8 +409,4 @@ func (c *ChangeSet) getKetchYaml() (*ketchv1.KetchYamlData, error) {
 		return nil, err
 	}
 	return data, nil
-}
-
-func (c *ChangeSet) getAppUnit() int {
-	return *c.appUnit
 }
