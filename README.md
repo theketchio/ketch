@@ -25,61 +25,6 @@ Ketch is an application delivery framework that facilitates the deployment and m
 
 Learn more about Ketch at [Ketch documentation](https://learn.theketch.io/docs)
 
-### Quick Start
-Deploying apps is easy once you've installed Ketch.  First, create a framework. Then create app(s) adding them to the framework and finally
-deploy the app(s).  The following example illustrates these steps.
-
-```bash
-# Add a framework with ingress Traefik (default), replace ingress IP address by your ingress IP address
-ketch framework add myframework  --ingress-service-endpoint 35.247.8.23 --ingress-type traefik
-
-# Deploy app using docker image
-ketch app deploy -k myframework bulletinboard -i docker.io/shipasoftware/bulletinboard:1.0
-
-# Check app status
-ketch app list
-
-NAME             FRAMEWORK   STATE             ADDRESSES                                      BUILDER    DESCRIPTION
-bulletinboard    myframework      1 running    http://bulletinboard.35.247.8.23.shipa.cloud
-```
-After you deploy your application, you can access it at the address associated with it using the `ketch app list`, in
-this example `bulletinboard.35.247.8.23.shipa.cloud`.
-
-### Usage
-For details see https://theketch.io.
-
-```bash
-Usage:
-  ketch [flags]
-  ketch [command]
-
-Available Commands:
-  app         Manage applications
-  cname       Manage cnames of an application
-  env         Manage an app's environment variables
-  help        Help about any command
-  builder     Manage pack builders
-  framework   Manage frameworks
-  unit        Manage an app's units
-
-Flags:
-  -h, --help      help for ketch
-  -v, --version   version for ketch
-
-Use "ketch [command] --help" for more information about a command.
-```
-
-## Shell autocompletion
-
-Ketch supports shell autocompletion for:
-- bash
-- zsh
-- fish
-- PowerShell
-
-To get instructions on how to install shell autocompletion use following command:
-`ketch completion -h`
-
 ## Get Involved
 
 * Discuss Ketch on [slack](https://join.slack.com/t/shipaco/shared_invite/zt-mqy8plp1-DxFKP102VJtUn5q9tzom9Q) or our [dev mailing list](https://groups.google.com/g/ketch-dev)
