@@ -4,9 +4,8 @@ import (
 	"os"
 	"testing"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/utils/conversions"
@@ -29,31 +28,16 @@ image: gcr.io/kubernetes/sample-app:latest
 framework: myframework
 description: a test
 builder: heroku/buildpacks:20
-buildPacks: 
+buildPacks:
   - test-buildpack
 environment:
   - PORT=6666
   - FOO=bar
 processes:
   - name: web
-    cmd: python app.py
     units: 1
-    ports:
-      - port: 8888
-        targetPort: 6666
-        protocol: TCP
-    hooks:
-      restart:
-        before: pwd
-        after: echo "test"
   - name: worker
-    cmd: python app.py
     units: 1
-    ports:
-      - targetPort: 6666
-        port: 8888
-        protocol: TCP
-appUnit: 2
 cname:
   dnsName: test.10.10.10.20`,
 			options: &Options{
@@ -63,7 +47,6 @@ cname:
 			},
 			changeSet: &ChangeSet{
 				appName:              "test",
-				appUnit:              conversions.IntPtr(2),
 				yamlStrictDecoding:   true,
 				sourcePath:           conversions.StrPtr("."),
 				image:                conversions.StrPtr("gcr.io/kubernetes/sample-app:latest"),
@@ -79,7 +62,6 @@ cname:
 				processes: &[]ketchv1.ProcessSpec{
 					{
 						Name:  "web",
-						Cmd:   []string{"python", "app.py"},
 						Units: conversions.IntPtr(1),
 						Env: []ketchv1.Env{
 							{
@@ -94,7 +76,6 @@ cname:
 					},
 					{
 						Name:  "worker",
-						Cmd:   []string{"python", "app.py"},
 						Units: conversions.IntPtr(1),
 						Env: []ketchv1.Env{
 							{
@@ -105,36 +86,6 @@ cname:
 								Name:  "FOO",
 								Value: "bar",
 							},
-						},
-					},
-				},
-				ketchYamlData: &ketchv1.KetchYamlData{
-					Kubernetes: &ketchv1.KetchYamlKubernetesConfig{
-						Processes: map[string]ketchv1.KetchYamlProcessConfig{
-							"web": ketchv1.KetchYamlProcessConfig{
-								Ports: []ketchv1.KetchYamlProcessPortConfig{
-									{
-										Protocol:   "TCP",
-										Port:       8888,
-										TargetPort: 6666,
-									},
-								},
-							},
-							"worker": ketchv1.KetchYamlProcessConfig{
-								Ports: []ketchv1.KetchYamlProcessPortConfig{
-									{
-										Protocol:   "TCP",
-										Port:       8888,
-										TargetPort: 6666,
-									},
-								},
-							},
-						},
-					},
-					Hooks: &ketchv1.KetchYamlHooks{
-						Restart: ketchv1.KetchYamlRestartHooks{
-							Before: []string{"pwd"},
-							After:  []string{"echo \"test\""},
 						},
 					},
 				},
@@ -150,7 +101,6 @@ image: gcr.io/kubernetes/sample-app:latest`,
 			options: &Options{},
 			changeSet: &ChangeSet{
 				appName:            "test",
-				appUnit:            conversions.IntPtr(1),
 				yamlStrictDecoding: true,
 				image:              conversions.StrPtr("gcr.io/kubernetes/sample-app:latest"),
 				framework:          conversions.StrPtr("myframework"),
@@ -187,7 +137,6 @@ image: gcr.io/kubernetes/sample-app:latest
 framework: myframework
 description: a test
 builder: heroku/buildpacks:20
-appUnit: 2
 processes:
   - name: web
     cmd: python app.py
@@ -199,7 +148,6 @@ processes:
 			},
 			changeSet: &ChangeSet{
 				appName:            "test",
-				appUnit:            conversions.IntPtr(2),
 				yamlStrictDecoding: true,
 				sourcePath:         conversions.StrPtr("."),
 				image:              conversions.StrPtr("gcr.io/kubernetes/sample-app:latest"),
@@ -211,23 +159,15 @@ processes:
 				processes: &[]ketchv1.ProcessSpec{
 					{
 						Name:  "web",
-						Cmd:   []string{"python", "app.py"},
 						Units: conversions.IntPtr(1),
 					},
 					{
 						Name:  "worker",
-						Cmd:   []string{"python", "app.py"},
-						Units: conversions.IntPtr(2),
+						Units: conversions.IntPtr(1),
 					},
 				},
 				appVersion: conversions.StrPtr("v1"),
 				appType:    conversions.StrPtr("Application"),
-				ketchYamlData: &ketchv1.KetchYamlData{
-					Hooks: &ketchv1.KetchYamlHooks{
-						Restart: ketchv1.KetchYamlRestartHooks{},
-					},
-					Kubernetes: &ketchv1.KetchYamlKubernetesConfig{Processes: map[string]ketchv1.KetchYamlProcessConfig{}},
-				},
 			},
 		},
 		{
@@ -239,7 +179,6 @@ image: gcr.io/kubernetes/sample-app:latest
 			options: &Options{},
 			changeSet: &ChangeSet{
 				appName:            "test",
-				appUnit:            conversions.IntPtr(1),
 				yamlStrictDecoding: true,
 				image:              conversions.StrPtr("gcr.io/kubernetes/sample-app:latest"),
 				framework:          conversions.StrPtr("myframework"),
@@ -325,33 +264,10 @@ func TestGetApplicationFromKetchApp(t *testing.T) {
 						{
 							Version: ketchv1.DeploymentVersion(3),
 							Image:   "gcr.io/shipa-ci/sample-go-app:latest",
-							KetchYaml: &ketchv1.KetchYamlData{
-								Hooks: &ketchv1.KetchYamlHooks{
-									Restart: ketchv1.KetchYamlRestartHooks{
-										Before: []string{"echo before"},
-										After:  []string{"echo after"},
-									},
-								},
-								Kubernetes: &ketchv1.KetchYamlKubernetesConfig{
-									Processes: map[string]ketchv1.KetchYamlProcessConfig{
-										"process-1": {
-											Ports: []ketchv1.KetchYamlProcessPortConfig{
-												{Port: 8080, Protocol: "TCP", TargetPort: 80},
-											},
-										},
-										"process-2": {
-											Ports: []ketchv1.KetchYamlProcessPortConfig{
-												{Port: 9000, Protocol: "UDP", TargetPort: 9000},
-											},
-										},
-									},
-								},
-							},
-
 							Processes: []ketchv1.ProcessSpec{
-								{Name: "process-1", Cmd: []string{"python", "app.py"}, Units: conversions.IntPtr(1)},
-								{Name: "process-2", Cmd: []string{"go", "run", "main.go"}, Units: conversions.IntPtr(2)},
-								{Name: "process-3", Cmd: []string{"./bin/test"}, Units: conversions.IntPtr(1)},
+								{Name: "process-1", Units: conversions.IntPtr(1)},
+								{Name: "process-2", Units: conversions.IntPtr(2)},
+								{Name: "process-3", Units: conversions.IntPtr(1)},
 							},
 						},
 						{
@@ -379,36 +295,15 @@ func TestGetApplicationFromKetchApp(t *testing.T) {
 				Processes: []Process{
 					{
 						Name:  "process-1",
-						Cmd:   "python app.py",
 						Units: conversions.IntPtr(1),
-						Ports: []Port{
-							{Port: 8080, Protocol: "TCP", TargetPort: 80},
-						},
-						Hooks: Hooks{Restart: Restart{
-							Before: "echo before",
-							After:  "echo after",
-						}},
 					},
 					{
 						Name:  "process-2",
-						Cmd:   "go run main.go",
 						Units: conversions.IntPtr(2),
-						Ports: []Port{
-							{Port: 9000, Protocol: "UDP", TargetPort: 9000},
-						},
-						Hooks: Hooks{Restart: Restart{
-							Before: "echo before",
-							After:  "echo after",
-						}},
 					},
 					{
 						Name:  "process-3",
-						Cmd:   "./bin/test",
 						Units: conversions.IntPtr(1),
-						Hooks: Hooks{Restart: Restart{
-							Before: "echo before",
-							After:  "echo after",
-						}},
 					},
 				},
 			},

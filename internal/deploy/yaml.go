@@ -3,7 +3,6 @@ package deploy
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"sigs.k8s.io/yaml"
 
@@ -28,15 +27,11 @@ type Application struct {
 	BuildPacks     []string  `json:"buildPacks,omitempty"`
 	Processes      []Process `json:"processes,omitempty"`
 	CName          *CName    `json:"cname,omitempty"`
-	AppUnit        *int      `json:"appUnit,omitempty"`
 }
 
 type Process struct {
 	Name  string `json:"name"`  // required
-	Cmd   string `json:"cmd"`   // required
-	Units *int   `json:"units"` // unset? get from AppUnit
-	Ports []Port `json:"ports"` // appDeploymentSpec
-	Hooks Hooks  `json:"hooks"`
+	Units *int   `json:"units"` // default 1
 }
 
 type Port struct {
@@ -85,56 +80,17 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 			return nil, err
 		}
 	}
-	// processes, hooks, ports
+	// processes
 	var processes []ketchv1.ProcessSpec
-	var ketchYamlData ketchv1.KetchYamlData
 	if application.Processes != nil {
-		var beforeHooks []string
-		var afterHooks []string
-		ketchYamlProcessConfig := make(map[string]ketchv1.KetchYamlProcessConfig)
 		for _, process := range application.Processes {
 			processes = append(processes, ketchv1.ProcessSpec{
 				Name:  process.Name,
-				Cmd:   strings.Split(process.Cmd, " "),
 				Units: process.Units,
 				Env:   envs,
 			})
-			if process.Hooks.Restart.Before != "" {
-				beforeHooks = append(beforeHooks, process.Hooks.Restart.Before)
-			}
-			if process.Hooks.Restart.After != "" {
-				afterHooks = append(afterHooks, process.Hooks.Restart.After)
-			}
-
-			var ports []ketchv1.KetchYamlProcessPortConfig
-			for _, port := range process.Ports {
-				ports = append(ports, ketchv1.KetchYamlProcessPortConfig{
-					Protocol:   port.Protocol,
-					Port:       port.Port,
-					TargetPort: port.TargetPort,
-				})
-			}
-			if len(process.Ports) > 0 {
-				ketchYamlProcessConfig[process.Name] = ketchv1.KetchYamlProcessConfig{
-					Ports: ports,
-				}
-			}
 		}
 
-		// assign hooks and ports (kubernetes processConfig) to ketch yaml data
-		// NOTE: there is a disparity in that the yaml file format implies that hooks and ports
-		// are per-process, while the AppSpec makes them per-deployment.
-		ketchYamlData = ketchv1.KetchYamlData{
-			Hooks: &ketchv1.KetchYamlHooks{
-				Restart: ketchv1.KetchYamlRestartHooks{
-					Before: beforeHooks,
-					After:  afterHooks,
-				},
-			},
-			Kubernetes: &ketchv1.KetchYamlKubernetesConfig{
-				Processes: ketchYamlProcessConfig,
-			},
-		}
 	}
 	c := &ChangeSet{
 		appName:              *application.Name,
@@ -145,7 +101,6 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 		framework:            application.Framework,
 		dockerRegistrySecret: application.RegistrySecret,
 		builder:              application.Builder,
-		appUnit:              application.AppUnit,
 		timeout:              &o.Timeout,
 		wait:                 &o.Wait,
 	}
@@ -163,7 +118,6 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 	}
 	if len(processes) > 0 {
 		c.processes = &processes
-		c.ketchYamlData = &ketchYamlData
 	}
 	c.applyDefaults()
 	return c, c.validate()
@@ -179,14 +133,10 @@ func (c *ChangeSet) applyDefaults() {
 	}
 	c.yamlStrictDecoding = true
 
-	// default to AppUnits if process.Units is unset
-	if c.appUnit == nil {
-		c.appUnit = conversions.IntPtr(defaultAppUnit)
-	}
 	if c.processes != nil {
 		for i := range *c.processes {
 			if (*c.processes)[i].Units == nil {
-				(*c.processes)[i].Units = c.appUnit
+				(*c.processes)[i].Units = conversions.IntPtr(defaultAppUnit)
 			}
 		}
 	}
@@ -220,41 +170,12 @@ func GetApplicationFromKetchApp(app ketchv1.App) *Application {
 
 	deployment := getLatestDeployment(app.Spec.Deployments)
 	if deployment != nil {
-		application.Image = &deployment.Image
-		var processes []Process
-		if deployment.KetchYaml != nil {
-			var hooks Hooks
-			if deployment.KetchYaml.Hooks != nil {
-				hooks = Hooks{
-					Restart: Restart{
-						Before: strings.Join(deployment.KetchYaml.Hooks.Restart.Before, " "),
-						After:  strings.Join(deployment.KetchYaml.Hooks.Restart.After, " "),
-					},
-				}
-			}
-
-			if deployment.KetchYaml.Kubernetes != nil && deployment.KetchYaml.Kubernetes.Processes != nil {
-				for _, process := range deployment.Processes {
-					var ports []Port
-					if processConfig, ok := deployment.KetchYaml.Kubernetes.Processes[process.Name]; ok {
-						for _, port := range processConfig.Ports {
-							ports = append(ports, Port{
-								Protocol:   port.Protocol,
-								Port:       port.Port,
-								TargetPort: port.TargetPort,
-							})
-						}
-					}
-					processes = append(processes, Process{
-						Name:  process.Name,
-						Cmd:   strings.Join(process.Cmd, " "),
-						Units: process.Units,
-						Ports: ports,
-						Hooks: hooks,
-					})
-				}
-				application.Processes = processes
-			}
+		application.Image = conversions.StrPtr(deployment.Image)
+		for _, process := range deployment.Processes {
+			application.Processes = append(application.Processes, Process{
+				Name:  process.Name,
+				Units: process.Units,
+			})
 		}
 	}
 
