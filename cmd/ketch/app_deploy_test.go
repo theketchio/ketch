@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/stretchr/testify/require"
@@ -60,7 +61,7 @@ func newMockClient() *mockClient {
 	}
 }
 
-func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj runtime.Object) error {
+func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj client.Object) error {
 	m.getCounter++
 
 	if f, ok := m.get[m.getCounter]; ok {
@@ -78,7 +79,7 @@ func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj runtime.Obje
 	panic("unhandled type")
 }
 
-func (m *mockClient) Create(_ context.Context, obj runtime.Object, _ ...client.CreateOption) error {
+func (m *mockClient) Create(_ context.Context, obj client.Object, _ ...client.CreateOption) error {
 	m.createCounter++
 
 	if f, ok := m.create[m.createCounter]; ok {
@@ -96,7 +97,7 @@ func (m *mockClient) Create(_ context.Context, obj runtime.Object, _ ...client.C
 	panic("unhandled type")
 }
 
-func (m *mockClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+func (m *mockClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	m.updateCounter++
 
 	if f, ok := m.update[m.updateCounter]; ok {
