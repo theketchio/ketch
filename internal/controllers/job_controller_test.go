@@ -10,16 +10,16 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
 
 func TestJobReconciler_Reconcile(t *testing.T) {
-	defaultObjects := []runtime.Object{
+	defaultObjects := []client.Object{
 		&ketchv1.Framework{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "working-framework",

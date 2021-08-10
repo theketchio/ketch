@@ -43,7 +43,7 @@ func (r *Framework) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:path=/mutate-theketch-io-v1beta1-framework,mutating=true,failurePolicy=fail,groups=theketch.io,resources=frameworks,verbs=create;update,versions=v1beta1,name=mframework.kb.io
+// +kubebuilder:webhook:path=/mutate-theketch-io-v1beta1-framework,mutating=true,failurePolicy=fail,groups=theketch.io,resources=frameworks,verbs=create;update,versions=v1beta1,name=mframework.kb.io,sideEffects=none,admissionReviewVersions=v1beta1
 
 var _ webhook.Defaulter = &Framework{}
 
@@ -52,7 +52,7 @@ func (r *Framework) Default() {
 	frameworklog.Info("default", "name", r.Name)
 }
 
-// +kubebuilder:webhook:verbs=create;update;delete,path=/validate-theketch-io-v1beta1-framework,mutating=false,failurePolicy=fail,groups=theketch.io,resources=frameworks,versions=v1beta1,name=vframework.kb.io
+// +kubebuilder:webhook:verbs=create;update;delete,path=/validate-theketch-io-v1beta1-framework,mutating=false,failurePolicy=fail,groups=theketch.io,resources=frameworks,versions=v1beta1,name=vframework.kb.io,sideEffects=none,admissionReviewVersions=v1beta1
 
 var _ webhook.Validator = &Framework{}
 

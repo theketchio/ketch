@@ -303,7 +303,8 @@ func TestUpdateFrameworkFromYaml(t *testing.T) {
 	frontendFramework := &ketchv1.Framework{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "frontend-framework",
+			Name:            "frontend-framework",
+			ResourceVersion: "1",
 		},
 		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "frontend",
@@ -339,7 +340,8 @@ ingressController:
  className: default-classname`,
 			framework: &ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "frontend-framework",
+					Name:            "frontend-framework",
+					ResourceVersion: "1",
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Framework",
@@ -368,7 +370,8 @@ ingressController:
 			yamlData: `name: frontend-framework`,
 			framework: &ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "frontend-framework",
+					Name:            "frontend-framework",
+					ResourceVersion: "1",
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Framework",
@@ -409,7 +412,8 @@ func TestUpdateFrameworkFromArgs(t *testing.T) {
 	frontendFramework := &ketchv1.Framework{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "frontend-framework",
+			Name:            "frontend-framework",
+			ResourceVersion: "1",
 		},
 		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "frontend",
@@ -450,7 +454,8 @@ func TestUpdateFrameworkFromArgs(t *testing.T) {
 			},
 			framework: &ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "frontend-framework",
+					Name:            "frontend-framework",
+					ResourceVersion: "1",
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Framework",

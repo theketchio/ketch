@@ -1,20 +1,13 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.5
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: apps.theketch.io
 spec:
-  additionalPrinterColumns:
-  - JSONPath: .spec.Framework
-    name: Framework
-    type: string
-  - JSONPath: .spec.description
-    name: Description
-    type: string
   group: theketch.io
   names:
     kind: App
@@ -22,586 +15,621 @@ spec:
     plural: apps
     singular: app
   scope: Cluster
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      description: App is the Schema for the apps API.
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: AppSpec defines the desired state of App.
-          properties:
-            buildPacks:
-              description: BuildPacks is a list of build packs to use when building
-                from source.
-              items:
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.Framework
+      name: Framework
+      type: string
+    - jsonPath: .spec.description
+      name: Description
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: App is the Schema for the apps API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AppSpec defines the desired state of App.
+            properties:
+              buildPacks:
+                description: BuildPacks is a list of build packs to use when building
+                  from source.
+                items:
+                  type: string
+                type: array
+              builder:
+                description: Builder is the name of the builder used to build source
+                  code.
                 type: string
-              type: array
-            builder:
-              description: Builder is the name of the builder used to build source
-                code.
-              type: string
-            canary:
-              description: Canary contains a configuration which will be required
-                for canary deployments.
-              properties:
-                active:
-                  description: Active shows if canary deployment is active for this
-                    application.
-                  type: boolean
-                currentStep:
-                  description: CurrentStep is the count for current step for a canary
-                    deployment.
-                  maximum: 100
-                  minimum: 0
-                  type: integer
-                nextScheduledTime:
-                  description: NextScheduledTime holds time of the next step.
-                  format: date-time
-                  type: string
-                started:
-                  description: Started holds time when canary started
-                  format: date-time
-                  type: string
-                stepTimeInterval:
-                  description: A Duration represents the elapsed time between two
-                    instants as an int64 nanosecond count. The representation limits
-                    the largest representable duration to approximately 290 years.
-                  format: int64
-                  type: integer
-                stepWeight:
-                  maximum: 100
-                  minimum: 0
-                  type: integer
-                steps:
-                  maximum: 100
-                  minimum: 0
-                  type: integer
-              type: object
-            deployments:
-              description: Deployments is a list of running deployments.
-              items:
+              canary:
+                description: Canary contains a configuration which will be required
+                  for canary deployments.
                 properties:
-                  exposedPorts:
-                    items:
-                      description: ExposedPort represents a port exposed by a docker
-                        image. Native format is "port/PROTOCOL" string, we parse it
-                        and keep it as ExposedPort.
-                      properties:
-                        port:
-                          type: integer
-                        protocol:
-                          type: string
-                      required:
-                      - port
-                      - protocol
-                      type: object
-                    type: array
-                  image:
+                  active:
+                    description: Active shows if canary deployment is active for this
+                      application.
+                    type: boolean
+                  currentStep:
+                    description: CurrentStep is the count for current step for a canary
+                      deployment.
+                    maximum: 100
+                    minimum: 0
+                    type: integer
+                  nextScheduledTime:
+                    description: NextScheduledTime holds time of the next step.
+                    format: date-time
                     type: string
-                  ketchYaml:
-                    description: KetchYamlData describes certain aspects of the application
-                      deployment being deployed.
-                    properties:
-                      healthcheck:
-                        description: Healthcheck describes readiness and liveness
-                          probes of the application deployment.
+                  started:
+                    description: Started holds time when canary started
+                    format: date-time
+                    type: string
+                  stepTimeInterval:
+                    description: A Duration represents the elapsed time between two
+                      instants as an int64 nanosecond count. The representation limits
+                      the largest representable duration to approximately 290 years.
+                    format: int64
+                    type: integer
+                  stepWeight:
+                    maximum: 100
+                    minimum: 0
+                    type: integer
+                  steps:
+                    maximum: 100
+                    minimum: 0
+                    type: integer
+                type: object
+              deployments:
+                description: Deployments is a list of running deployments.
+                items:
+                  properties:
+                    exposedPorts:
+                      items:
+                        description: ExposedPort represents a port exposed by a docker
+                          image. Native format is "port/PROTOCOL" string, we parse
+                          it and keep it as ExposedPort.
                         properties:
-                          allowed_failures:
-                            description: AllowedFailures specifies a number of allowed
-                              failures before healthcheck considers the application
-                              is unhealthy. The defaults is 0.
+                          port:
                             type: integer
-                          force_restart:
-                            description: ForceRestart determines whether a unit should
-                              be restarted after allowedFailures encounters consecutive
-                              healthcheck failures. Sets the liveness probe in the
-                              Pod.
-                            type: boolean
-                          headers:
-                            additionalProperties:
+                          protocol:
+                            type: string
+                        required:
+                        - port
+                        - protocol
+                        type: object
+                      type: array
+                    image:
+                      type: string
+                    ketchYaml:
+                      description: KetchYamlData describes certain aspects of the
+                        application deployment being deployed.
+                      properties:
+                        healthcheck:
+                          description: Healthcheck describes readiness and liveness
+                            probes of the application deployment.
+                          properties:
+                            allowed_failures:
+                              description: AllowedFailures specifies a number of allowed
+                                failures before healthcheck considers the application
+                                is unhealthy. The defaults is 0.
+                              type: integer
+                            force_restart:
+                              description: ForceRestart determines whether a unit
+                                should be restarted after allowedFailures encounters
+                                consecutive healthcheck failures. Sets the liveness
+                                probe in the Pod.
+                              type: boolean
+                            headers:
+                              additionalProperties:
+                                type: string
+                              description: Headers defines optional additional header
+                                names that can be used for the request. Header names
+                                must be capitalized.
+                              type: object
+                            interval_seconds:
+                              description: IntervalSeconds is an interval in seconds
+                                between each active healthcheck call if use_in_router
+                                is set to true. The default is 10 seconds.
+                              type: integer
+                            match:
+                              description: Match is a regular expression to be matched
+                                against the request body. If not set, the body won’t
+                                be read and only the status code is checked. This
+                                regular expression uses Go syntax and runs with a
+                                matching \n (s flag).
                               type: string
-                            description: Headers defines optional additional header
-                              names that can be used for the request. Header names
-                              must be capitalized.
-                            type: object
-                          interval_seconds:
-                            description: IntervalSeconds is an interval in seconds
-                              between each active healthcheck call if use_in_router
-                              is set to true. The default is 10 seconds.
-                            type: integer
-                          match:
-                            description: Match is a regular expression to be matched
-                              against the request body. If not set, the body won’t
-                              be read and only the status code is checked. This regular
-                              expression uses Go syntax and runs with a matching \n
-                              (s flag).
-                            type: string
-                          method:
-                            description: Method defines the method used to make the
-                              http request. The default is GET.
-                            type: string
-                          path:
-                            description: Path defines which path to call in the application.
-                              This path is called for each unit. It is the only mandatory
-                              field. If not set, the health check is ignored.
+                            method:
+                              description: Method defines the method used to make
+                                the http request. The default is GET.
+                              type: string
+                            path:
+                              description: Path defines which path to call in the
+                                application. This path is called for each unit. It
+                                is the only mandatory field. If not set, the health
+                                check is ignored.
+                              minLength: 1
+                              type: string
+                            scheme:
+                              description: Scheme defines which scheme to use. The
+                                defaults is http.
+                              type: string
+                            timeout_seconds:
+                              description: TimeoutSeconds is a timeout for each healthcheck
+                                call in seconds. The default is 60 seconds.
+                              type: integer
+                            use_in_router:
+                              description: If not set, only readiness probe will be
+                                created.
+                              type: boolean
+                          required:
+                          - path
+                          type: object
+                        hooks:
+                          description: Hooks allow to run commands during different
+                            stages of the application deployment.
+                          properties:
+                            build:
+                              description: Build defines commands that are run as
+                                part of the Dockerfile build
+                              items:
+                                type: string
+                              type: array
+                            restart:
+                              description: Restart describes commands to run during
+                                different stages of the application deployment.
+                              properties:
+                                after:
+                                  description: Before contains commands that are executed
+                                    after a unit is restarted. Commands listed in
+                                    this hook run once per unit.
+                                  items:
+                                    type: string
+                                  type: array
+                                before:
+                                  description: Before contains commands that are executed
+                                    before a unit is restarted. Commands listed in
+                                    this hook run once per unit.
+                                  items:
+                                    type: string
+                                  type: array
+                              type: object
+                          type: object
+                        kubernetes:
+                          description: Kubernetes contains specific configurations
+                            for Kubernetes.
+                          properties:
+                            processes:
+                              additionalProperties:
+                                description: KetchYamlKubernetesConfig contains specific
+                                  configurations of a process.
+                                properties:
+                                  ports:
+                                    items:
+                                      description: KetchYamlKubernetesConfig contains
+                                        configuration of an exposed port.
+                                      properties:
+                                        name:
+                                          description: Name is a descriptive name
+                                            for the port. This field is optional.
+                                          type: string
+                                        port:
+                                          description: Port is the port that will
+                                            be exposed on a Kubernetes service. If
+                                            omitted, the target_port value is used.
+                                          type: integer
+                                        protocol:
+                                          description: Protocol defines the port protocol.
+                                            The accepted values are TCP and UDP.
+                                          type: string
+                                        target_port:
+                                          description: TargetPort is the port that
+                                            the process is listening on. If omitted,
+                                            the port value is used.
+                                          type: integer
+                                      type: object
+                                    type: array
+                                type: object
+                              description: Processes configure which ports are exposed
+                                on each process of the application deployment.
+                              type: object
+                          type: object
+                      type: object
+                    labels:
+                      items:
+                        description: Label represents an environment variable present
+                          in an application.
+                        properties:
+                          name:
+                            description: Name of the label.
                             minLength: 1
                             type: string
-                          scheme:
-                            description: Scheme defines which scheme to use. The defaults
-                              is http.
+                          value:
+                            description: Value of the label.
                             type: string
-                          timeout_seconds:
-                            description: TimeoutSeconds is a timeout for each healthcheck
-                              call in seconds. The default is 60 seconds.
-                            type: integer
-                          use_in_router:
-                            description: If not set, only readiness probe will be
-                              created.
-                            type: boolean
                         required:
-                        - path
+                        - name
+                        - value
                         type: object
-                      hooks:
-                        description: Hooks allow to run commands during different
-                          stages of the application deployment.
+                      type: array
+                    processes:
+                      items:
+                        description: ProcessSpec is a specification of the desired
+                          behavior of a process.
                         properties:
-                          build:
-                            description: Build defines commands that are run as part
-                              of the Dockerfile build
+                          cmd:
+                            description: Commands executed on startup.
                             items:
                               type: string
                             type: array
-                          restart:
-                            description: Restart describes commands to run during
-                              different stages of the application deployment.
-                            properties:
-                              after:
-                                description: Before contains commands that are executed
-                                  after a unit is restarted. Commands listed in this
-                                  hook run once per unit.
-                                items:
-                                  type: string
-                                type: array
-                              before:
-                                description: Before contains commands that are executed
-                                  before a unit is restarted. Commands listed in this
-                                  hook run once per unit.
-                                items:
-                                  type: string
-                                type: array
-                            type: object
-                        type: object
-                      kubernetes:
-                        description: Kubernetes contains specific configurations for
-                          Kubernetes.
-                        properties:
-                          processes:
-                            additionalProperties:
-                              description: KetchYamlKubernetesConfig contains specific
-                                configurations of a process.
+                          env:
+                            description: Env is a list of environment variables to
+                              set in pods created for the process.
+                            items:
+                              description: Env represents an environment variable
+                                present in an application.
                               properties:
-                                ports:
-                                  items:
-                                    description: KetchYamlKubernetesConfig contains
-                                      configuration of an exposed port.
-                                    properties:
-                                      name:
-                                        description: Name is a descriptive name for
-                                          the port. This field is optional.
-                                        type: string
-                                      port:
-                                        description: Port is the port that will be
-                                          exposed on a Kubernetes service. If omitted,
-                                          the target_port value is used.
-                                        type: integer
-                                      protocol:
-                                        description: Protocol defines the port protocol.
-                                          The accepted values are TCP and UDP.
-                                        type: string
-                                      target_port:
-                                        description: TargetPort is the port that the
-                                          process is listening on. If omitted, the
-                                          port value is used.
-                                        type: integer
-                                    type: object
-                                  type: array
+                                name:
+                                  description: Name of the environment variable. Must
+                                    be a C_IDENTIFIER.
+                                  minLength: 1
+                                  type: string
+                                value:
+                                  description: Value of the environment variable.
+                                  type: string
+                              required:
+                              - name
+                              - value
                               type: object
-                            description: Processes configure which ports are exposed
-                              on each process of the application deployment.
-                            type: object
-                        type: object
-                    type: object
-                  labels:
-                    items:
-                      description: Label represents an environment variable present
-                        in an application.
-                      properties:
-                        name:
-                          description: Name of the label.
-                          minLength: 1
-                          type: string
-                        value:
-                          description: Value of the label.
-                          type: string
-                      required:
-                      - name
-                      - value
-                      type: object
-                    type: array
-                  processes:
-                    items:
-                      description: ProcessSpec is a specification of the desired behavior
-                        of a process.
-                      properties:
-                        cmd:
-                          description: Commands executed on startup.
-                          items:
+                            type: array
+                          name:
+                            description: Name of the process.
+                            minLength: 1
                             type: string
-                          type: array
-                        env:
-                          description: Env is a list of environment variables to set
-                            in pods created for the process.
-                          items:
-                            description: Env represents an environment variable present
-                              in an application.
+                          securityContext:
+                            description: Security options the process should run with.
                             properties:
-                              name:
-                                description: Name of the environment variable. Must
-                                  be a C_IDENTIFIER.
-                                minLength: 1
+                              allowPrivilegeEscalation:
+                                description: 'AllowPrivilegeEscalation controls whether
+                                  a process can gain more privileges than its parent
+                                  process. This bool directly controls if the no_new_privs
+                                  flag will be set on the container process. AllowPrivilegeEscalation
+                                  is true always when the container is: 1) run as
+                                  Privileged 2) has CAP_SYS_ADMIN'
+                                type: boolean
+                              capabilities:
+                                description: The capabilities to add/drop when running
+                                  containers. Defaults to the default set of capabilities
+                                  granted by the container runtime.
+                                properties:
+                                  add:
+                                    description: Added capabilities
+                                    items:
+                                      description: Capability represent POSIX capabilities
+                                        type
+                                      type: string
+                                    type: array
+                                  drop:
+                                    description: Removed capabilities
+                                    items:
+                                      description: Capability represent POSIX capabilities
+                                        type
+                                      type: string
+                                    type: array
+                                type: object
+                              privileged:
+                                description: Run container in privileged mode. Processes
+                                  in privileged containers are essentially equivalent
+                                  to root on the host. Defaults to false.
+                                type: boolean
+                              procMount:
+                                description: procMount denotes the type of proc mount
+                                  to use for the containers. The default is DefaultProcMount
+                                  which uses the container runtime defaults for readonly
+                                  paths and masked paths. This requires the ProcMountType
+                                  feature flag to be enabled.
                                 type: string
-                              value:
-                                description: Value of the environment variable.
-                                type: string
-                            required:
-                            - name
-                            - value
+                              readOnlyRootFilesystem:
+                                description: Whether this container has a read-only
+                                  root filesystem. Default is false.
+                                type: boolean
+                              runAsGroup:
+                                description: The GID to run the entrypoint of the
+                                  container process. Uses runtime default if unset.
+                                  May also be set in PodSecurityContext.  If set in
+                                  both SecurityContext and PodSecurityContext, the
+                                  value specified in SecurityContext takes precedence.
+                                format: int64
+                                type: integer
+                              runAsNonRoot:
+                                description: Indicates that the container must run
+                                  as a non-root user. If true, the Kubelet will validate
+                                  the image at runtime to ensure that it does not
+                                  run as UID 0 (root) and fail to start the container
+                                  if it does. If unset or false, no such validation
+                                  will be performed. May also be set in PodSecurityContext.  If
+                                  set in both SecurityContext and PodSecurityContext,
+                                  the value specified in SecurityContext takes precedence.
+                                type: boolean
+                              runAsUser:
+                                description: The UID to run the entrypoint of the
+                                  container process. Defaults to user specified in
+                                  image metadata if unspecified. May also be set in
+                                  PodSecurityContext.  If set in both SecurityContext
+                                  and PodSecurityContext, the value specified in SecurityContext
+                                  takes precedence.
+                                format: int64
+                                type: integer
+                              seLinuxOptions:
+                                description: The SELinux context to be applied to
+                                  the container. If unspecified, the container runtime
+                                  will allocate a random SELinux context for each
+                                  container.  May also be set in PodSecurityContext.  If
+                                  set in both SecurityContext and PodSecurityContext,
+                                  the value specified in SecurityContext takes precedence.
+                                properties:
+                                  level:
+                                    description: Level is SELinux level label that
+                                      applies to the container.
+                                    type: string
+                                  role:
+                                    description: Role is a SELinux role label that
+                                      applies to the container.
+                                    type: string
+                                  type:
+                                    description: Type is a SELinux type label that
+                                      applies to the container.
+                                    type: string
+                                  user:
+                                    description: User is a SELinux user label that
+                                      applies to the container.
+                                    type: string
+                                type: object
+                              seccompProfile:
+                                description: The seccomp options to use by this container.
+                                  If seccomp options are provided at both the pod
+                                  & container level, the container options override
+                                  the pod options.
+                                properties:
+                                  localhostProfile:
+                                    description: localhostProfile indicates a profile
+                                      defined in a file on the node should be used.
+                                      The profile must be preconfigured on the node
+                                      to work. Must be a descending path, relative
+                                      to the kubelet's configured seccomp profile
+                                      location. Must only be set if type is "Localhost".
+                                    type: string
+                                  type:
+                                    description: "type indicates which kind of seccomp
+                                      profile will be applied. Valid options are:
+                                      \n Localhost - a profile defined in a file on
+                                      the node should be used. RuntimeDefault - the
+                                      container runtime default profile should be
+                                      used. Unconfined - no profile should be applied."
+                                    type: string
+                                required:
+                                - type
+                                type: object
+                              windowsOptions:
+                                description: The Windows specific settings applied
+                                  to all containers. If unspecified, the options from
+                                  the PodSecurityContext will be used. If set in both
+                                  SecurityContext and PodSecurityContext, the value
+                                  specified in SecurityContext takes precedence.
+                                properties:
+                                  gmsaCredentialSpec:
+                                    description: GMSACredentialSpec is where the GMSA
+                                      admission webhook (https://github.com/kubernetes-sigs/windows-gmsa)
+                                      inlines the contents of the GMSA credential
+                                      spec named by the GMSACredentialSpecName field.
+                                    type: string
+                                  gmsaCredentialSpecName:
+                                    description: GMSACredentialSpecName is the name
+                                      of the GMSA credential spec to use.
+                                    type: string
+                                  runAsUserName:
+                                    description: The UserName in Windows to run the
+                                      entrypoint of the container process. Defaults
+                                      to the user specified in image metadata if unspecified.
+                                      May also be set in PodSecurityContext. If set
+                                      in both SecurityContext and PodSecurityContext,
+                                      the value specified in SecurityContext takes
+                                      precedence.
+                                    type: string
+                                type: object
                             type: object
-                          type: array
-                        name:
-                          description: Name of the process.
-                          minLength: 1
-                          type: string
-                        securityContext:
-                          description: Security options the process should run with.
-                          properties:
-                            allowPrivilegeEscalation:
-                              description: 'AllowPrivilegeEscalation controls whether
-                                a process can gain more privileges than its parent
-                                process. This bool directly controls if the no_new_privs
-                                flag will be set on the container process. AllowPrivilegeEscalation
-                                is true always when the container is: 1) run as Privileged
-                                2) has CAP_SYS_ADMIN'
-                              type: boolean
-                            capabilities:
-                              description: The capabilities to add/drop when running
-                                containers. Defaults to the default set of capabilities
-                                granted by the container runtime.
-                              properties:
-                                add:
-                                  description: Added capabilities
-                                  items:
-                                    description: Capability represent POSIX capabilities
-                                      type
-                                    type: string
-                                  type: array
-                                drop:
-                                  description: Removed capabilities
-                                  items:
-                                    description: Capability represent POSIX capabilities
-                                      type
-                                    type: string
-                                  type: array
-                              type: object
-                            privileged:
-                              description: Run container in privileged mode. Processes
-                                in privileged containers are essentially equivalent
-                                to root on the host. Defaults to false.
-                              type: boolean
-                            procMount:
-                              description: procMount denotes the type of proc mount
-                                to use for the containers. The default is DefaultProcMount
-                                which uses the container runtime defaults for readonly
-                                paths and masked paths. This requires the ProcMountType
-                                feature flag to be enabled.
-                              type: string
-                            readOnlyRootFilesystem:
-                              description: Whether this container has a read-only
-                                root filesystem. Default is false.
-                              type: boolean
-                            runAsGroup:
-                              description: The GID to run the entrypoint of the container
-                                process. Uses runtime default if unset. May also be
-                                set in PodSecurityContext.  If set in both SecurityContext
-                                and PodSecurityContext, the value specified in SecurityContext
-                                takes precedence.
-                              format: int64
-                              type: integer
-                            runAsNonRoot:
-                              description: Indicates that the container must run as
-                                a non-root user. If true, the Kubelet will validate
-                                the image at runtime to ensure that it does not run
-                                as UID 0 (root) and fail to start the container if
-                                it does. If unset or false, no such validation will
-                                be performed. May also be set in PodSecurityContext.  If
-                                set in both SecurityContext and PodSecurityContext,
-                                the value specified in SecurityContext takes precedence.
-                              type: boolean
-                            runAsUser:
-                              description: The UID to run the entrypoint of the container
-                                process. Defaults to user specified in image metadata
-                                if unspecified. May also be set in PodSecurityContext.  If
-                                set in both SecurityContext and PodSecurityContext,
-                                the value specified in SecurityContext takes precedence.
-                              format: int64
-                              type: integer
-                            seLinuxOptions:
-                              description: The SELinux context to be applied to the
-                                container. If unspecified, the container runtime will
-                                allocate a random SELinux context for each container.  May
-                                also be set in PodSecurityContext.  If set in both
-                                SecurityContext and PodSecurityContext, the value
-                                specified in SecurityContext takes precedence.
-                              properties:
-                                level:
-                                  description: Level is SELinux level label that applies
-                                    to the container.
-                                  type: string
-                                role:
-                                  description: Role is a SELinux role label that applies
-                                    to the container.
-                                  type: string
-                                type:
-                                  description: Type is a SELinux type label that applies
-                                    to the container.
-                                  type: string
-                                user:
-                                  description: User is a SELinux user label that applies
-                                    to the container.
-                                  type: string
-                              type: object
-                            windowsOptions:
-                              description: The Windows specific settings applied to
-                                all containers. If unspecified, the options from the
-                                PodSecurityContext will be used. If set in both SecurityContext
-                                and PodSecurityContext, the value specified in SecurityContext
-                                takes precedence.
-                              properties:
-                                gmsaCredentialSpec:
-                                  description: GMSACredentialSpec is where the GMSA
-                                    admission webhook (https://github.com/kubernetes-sigs/windows-gmsa)
-                                    inlines the contents of the GMSA credential spec
-                                    named by the GMSACredentialSpecName field.
-                                  type: string
-                                gmsaCredentialSpecName:
-                                  description: GMSACredentialSpecName is the name
-                                    of the GMSA credential spec to use.
-                                  type: string
-                                runAsUserName:
-                                  description: The UserName in Windows to run the
-                                    entrypoint of the container process. Defaults
-                                    to the user specified in image metadata if unspecified.
-                                    May also be set in PodSecurityContext. If set
-                                    in both SecurityContext and PodSecurityContext,
-                                    the value specified in SecurityContext takes precedence.
-                                  type: string
-                              type: object
-                          type: object
-                        units:
-                          description: Units is a number of replicas of the process.
+                          units:
+                            description: Units is a number of replicas of the process.
+                            type: integer
+                        required:
+                        - cmd
+                        - name
+                        type: object
+                      type: array
+                    routingSettings:
+                      description: RoutingSettings contains a weight of the current
+                        deployment used to route incoming traffic. If an application
+                        has two deployments with corresponding weights of 30 and 70,
+                        then 3 of 10 incoming requests will be sent to the first deployment
+                        (approximately).
+                      properties:
+                        weight:
                           type: integer
                       required:
-                      - cmd
-                      - name
+                      - weight
                       type: object
+                    version:
+                      type: integer
+                  required:
+                  - image
+                  - version
+                  type: object
+                type: array
+              deploymentsCount:
+                description: DeploymentsCount is incremented every time a new deployment
+                  is added to Deployments and used as a version for new deployments.
+                type: integer
+              description:
+                maxLength: 140
+                type: string
+              dockerRegistry:
+                description: DockerRegistry contains docker registry configuration
+                  of the application.
+                properties:
+                  secretName:
+                    description: SecretName is added to the "imagePullSecrets" list
+                      of each application pod.
+                    type: string
+                type: object
+              env:
+                description: List of environment variables of the application.
+                items:
+                  description: Env represents an environment variable present in an
+                    application.
+                  properties:
+                    name:
+                      description: Name of the environment variable. Must be a C_IDENTIFIER.
+                      minLength: 1
+                      type: string
+                    value:
+                      description: Value of the environment variable.
+                      type: string
+                  required:
+                  - name
+                  - value
+                  type: object
+                type: array
+              framework:
+                description: Framework is a name of a Framework used to run the application.
+                minLength: 1
+                type: string
+              ingress:
+                description: Ingress contains configuration of entrypoints to access
+                  the application.
+                properties:
+                  cnames:
+                    description: Cnames is a list of additional cnames.
+                    items:
+                      type: string
                     type: array
-                  routingSettings:
-                    description: RoutingSettings contains a weight of the current
-                      deployment used to route incoming traffic. If an application
-                      has two deployments with corresponding weights of 30 and 70,
-                      then 3 of 10 incoming requests will be sent to the first deployment
-                      (approximately).
-                    properties:
-                      weight:
-                        type: integer
-                    required:
-                    - weight
-                    type: object
-                  version:
-                    type: integer
+                  generateDefaultCname:
+                    description: GenerateDefaultCname if set the application will
+                      have a default cname <app-name>.<ServiceEndpoint>.shipa.cloud.
+                    type: boolean
                 required:
-                - image
-                - version
+                - generateDefaultCname
                 type: object
-              type: array
-            deploymentsCount:
-              description: DeploymentsCount is incremented every time a new deployment
-                is added to Deployments and used as a version for new deployments.
-              type: integer
-            description:
-              maxLength: 140
-              type: string
-            dockerRegistry:
-              description: DockerRegistry contains docker registry configuration of
-                the application.
-              properties:
-                secretName:
-                  description: SecretName is added to the "imagePullSecrets" list
-                    of each application pod.
-                  type: string
-              type: object
-            env:
-              description: List of environment variables of the application.
-              items:
-                description: Env represents an environment variable present in an
-                  application.
+              version:
+                type: string
+            required:
+            - deployments
+            - framework
+            - ingress
+            type: object
+          status:
+            description: AppStatus represents information about the status of an application.
+            properties:
+              conditions:
+                description: Conditions of App resource.
+                items:
+                  description: Condition contains details for the current condition
+                    of this app.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the timestamp corresponding
+                        to the last status.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        why the application is in this condition.
+                      type: string
+                    status:
+                      description: Status of the condition.
+                      type: string
+                    type:
+                      description: Type of the condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              framework:
+                description: 'ObjectReference contains enough information to let you
+                  inspect or modify the referred object. --- New uses of this type
+                  are discouraged because of difficulty describing its usage when
+                  embedded in APIs.  1. Ignored fields.  It includes many fields which
+                  are not generally honored.  For instance, ResourceVersion and FieldPath
+                  are both very rarely valid in actual usage.  2. Invalid usage help.  It
+                  is impossible to add specific help for individual usage.  In most
+                  embedded usages, there are particular     restrictions like, "must
+                  refer only to types A and B" or "UID not honored" or "name must
+                  be restricted".     Those cannot be well described when embedded.  3.
+                  Inconsistent validation.  Because the usages are different, the
+                  validation rules are different by usage, which makes it hard for
+                  users to predict what will happen.  4. The fields are both imprecise
+                  and overly precise.  Kind is not a precise mapping to a URL. This
+                  can produce ambiguity     during interpretation and require a REST
+                  mapping.  In most cases, the dependency is on the group,resource
+                  tuple     and the version of the actual struct is irrelevant.  5.
+                  We cannot easily change it.  Because this type is embedded in many
+                  locations, updates to this type     will affect numerous schemas.  Don''t
+                  make new APIs embed an underspecified API type they do not control.
+                  Instead of using this type, create a locally provided and used type
+                  that is well-focused on your reference. For example, ServiceReferences
+                  for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
+                  .'
                 properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
                   name:
-                    description: Name of the environment variable. Must be a C_IDENTIFIER.
-                    minLength: 1
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                     type: string
-                  value:
-                    description: Value of the environment variable.
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                     type: string
-                required:
-                - name
-                - value
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
                 type: object
-              type: array
-            framework:
-              description: Framework is a name of a Framework used to run the application.
-              minLength: 1
-              type: string
-            ingress:
-              description: Ingress contains configuration of entrypoints to access
-                the application.
-              properties:
-                cnames:
-                  description: Cnames is a list of additional cnames.
-                  items:
-                    type: string
-                  type: array
-                generateDefaultCname:
-                  description: GenerateDefaultCname if set the application will have
-                    a default cname <app-name>.<ServiceEndpoint>.shipa.cloud.
-                  type: boolean
-              required:
-              - generateDefaultCname
-              type: object
-            version:
-              type: string
-          required:
-          - deployments
-          - framework
-          - ingress
-          type: object
-        status:
-          description: AppStatus represents information about the status of an application.
-          properties:
-            conditions:
-              description: Conditions of App resource.
-              items:
-                description: Condition contains details for the current condition
-                  of this app.
-                properties:
-                  lastTransitionTime:
-                    description: LastTransitionTime is the timestamp corresponding
-                      to the last status.
-                    format: date-time
-                    type: string
-                  message:
-                    description: A human readable message indicating details about
-                      why the application is in this condition.
-                    type: string
-                  status:
-                    description: Status of the condition.
-                    type: string
-                  type:
-                    description: Type of the condition.
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
-            framework:
-              description: 'ObjectReference contains enough information to let you
-                inspect or modify the referred object. --- New uses of this type are
-                discouraged because of difficulty describing its usage when embedded
-                in APIs.  1. Ignored fields.  It includes many fields which are not
-                generally honored.  For instance, ResourceVersion and FieldPath are
-                both very rarely valid in actual usage.  2. Invalid usage help.  It
-                is impossible to add specific help for individual usage.  In most
-                embedded usages, there are particular     restrictions like, "must
-                refer only to types A and B" or "UID not honored" or "name must be
-                restricted".     Those cannot be well described when embedded.  3.
-                Inconsistent validation.  Because the usages are different, the validation
-                rules are different by usage, which makes it hard for users to predict
-                what will happen.  4. The fields are both imprecise and overly precise.  Kind
-                is not a precise mapping to a URL. This can produce ambiguity     during
-                interpretation and require a REST mapping.  In most cases, the dependency
-                is on the group,resource tuple     and the version of the actual struct
-                is irrelevant.  5. We cannot easily change it.  Because this type
-                is embedded in many locations, updates to this type     will affect
-                numerous schemas.  Don''t make new APIs embed an underspecified API
-                type they do not control. Instead of using this type, create a locally
-                provided and used type that is well-focused on your reference. For
-                example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
-                .'
-              properties:
-                apiVersion:
-                  description: API version of the referent.
-                  type: string
-                fieldPath:
-                  description: 'If referring to a piece of an object instead of an
-                    entire object, this string should contain a valid JSON/Go field
-                    access statement, such as desiredState.manifest.containers[2].
-                    For example, if the object reference is to a container within
-                    a pod, this would take on a value like: "spec.containers{name}"
-                    (where "name" refers to the name of the container that triggered
-                    the event) or if no container name is specified "spec.containers[2]"
-                    (container with index 2 in this pod). This syntax is chosen only
-                    to have some well-defined way of referencing a part of an object.
-                    TODO: this design is not final and this field is subject to change
-                    in the future.'
-                  type: string
-                kind:
-                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                  type: string
-                name:
-                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                  type: string
-                namespace:
-                  description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                  type: string
-                resourceVersion:
-                  description: 'Specific resourceVersion to which this reference is
-                    made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                  type: string
-                uid:
-                  description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
-                  type: string
-              type: object
-          type: object
-      type: object
-  version: v1beta1
-  versions:
-  - name: v1beta1
+            type: object
+        type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""
