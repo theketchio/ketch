@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -45,7 +46,11 @@ type testingContext struct {
 }
 
 func verifyKubeApiServerVersion() error {
-	b, err := exec.Command("kube-apiserver", "--version").CombinedOutput()
+	kubeApiServer := "kube-apiserver"
+	if value := os.Getenv("TEST_ASSET_KUBE_APISERVER"); value != "" {
+		kubeApiServer = value
+	}
+	b, err := exec.Command(kubeApiServer, "--version").CombinedOutput()
 	if err != nil {
 		return err
 	}
