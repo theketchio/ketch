@@ -2,13 +2,14 @@ package deploy
 
 import (
 	"context"
+	"testing"
+
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/chart"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +51,7 @@ func newMockClient() *mockClient {
 	}
 }
 
-func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj runtime.Object) error {
+func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj client.Object) error {
 	m.getCounter++
 
 	if f, ok := m.get[m.getCounter]; ok {
@@ -68,7 +69,7 @@ func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj runtime.Obje
 	panic("unhandled type")
 }
 
-func (m *mockClient) Create(_ context.Context, obj runtime.Object, _ ...client.CreateOption) error {
+func (m *mockClient) Create(_ context.Context, obj client.Object, _ ...client.CreateOption) error {
 	m.createCounter++
 
 	if f, ok := m.create[m.createCounter]; ok {
@@ -86,7 +87,7 @@ func (m *mockClient) Create(_ context.Context, obj runtime.Object, _ ...client.C
 	panic("unhandled type")
 }
 
-func (m *mockClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+func (m *mockClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	m.updateCounter++
 
 	if f, ok := m.update[m.updateCounter]; ok {

@@ -58,8 +58,7 @@ type JobReconcileReason struct {
 //+kubebuilder:rbac:groups=resources.resources,resources=jobs/finalizers,verbs=update
 
 // Reconcile fetches a Job by name and updates helm charts with differences
-func (r *JobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("job", req.NamespacedName)
 
 	var job ketchv1.Job
