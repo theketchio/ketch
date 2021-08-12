@@ -2,7 +2,7 @@
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+CRD_OPTIONS ?= "crd:trivialVersions=true,crdVersions=v1"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -14,7 +14,7 @@ endif
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 
-KUBEBUILDER_VERSION="1.0.8"
+KUBEBUILDER_VERSION="2.3.0"
 KUBEBUILDER_INSTALL_DIR ?= "/usr/local"
 KUBEBUILDER_RELEASE="kubebuilder_${KUBEBUILDER_VERSION}_${GOOS}_${GOARCH}"
 
@@ -34,7 +34,7 @@ test: generate fmt vet manifests
 manager: generate fmt vet
 	go build -o bin/manager cmd/manager/main.go
 
-# Build ketch binary 
+# Build ketch binary
 .PHONY: ketch
 ketch: generate fmt vet
 	go build -o bin/ketch ./cmd/ketch/
@@ -119,7 +119,7 @@ ifeq (, $(shell which controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.5 ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen

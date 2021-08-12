@@ -18,6 +18,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/thediveo/enumflag v0.10.1
 	github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1 // indirect
+	golang.org/x/mod v0.4.2
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gotest.tools v2.2.0+incompatible
 	helm.sh/helm/v3 v3.6.3
