@@ -58,6 +58,7 @@ type JobReconcileReason struct {
 // +kubebuilder:rbac:groups=resources.resources,resources=jobs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=theketch.io,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=theketch.io,resources=jobs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile fetches a Job by name and updates helm charts with differences
 func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
