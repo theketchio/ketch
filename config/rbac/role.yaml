@@ -88,6 +88,18 @@ rules:
   - update
   - watch
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - cert-manager.io
   resources:
   - certificates
@@ -99,6 +111,15 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - get
+  - list
+  - update
 - apiGroups:
   - extensions
   resources:
@@ -233,6 +254,26 @@ rules:
   - theketch.io
   resources:
   - frameworks/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - theketch.io
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - theketch.io
+  resources:
+  - jobs/status
   verbs:
   - get
   - patch
