@@ -35,6 +35,7 @@ teardown() {
   fwresult=$($KETCH framework add "$JOB_FRAMEWORK")
   echo "RECEIVED:" $fwresult
   [[ $fwresult =~ "Successfully added!" ]]
+  sleep 2 # sometimes framework can take a moment to associate to a namespace
 
   cat << EOF > job.yaml
 name: "$JOB_NAME"
@@ -50,6 +51,7 @@ containers:
       - "-Mbignum=bpi"
       - "-wle"
       - "print bpi(2000)"
+parallelism: 2
 EOF
   result=$($KETCH job deploy job.yaml)
   [[ $result =~ "Successfully added!" ]]
@@ -76,6 +78,34 @@ EOF
   [[ $result =~ "name: $JOB_NAME" ]]
   [[ $result =~ "type: Job" ]]
   [[ $result =~ "framework: $JOB_FRAMEWORK" ]]
+}
+
+@test "job completions" {
+  # completions should default to parallelism, if unset
+
+  # retry for job
+  count=0
+  until [[ $count -ge 5 ]]
+  do
+    result=$(kubectl get job -A)
+    if [[ $result =~ $JOB_NAME ]]
+      then break
+    fi
+    count+=1
+    sleep 7
+  done
+
+  result=$(kubectl get job "$JOB_NAME" -n "ketch-$JOB_FRAMEWORK")
+  completionsRegex="[0-2]/2" # completions probably won't be finished - may be 0/2 or 1/2
+  echo "RECEIVED:" $result
+  [[ $result =~ $completionsRegex ]]
+
+  result=$(kubectl describe job "$JOB_NAME" -n "ketch-$JOB_FRAMEWORK")
+  completionsRegex="Completions: *2" # variable spaces
+  parallelismRegex="Parallelism: *2" # variable spaces
+  echo "RECEIVED:" $result
+  [[ $result =~ $completionsRegex ]]
+  [[ $result =~ $parallelismRegex ]]
 }
 
 @test "job remove" {
