@@ -41,6 +41,12 @@ teardown() {
   [[ $result =~ "Successfully added!" ]]
 }
 
+@test "framework add error" {
+  run $KETCH framework add "$FRAMEWORK" --ingress-service-endpoint "$INGRESS" --ingress-type "traefik"
+  [[ $status -eq 1 ]]
+  [[ $output =~ "\"$FRAMEWORK\" already exists" ]]
+}
+
 @test "framework add with yaml file" {
   cat << EOF > framework.yaml
 name: "$FRAMEWORK-2"
