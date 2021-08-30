@@ -35,6 +35,7 @@ teardown() {
   fwresult=$($KETCH framework add "$JOB_FRAMEWORK")
   echo "RECEIVED:" $fwresult
   [[ $fwresult =~ "Successfully added!" ]]
+  sleep 2 # sometimes framework can take a moment to associate to a namespace
 
   cat << EOF > job.yaml
 name: "$JOB_NAME"
@@ -50,6 +51,7 @@ containers:
       - "-Mbignum=bpi"
       - "-wle"
       - "print bpi(2000)"
+parallelism: 2
 EOF
   result=$($KETCH job deploy job.yaml)
   [[ $result =~ "Successfully added!" ]]

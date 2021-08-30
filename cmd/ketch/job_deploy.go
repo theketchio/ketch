@@ -77,8 +77,8 @@ func setJobSpecDefaults(jobSpec *ketchv1.JobSpec) {
 	if jobSpec.Parallelism == 0 {
 		jobSpec.Parallelism = defaultJobParallelism
 	}
-	if jobSpec.Completions == 0 && jobSpec.Parallelism > 1 {
-		jobSpec.Completions = defaultJobCompletions
+	if jobSpec.Completions == 0 {
+		jobSpec.Completions = jobSpec.Parallelism
 	}
 	if jobSpec.BackoffLimit == 0 {
 		jobSpec.BackoffLimit = defaultJobBackoffLimit
