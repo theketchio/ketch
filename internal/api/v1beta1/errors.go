@@ -23,4 +23,7 @@ const (
 
 	// ErrDecreaseQuota is returned when a new quota is too small.
 	ErrDecreaseQuota Error = "failed to decrease quota because the framework has more running apps than the new quota permits"
+
+	// ErrJobExists
+	ErrJobExists Error = "failed to create job because the job already exists"
 )
