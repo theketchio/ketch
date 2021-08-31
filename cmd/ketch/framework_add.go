@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag"
@@ -107,6 +108,9 @@ func addFramework(ctx context.Context, cfg config, options frameworkAddOptions, 
 	}
 
 	if err := cfg.Client().Create(ctx, framework); err != nil {
+		if strings.Contains(err.Error(), ketchv1.ErrNamespaceIsUsedByAnotherFramework.Error()) {
+			return fmt.Errorf("framework \"%s\" already exists", framework.Spec.Name)
+		}
 		return fmt.Errorf("failed to create framework: %w", err)
 	}
 	fmt.Fprintln(out, "Successfully added!")
