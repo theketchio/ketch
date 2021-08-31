@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,12 +57,18 @@ func jobDeploy(ctx context.Context, cfg config, filename string, out io.Writer) 
 	}
 
 	job := &ketchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: spec.Name}}
-	_, err = controllerutil.CreateOrUpdate(ctx, cfg.Client(), job, func() error {
+	res, err := controllerutil.CreateOrUpdate(ctx, cfg.Client(), job, func() error {
 		job.Spec = spec
 		return nil
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), ketchv1.ErrJobExists.Error()) {
+			return ketchv1.ErrJobExists
+		}
 		return err
+	}
+	if res == controllerutil.OperationResultNone {
+		return fmt.Errorf("job \"%s\" already exists and is unchanged", job.Spec.Name)
 	}
 
 	fmt.Fprintln(out, "Successfully added!")
