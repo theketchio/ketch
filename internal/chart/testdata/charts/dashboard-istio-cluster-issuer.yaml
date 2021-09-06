@@ -140,7 +140,7 @@ spec:
           - containerPort: 9090
 ---
 # Source: dashboard/templates/certificate.yaml
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: dashboard-cname-7698da46d42bea3603f2
@@ -154,7 +154,7 @@ spec:
     kind: ClusterIssuer
 ---
 # Source: dashboard/templates/certificate.yaml
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: dashboard-cname-1aacb41a573151295624
