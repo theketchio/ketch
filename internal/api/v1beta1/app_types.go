@@ -23,8 +23,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/shipa-corp/ketch/internal/templates"
 )
 
 func init() {
@@ -385,11 +383,6 @@ func (app *App) DefaultCname(framework *Framework) *string {
 	}
 	url := fmt.Sprintf("%s.%s.%s", app.Name, framework.Spec.IngressController.ServiceEndpoint, ShipaCloudDomain)
 	return &url
-}
-
-// TemplatesConfigMapName returns a name of a configmap that contains templates used to render a helm chart.
-func (app *App) TemplatesConfigMapName(ingressControllerType IngressControllerType) string {
-	return templates.IngressConfigMapName(ingressControllerType.String())
 }
 
 // Units returns a total number units.
