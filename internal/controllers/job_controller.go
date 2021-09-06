@@ -120,7 +120,7 @@ func (r *JobReconciler) reconcile(ctx context.Context, job *ketchv1.Job) reconci
 			message: fmt.Sprintf(`framework "%s" is not linked to a kubernetes namespace`, framework.Name),
 		}
 	}
-	tpls, err := r.TemplateReader.Get(job.TemplatesConfigMapName())
+	tpls, err := r.TemplateReader.Get(templates.JobConfigMapName())
 	if err != nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,

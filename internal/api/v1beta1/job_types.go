@@ -16,8 +16,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"github.com/shipa-corp/ketch/internal/templates"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -89,11 +87,6 @@ const (
 
 func init() {
 	SchemeBuilder.Register(&Job{}, &JobList{})
-}
-
-// TemplatesConfigMapName returns a name of a configmap that contains templates used to render a helm chart.
-func (j *Job) TemplatesConfigMapName() string {
-	return templates.JobConfigMapName()
 }
 
 // Condition looks for a condition with the provided type in the condition list and returns it.

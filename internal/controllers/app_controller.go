@@ -161,7 +161,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 			message: fmt.Sprintf(`framework "%s" is not linked to a kubernetes namespace`, framework.Name),
 		}
 	}
-	tpls, err := r.TemplateReader.Get(app.TemplatesConfigMapName(framework.Spec.IngressController.IngressType))
+	tpls, err := r.TemplateReader.Get(templates.IngressConfigMapName(framework.Spec.IngressController.IngressType.String()))
 	if err != nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,

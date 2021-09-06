@@ -490,37 +490,6 @@ func TestApp_CNames(t *testing.T) {
 	}
 }
 
-func TestApp_TemplatesConfigMapName(t *testing.T) {
-	tests := []struct {
-		name        string
-		app         App
-		ingressType IngressControllerType
-
-		want string
-	}{
-		{
-			name:        "istio configmap",
-			app:         App{},
-			ingressType: IstioIngressControllerType,
-			want:        "ingress-istio-templates",
-		},
-		{
-			name:        "traefik configmap",
-			app:         App{},
-			ingressType: TraefikIngressControllerType,
-			want:        "ingress-traefik-templates",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := tt.app.TemplatesConfigMapName(tt.ingressType)
-			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("TemplatesConfigMapName() mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
 func TestApp_Units(t *testing.T) {
 	tests := []struct {
 		name string
