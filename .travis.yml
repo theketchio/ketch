@@ -9,7 +9,7 @@ jobs:
   include:
     - stage: test
       language: go
-      go: "1.16"
+      go: "1.17"
       script:
         - make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
         - export TEST_ASSET_KUBECTL=/tmp/kubebuilder/bin/kubectl
@@ -32,7 +32,7 @@ jobs:
     - stage: cli_test
       sudo: required
       language: go
-      go: 1.16.x
+      go: 1.17.x
       services:
         - docker
       provider: script
