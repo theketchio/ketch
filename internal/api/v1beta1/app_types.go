@@ -201,7 +201,7 @@ type AppSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Framework",type=string,JSONPath=`.spec.Framework`
+// +kubebuilder:printcolumn:name="Framework",type=string,JSONPath=`.spec.framework`
 // +kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 
 // App is the Schema for the apps API.

@@ -17,7 +17,7 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.Framework
+    - jsonPath: .spec.framework
       name: Framework
       type: string
     - jsonPath: .spec.description
