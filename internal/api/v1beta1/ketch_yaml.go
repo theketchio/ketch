@@ -16,9 +16,6 @@ type KetchYamlData struct {
 // KetchYamlHooks describes commands to run during different stages of the application deployment.
 type KetchYamlHooks struct {
 
-	// Build defines commands that are run as part of the Dockerfile build
-	Build []string `json:"build,omitempty"`
-
 	// Restart describes commands to run during different stages of the application deployment.
 	Restart KetchYamlRestartHooks `json:"restart,omitempty"`
 }
