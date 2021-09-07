@@ -1,13 +1,13 @@
 stages:
   - test
   - build
-  - integration
 
 sudo: required
 
 jobs:
   include:
     - stage: test
+      name: "Running unit tests"
       language: go
       go: "1.17"
       script:
@@ -29,8 +29,9 @@ jobs:
         - docker build -t shipasoftware/ketch:$TRAVIS_COMMIT .
         - docker push shipasoftware/ketch:$TRAVIS_COMMIT
 
-    - stage: cli_test
+    - stage: test
       sudo: required
+      name: "Running integration tests"
       language: go
       go: 1.17.x
       services:
