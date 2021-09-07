@@ -65,12 +65,12 @@ type app struct {
 }
 
 type deployment struct {
+	ImagePullSecrets []v1.LocalObjectReference `json:"imagePullSecrets"`
 	Image            string                    `json:"image"`
 	Version          ketchv1.DeploymentVersion `json:"version"`
 	Processes        []process                 `json:"processes"`
 	Labels           []ketchv1.Label           `json:"labels"`
 	RoutingSettings  ketchv1.RoutingSettings   `json:"routingSettings"`
-	ImagePullSecrets []v1.LocalObjectReference `json:"imagePullSecrets"`
 	DeploymentExtra  deploymentExtra           `json:"extra"`
 }
 
@@ -160,7 +160,9 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 				withEnvs(processSpec.Env),
 				withPortsAndProbes(c),
 				withLifecycle(c.Lifecycle()),
-				withSecurityContext(processSpec.SecurityContext))
+				withSecurityContext(processSpec.SecurityContext),
+				withResourceRequirements(processSpec.Resources),
+			)
 
 			if err != nil {
 				return nil, err

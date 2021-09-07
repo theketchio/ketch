@@ -144,6 +144,13 @@ spec:
           image: shipasoftware/go-app:v1
           ports:
           - containerPort: 9090
+          resources:
+            limits:
+              cpu: 5Gi
+              memory: 5300m
+            requests:
+              cpu: 5Gi
+              memory: 5300m
       imagePullSecrets:
             - name: registry-secret
             - name: private-registry-secret

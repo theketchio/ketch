@@ -13,6 +13,7 @@ import (
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -53,6 +54,8 @@ func TestNew(t *testing.T) {
 		3: {{Port: 9090, Protocol: "TCP"}},
 		4: {{Port: 9091, Protocol: "TCP"}},
 	}
+	memorySize := resource.NewQuantity(5*1024*1024*1024, resource.BinarySI)
+	cores := resource.NewMilliQuantity(5300, resource.DecimalSI)
 	dashboard := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dashboard",
@@ -70,6 +73,16 @@ func TestNew(t *testing.T) {
 							Env: []ketchv1.Env{
 								{Name: "TEST_API_KEY", Value: "SECRET"},
 								{Name: "TEST_API_URL", Value: "example.com"},
+							},
+							Resources: &v1.ResourceRequirements{
+								Requests: v1.ResourceList{
+									v1.ResourceCPU:    *memorySize,
+									v1.ResourceMemory: *cores,
+								},
+								Limits: v1.ResourceList{
+									v1.ResourceCPU:    *memorySize,
+									v1.ResourceMemory: *cores,
+								},
 							},
 						},
 						{Name: "worker", Units: conversions.IntPtr(1), Cmd: []string{"celery"}},
@@ -160,6 +173,16 @@ func TestNew(t *testing.T) {
 			application:       dashboard,
 			framework:         frameworkWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-traefik",
+		},
+		{
+			name: "traefik templates with cluster issuer and resource requirements",
+			opts: []Option{
+				WithTemplates(templates.TraefikDefaultTemplates),
+				WithExposedPorts(exportedPorts),
+			},
+			application:       dashboard,
+			framework:         frameworkWithClusterIssuer,
+			wantYamlsFilename: "dashboard-traefik-cluster-issuer",
 		},
 	}
 	for _, tt := range tests {
