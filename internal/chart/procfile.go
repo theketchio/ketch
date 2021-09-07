@@ -3,8 +3,6 @@ package chart
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -13,8 +11,7 @@ import (
 )
 
 var (
-	ErrEmptyProcfile  = errors.New("procfile should contain at least one process name with a command")
-	ErrProcfileExists = errors.New("a Procfile already exists")
+	ErrEmptyProcfile = errors.New("procfile should contain at least one process name with a command")
 
 	processNameRegex = regexp.MustCompile(`^([A-Za-z0-9_-]+)$`)
 )
@@ -103,27 +100,4 @@ func routableProcess(names []string) string {
 	}
 	sort.Strings(names)
 	return names[0]
-}
-
-func WriteProcfile(processes []ketchv1.ProcessSpec, dest string) error {
-	f, err := os.Create(dest)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	for _, process := range processes {
-		_, err = fmt.Fprintf(f, "%s: %s\n", process.Name, strings.Join(process.Cmd, " "))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func AssertProcfileNotExist() error {
-	_, err := os.Lstat("Procfile")
-	if os.IsNotExist(err) {
-		return nil
-	}
-	return ErrProcfileExists
 }
