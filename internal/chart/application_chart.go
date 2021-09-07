@@ -150,6 +150,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			process, err := newProcess(name, isRoutable,
 				withCmd(c.procfile.Processes[name]),
 				withUnits(processSpec.Units),
+				withEnvs(processSpec.Env),
 				withPortsAndProbes(c),
 				withLifecycle(c.Lifecycle()),
 				withSecurityContext(processSpec.SecurityContext))

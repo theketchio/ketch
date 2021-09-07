@@ -48,6 +48,15 @@ func withUnits(units *int) processOption {
 	}
 }
 
+// withEnvs configures env variables of a process.
+// Additionally, the process will have port-related envs like "PORT". Check out "portEnvVariables" below.
+func withEnvs(envs []ketchv1.Env) processOption {
+	return func(p *process) error {
+		p.Env = envs
+		return nil
+	}
+}
+
 func withCmd(cmd []string) processOption {
 	return func(p *process) error {
 		p.Cmd = cmd
@@ -108,7 +117,7 @@ func newProcess(name string, isRoutable bool, opts ...processOption) (*process, 
 		}
 	}
 
-	process.Env = process.portEnvVariables()
+	process.Env = append(process.Env, process.portEnvVariables()...)
 	if !process.Routable {
 		return process, nil
 	}

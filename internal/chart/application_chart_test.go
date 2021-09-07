@@ -2,18 +2,20 @@ package chart
 
 import (
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/templates"
+	"github.com/shipa-corp/ketch/internal/utils/conversions"
+
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -59,8 +61,16 @@ func TestNew(t *testing.T) {
 					Image:   "shipasoftware/go-app:v1",
 					Version: 3,
 					Processes: []ketchv1.ProcessSpec{
-						{Name: "web", Units: intRef(3), Cmd: []string{"python"}},
-						{Name: "worker", Units: intRef(1), Cmd: []string{"celery"}},
+						{
+							Name:  "web",
+							Units: conversions.IntPtr(3),
+							Cmd:   []string{"python"},
+							Env: []ketchv1.Env{
+								{Name: "TEST_API_KEY", Value: "SECRET"},
+								{Name: "TEST_API_URL", Value: "example.com"},
+							},
+						},
+						{Name: "worker", Units: conversions.IntPtr(1), Cmd: []string{"celery"}},
 					},
 					RoutingSettings: ketchv1.RoutingSettings{
 						Weight: 100,
