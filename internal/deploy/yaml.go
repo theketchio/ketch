@@ -57,7 +57,6 @@ const (
 	defaultVersion  = "v1"
 	defaultAppUnit  = 1
 	typeApplication = "Application"
-	typeJob         = "Job"
 )
 
 // GetChangeSetFromYaml reads an application.yaml file and returns a ChangeSet
