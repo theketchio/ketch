@@ -98,7 +98,6 @@ type AppDeploymentSpec struct {
 	Image            string                    `json:"image"`
 	Version          DeploymentVersion         `json:"version"`
 	Processes        []ProcessSpec             `json:"processes,omitempty"`
-	Resources        v1.ResourceRequirements   `json:"resources,omitempty"`
 	KetchYaml        *KetchYamlData            `json:"ketchYaml,omitempty"`
 	Labels           []Label                   `json:"labels,omitempty"`
 	RoutingSettings  RoutingSettings           `json:"routingSettings,omitempty"`
