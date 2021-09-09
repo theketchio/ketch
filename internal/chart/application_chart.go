@@ -31,7 +31,6 @@ type ApplicationChart struct {
 
 type values struct {
 	App               *app                           `json:"app"`
-	DockerRegistry    dockerRegistrySpec             `json:"dockerRegistry"`
 	IngressController *ketchv1.IngressControllerSpec `json:"ingressController"`
 }
 
@@ -66,20 +65,17 @@ type app struct {
 }
 
 type deployment struct {
-	Image           string                    `json:"image"`
-	Version         ketchv1.DeploymentVersion `json:"version"`
-	Processes       []process                 `json:"processes"`
-	Labels          []ketchv1.Label           `json:"labels"`
-	RoutingSettings ketchv1.RoutingSettings   `json:"routingSettings"`
-	DeploymentExtra deploymentExtra           `json:"extra"`
+	Image            string                    `json:"image"`
+	Version          ketchv1.DeploymentVersion `json:"version"`
+	Processes        []process                 `json:"processes"`
+	Labels           []ketchv1.Label           `json:"labels"`
+	RoutingSettings  ketchv1.RoutingSettings   `json:"routingSettings"`
+	ImagePullSecrets []v1.LocalObjectReference `json:"imagePullSecrets"`
+	DeploymentExtra  deploymentExtra           `json:"extra"`
 }
 
 type deploymentExtra struct {
 	Volumes []v1.Volume `json:"volumes,omitempty"`
-}
-
-type dockerRegistrySpec struct {
-	ImagePullSecret string `json:"imagePullSecret"`
 }
 
 type Option func(opts *Options)
@@ -109,6 +105,19 @@ func WithTemplates(tpls templates.Templates) Option {
 	}
 }
 
+func imagePullSecrets(deploymentImagePullSecrets []v1.LocalObjectReference, spec ketchv1.DockerRegistrySpec) []v1.LocalObjectReference {
+	if len(deploymentImagePullSecrets) > 0 {
+		// imagePullSecrets defined for this particular deployment is higher priority.
+		return deploymentImagePullSecrets
+	}
+	if len(spec.SecretName) == 0 {
+		return nil
+	}
+	return []v1.LocalObjectReference{
+		{Name: spec.SecretName},
+	}
+}
+
 // New returns an ApplicationChart instance.
 func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option) (*ApplicationChart, error) {
 
@@ -124,9 +133,6 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			Env:     application.Spec.Env,
 		},
 		IngressController: &framework.Spec.IngressController,
-		DockerRegistry: dockerRegistrySpec{
-			ImagePullSecret: application.Spec.DockerRegistry.SecretName,
-		},
 	}
 
 	for _, deploymentSpec := range application.Spec.Deployments {
@@ -137,6 +143,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			RoutingSettings: ketchv1.RoutingSettings{
 				Weight: deploymentSpec.RoutingSettings.Weight,
 			},
+			ImagePullSecrets: imagePullSecrets(deploymentSpec.ImagePullSecrets, application.Spec.DockerRegistry),
 		}
 		procfile, err := ProcfileFromProcesses(deploymentSpec.Processes)
 		if err != nil {

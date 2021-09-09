@@ -47,6 +47,54 @@ spec:
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
 ---
+# Source: dashboard/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: dashboard-web-4
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+  name: dashboard-web-4
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-default-1
+      port: 9091
+      protocol: TCP
+      targetPort: 9091
+  selector:
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+---
+# Source: dashboard/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: dashboard-worker-4
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: worker
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+  name: dashboard-worker-4
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-default-1
+      port: 9091
+      protocol: TCP
+      targetPort: 9091
+  selector:
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: worker
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+---
 # Source: dashboard/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -96,6 +144,9 @@ spec:
           image: shipasoftware/go-app:v1
           ports:
           - containerPort: 9090
+      imagePullSecrets:
+            - name: registry-secret
+            - name: private-registry-secret
 ---
 # Source: dashboard/templates/deployment.yaml
 apiVersion: apps/v1
@@ -142,6 +193,105 @@ spec:
           image: shipasoftware/go-app:v1
           ports:
           - containerPort: 9090
+      imagePullSecrets:
+            - name: registry-secret
+            - name: private-registry-secret
+---
+# Source: dashboard/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: dashboard-web-4
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-process-replicas: "3"
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+  name: dashboard-web-4
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dashboard-web-4
+      theketch.io/app-name: dashboard
+      theketch.io/app-process: web
+      theketch.io/app-deployment-version: "4"
+      theketch.io/is-isolated-run: "false"
+  template:
+    metadata:
+      labels:
+        app: dashboard-web-4
+        theketch.io/app-name: dashboard
+        theketch.io/app-process: web
+        theketch.io/app-deployment-version: "4"
+        theketch.io/is-isolated-run: "false"
+    spec:
+      containers:
+        - name: dashboard-web-4
+          command: ["python"]
+          env:
+            - name: port
+              value: "9091"
+            - name: PORT
+              value: "9091"
+            - name: PORT_web
+              value: "9091"
+            - name: VAR
+              value: VALUE
+          image: shipasoftware/go-app:v2
+          ports:
+          - containerPort: 9091
+      imagePullSecrets:
+            - name: default-image-pull-secret
+---
+# Source: dashboard/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: dashboard-worker-4
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: worker
+    theketch.io/app-process-replicas: "1"
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+  name: dashboard-worker-4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-worker-4
+      theketch.io/app-name: dashboard
+      theketch.io/app-process: worker
+      theketch.io/app-deployment-version: "4"
+      theketch.io/is-isolated-run: "false"
+  template:
+    metadata:
+      labels:
+        app: dashboard-worker-4
+        theketch.io/app-name: dashboard
+        theketch.io/app-process: worker
+        theketch.io/app-deployment-version: "4"
+        theketch.io/is-isolated-run: "false"
+    spec:
+      containers:
+        - name: dashboard-worker-4
+          command: ["celery"]
+          env:
+            - name: port
+              value: "9091"
+            - name: PORT
+              value: "9091"
+            - name: PORT_worker
+              value: "9091"
+            - name: VAR
+              value: VALUE
+          image: shipasoftware/go-app:v2
+          ports:
+          - containerPort: 9091
+      imagePullSecrets:
+            - name: default-image-pull-secret
 ---
 # Source: dashboard/templates/gateway.yaml
 apiVersion: networking.istio.io/v1alpha3
@@ -157,6 +307,14 @@ spec:
   - port:
       number: 80
       name: http-3
+      protocol: HTTP
+    hosts:
+    - theketch.io
+    - app.theketch.io
+    - dashboard.20.20.20.20.shipa.cloud
+  - port:
+      number: 80
+      name: http-4
       protocol: HTTP
     hosts:
     - theketch.io
@@ -185,4 +343,9 @@ spec:
             host: dashboard-web-3
             port:
               number: 9090
-          weight: 100
+          weight: 30
+        - destination:
+            host: dashboard-web-4
+            port:
+              number: 9091
+          weight: 70
