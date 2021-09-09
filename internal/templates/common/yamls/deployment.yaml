@@ -65,11 +65,9 @@ spec:
           securityContext:
 {{ $process.extra.securityContext | toYaml | indent 12 }}
           {{- end }}
-      {{- if or $.Values.dockerRegistry.imagePullSecret $.Values.dockerRegistry.createImagePullSecret }}
+      {{- if $deployment.imagePullSecrets }}
       imagePullSecrets:
-      {{- if $.Values.dockerRegistry.imagePullSecret }}
-        - name: {{ $.Values.dockerRegistry.imagePullSecret }}
-      {{- end }}
+{{ $deployment.imagePullSecrets | toYaml | indent 12}}
       {{- end }}
       {{- if $deployment.extra.volumes }}
       volumes:

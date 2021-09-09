@@ -7,16 +7,17 @@ import (
 	"strings"
 	"testing"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/templates"
-	"github.com/shipa-corp/ketch/internal/utils/conversions"
-
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/shipa-corp/ketch/internal/templates"
+	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
 
 func TestNew(t *testing.T) {
@@ -50,6 +51,7 @@ func TestNew(t *testing.T) {
 	}
 	exportedPorts := map[ketchv1.DeploymentVersion][]ketchv1.ExposedPort{
 		3: {{Port: 9090, Protocol: "TCP"}},
+		4: {{Port: 9091, Protocol: "TCP"}},
 	}
 	dashboard := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
@@ -73,7 +75,26 @@ func TestNew(t *testing.T) {
 						{Name: "worker", Units: conversions.IntPtr(1), Cmd: []string{"celery"}},
 					},
 					RoutingSettings: ketchv1.RoutingSettings{
-						Weight: 100,
+						Weight: 30,
+					},
+					ImagePullSecrets: []v1.LocalObjectReference{
+						{Name: "registry-secret"},
+						{Name: "private-registry-secret"},
+					},
+				},
+				{
+					Image:   "shipasoftware/go-app:v2",
+					Version: 4,
+					Processes: []ketchv1.ProcessSpec{
+						{
+							Name:  "web",
+							Units: conversions.IntPtr(3),
+							Cmd:   []string{"python"},
+						},
+						{Name: "worker", Units: conversions.IntPtr(1), Cmd: []string{"celery"}},
+					},
+					RoutingSettings: ketchv1.RoutingSettings{
+						Weight: 70,
 					},
 				},
 			},
@@ -81,6 +102,9 @@ func TestNew(t *testing.T) {
 				{Name: "VAR", Value: "VALUE"},
 			},
 			Framework: "framework",
+			DockerRegistry: ketchv1.DockerRegistrySpec{
+				SecretName: "default-image-pull-secret",
+			},
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 				Cnames:               []string{"theketch.io", "app.theketch.io"},
@@ -142,9 +166,10 @@ func TestNew(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := New(tt.application, tt.framework, tt.opts...)
 			if tt.wantErr {
-				require.Nil(t, err, "New() error = %v, wantErr %v", err, tt.wantErr)
+				require.NotNil(t, err, "New() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			require.Nil(t, err)
 
 			expectedFilename := filepath.Join(chartDirectory, fmt.Sprintf("%s.yaml", tt.wantYamlsFilename))
 			actualFilename := filepath.Join(chartDirectory, fmt.Sprintf("%s-output.yaml", tt.wantYamlsFilename))
@@ -159,7 +184,7 @@ func TestNew(t *testing.T) {
 				install.DryRun = true
 				install.ClientOnly = true
 			})
-			require.Nil(t, err)
+			require.Nil(t, err, "error = %v", err)
 
 			actualManifests := strings.TrimSpace(release.Manifest)
 			err = ioutil.WriteFile(actualFilename, []byte(actualManifests), 0755)
