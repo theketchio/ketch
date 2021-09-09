@@ -49,6 +49,19 @@ func TestNewProcess(t *testing.T) {
 			v1.ResourceMemory: *cores,
 		},
 	}
+	volumes := []v1.Volume{{
+		Name: "test-volume",
+		VolumeSource: v1.VolumeSource{
+			AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
+				VolumeID: "volume-id",
+				FSType:   "ext4",
+			},
+		},
+	}}
+	volumeMounts := []v1.VolumeMount{{
+		MountPath: "/test-ebs",
+		Name:      "test-volume",
+	}}
 
 	tests := []struct {
 		name        string
@@ -67,6 +80,8 @@ func TestNewProcess(t *testing.T) {
 				withUnits(intRef(5)),
 				withLifecycle(&v1.Lifecycle{}),
 				withResourceRequirements(&rr),
+				withVolumes(volumes),
+				withVolumeMounts(volumeMounts),
 				withSecurityContext(&v1.SecurityContext{Privileged: boolRef(true)}),
 				withPortsAndProbes(
 					mockConfigurator{
@@ -106,6 +121,8 @@ func TestNewProcess(t *testing.T) {
 						Privileged: boolRef(true),
 					},
 					ResourceRequirements: &rr,
+					Volumes:              volumes,
+					VolumeMounts:         volumeMounts,
 				},
 			},
 		},

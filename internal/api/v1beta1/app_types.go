@@ -81,6 +81,10 @@ type ProcessSpec struct {
 
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
 
+	Volumes []v1.Volume `json:"volumes,omitempty"`
+
+	VolumeMounts []v1.VolumeMount `json:"volumeMounts,omitempty"`
+
 	// Security options the process should run with.
 	SecurityContext *v1.SecurityContext `json:"securityContext,omitempty"`
 }

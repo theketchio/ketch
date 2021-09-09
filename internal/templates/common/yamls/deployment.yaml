@@ -49,6 +49,10 @@ spec:
           ports:
 {{ $process.containerPorts | toYaml | indent 10 }}
           {{- end }}
+          {{- if $process.extra.volumes }}
+          volumes:
+{{ $process.extra.volumes | toYaml | indent 12 }}
+          {{- end }}
           {{- if $process.extra.volumeMounts }}
           volumeMounts:
 {{ $process.extra.volumeMounts | toYaml | indent 12 }}

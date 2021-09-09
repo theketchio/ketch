@@ -31,6 +31,7 @@ type podExtra struct {
 	SecurityContext      *v1.SecurityContext      `json:"securityContext,omitempty"`
 	ResourceRequirements *v1.ResourceRequirements `json:"resourceRequirements,omitempty"`
 	NodeSelectorTerms    []v1.NodeSelectorTerm    `json:"nodeSelectorTerms,omitempty"`
+	Volumes              []v1.Volume              `json:"volumes,omitempty"`
 	VolumeMounts         []v1.VolumeMount         `json:"volumeMounts,omitempty"`
 	ReadinessProbe       *v1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe        *v1.Probe                `json:"livenessProbe,omitempty"`
@@ -106,6 +107,20 @@ func withLifecycle(lc *v1.Lifecycle) processOption {
 func withResourceRequirements(rr *v1.ResourceRequirements) processOption {
 	return func(p *process) error {
 		p.PodExtra.ResourceRequirements = rr
+		return nil
+	}
+}
+
+func withVolumes(volumes []v1.Volume) processOption {
+	return func(p *process) error {
+		p.PodExtra.Volumes = volumes
+		return nil
+	}
+}
+
+func withVolumeMounts(vm []v1.VolumeMount) processOption {
+	return func(p *process) error {
+		p.PodExtra.VolumeMounts = vm
 		return nil
 	}
 }

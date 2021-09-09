@@ -162,6 +162,8 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 				withLifecycle(c.Lifecycle()),
 				withSecurityContext(processSpec.SecurityContext),
 				withResourceRequirements(processSpec.Resources),
+				withVolumes(processSpec.Volumes),
+				withVolumeMounts(processSpec.VolumeMounts),
 			)
 
 			if err != nil {

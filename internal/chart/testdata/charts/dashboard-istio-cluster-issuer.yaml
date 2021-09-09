@@ -144,6 +144,14 @@ spec:
           image: shipasoftware/go-app:v1
           ports:
           - containerPort: 9090
+          volumes:
+            - awsElasticBlockStore:
+                fsType: ext4
+                volumeID: volume-id
+              name: test-volume
+          volumeMounts:
+            - mountPath: /test-ebs
+              name: test-volume
           resources:
             limits:
               cpu: 5Gi
