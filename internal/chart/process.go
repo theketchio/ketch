@@ -103,6 +103,13 @@ func withLifecycle(lc *v1.Lifecycle) processOption {
 	}
 }
 
+func withResourceRequirements(rr *v1.ResourceRequirements) processOption {
+	return func(p *process) error {
+		p.PodExtra.ResourceRequirements = rr
+		return nil
+	}
+}
+
 func newProcess(name string, isRoutable bool, opts ...processOption) (*process, error) {
 	process := &process{
 		Name:     name,

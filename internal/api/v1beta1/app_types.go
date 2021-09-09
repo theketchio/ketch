@@ -79,6 +79,8 @@ type ProcessSpec struct {
 	// Commands executed on startup.
 	Cmd []string `json:"cmd"`
 
+	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+
 	// Security options the process should run with.
 	SecurityContext *v1.SecurityContext `json:"securityContext,omitempty"`
 }
@@ -90,17 +92,16 @@ func (v DeploymentVersion) String() string {
 }
 
 type AppDeploymentSpec struct {
-	Image           string            `json:"image"`
-	Version         DeploymentVersion `json:"version"`
-	Processes       []ProcessSpec     `json:"processes,omitempty"`
-	KetchYaml       *KetchYamlData    `json:"ketchYaml,omitempty"`
-	Labels          []Label           `json:"labels,omitempty"`
-	RoutingSettings RoutingSettings   `json:"routingSettings,omitempty"`
-	ExposedPorts    []ExposedPort     `json:"exposedPorts,omitempty"`
-
 	// ImagePullSecrets contains a list of secrets to pull the image of this deployment.
 	// If this list is defined, app.Spec.DockerRegistrySpec is not used.
 	ImagePullSecrets []v1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	Image            string                    `json:"image"`
+	Version          DeploymentVersion         `json:"version"`
+	Processes        []ProcessSpec             `json:"processes,omitempty"`
+	KetchYaml        *KetchYamlData            `json:"ketchYaml,omitempty"`
+	Labels           []Label                   `json:"labels,omitempty"`
+	RoutingSettings  RoutingSettings           `json:"routingSettings,omitempty"`
+	ExposedPorts     []ExposedPort             `json:"exposedPorts,omitempty"`
 }
 
 // IngressSpec configures entrypoints to access an application.

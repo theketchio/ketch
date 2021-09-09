@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -36,6 +37,19 @@ func boolRef(b bool) *bool {
 }
 
 func TestNewProcess(t *testing.T) {
+	memorySize := resource.NewQuantity(5*1024*1024*1024, resource.BinarySI)
+	cores := resource.NewMilliQuantity(5300, resource.DecimalSI)
+	rr := v1.ResourceRequirements{
+		Requests: v1.ResourceList{
+			v1.ResourceCPU:    *memorySize,
+			v1.ResourceMemory: *cores,
+		},
+		Limits: v1.ResourceList{
+			v1.ResourceCPU:    *memorySize,
+			v1.ResourceMemory: *cores,
+		},
+	}
+
 	tests := []struct {
 		name        string
 		processName string
@@ -52,6 +66,7 @@ func TestNewProcess(t *testing.T) {
 				withCmd([]string{"gunicorn", "-p", "8080"}),
 				withUnits(intRef(5)),
 				withLifecycle(&v1.Lifecycle{}),
+				withResourceRequirements(&rr),
 				withSecurityContext(&v1.SecurityContext{Privileged: boolRef(true)}),
 				withPortsAndProbes(
 					mockConfigurator{
@@ -90,6 +105,7 @@ func TestNewProcess(t *testing.T) {
 					SecurityContext: &v1.SecurityContext{
 						Privileged: boolRef(true),
 					},
+					ResourceRequirements: &rr,
 				},
 			},
 		},
