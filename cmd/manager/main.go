@@ -40,22 +40,24 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
-func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = ketchv1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
-}
-
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var disableWebhooks bool
+	var group string
+	var namespace string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", true,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&disableWebhooks, "disable-webhooks", false, "Disable webhooks.")
+	flag.StringVar(&group, "group", ketchv1.TheKetchGroup, "specify a non-default group")
+	flag.StringVar(&namespace, "namespace", controllers.KetchNamespace, "specify a non-default namespace")
 	flag.Parse()
+
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = ketchv1.AddToScheme(ketchv1.WithGroup(group))(scheme)
+	// +kubebuilder:scaffold:scheme
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
@@ -78,7 +80,7 @@ func main() {
 	// Storage uses its own client.Client
 	// because mgr.GetClient() returns a client that requires some time to initialize its internal cache,
 	// and storage.Update() operation fails.
-	storage := templates.NewStorage(storageClient, controllers.KetchNamespace)
+	storage := templates.NewStorage(storageClient, namespace)
 	if err = storage.Update(templates.IngressConfigMapName(ketchv1.TraefikIngressControllerType.String()), templates.TraefikDefaultTemplates); err != nil {
 		setupLog.Error(err, "unable to set default templates")
 		os.Exit(1)

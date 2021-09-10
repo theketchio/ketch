@@ -19,7 +19,7 @@ var (
 
 func init() {
 	_ = kubeFake.AddToScheme(scheme)
-	_ = ketchv1.AddToScheme(scheme)
+	_ = ketchv1.AddToScheme()(scheme)
 }
 
 // Configuration provides a way to mock clients.

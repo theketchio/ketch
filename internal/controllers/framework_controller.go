@@ -41,8 +41,8 @@ type FrameworkReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=theketch.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=theketch.io,resources=frameworks/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=theketch.io;shipa.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=theketch.io;shipa.io,resources=frameworks/status,verbs=get;update;patch
 
 func (r *FrameworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("framework", req.NamespacedName)
