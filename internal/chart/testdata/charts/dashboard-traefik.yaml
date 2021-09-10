@@ -144,6 +144,9 @@ spec:
           image: shipasoftware/go-app:v1
           ports:
           - containerPort: 9090
+          volumeMounts:
+            - mountPath: /test-ebs
+              name: test-volume
           resources:
             limits:
               cpu: 5Gi
@@ -154,6 +157,11 @@ spec:
       imagePullSecrets:
             - name: registry-secret
             - name: private-registry-secret
+      volumes:
+            - awsElasticBlockStore:
+                fsType: ext4
+                volumeID: volume-id
+              name: test-volume
 ---
 # Source: dashboard/templates/deployment.yaml
 apiVersion: apps/v1

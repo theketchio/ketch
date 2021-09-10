@@ -84,6 +84,19 @@ func TestNew(t *testing.T) {
 									v1.ResourceMemory: *cores,
 								},
 							},
+							Volumes: []v1.Volume{{
+								Name: "test-volume",
+								VolumeSource: v1.VolumeSource{
+									AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
+										VolumeID: "volume-id",
+										FSType:   "ext4",
+									},
+								},
+							}},
+							VolumeMounts: []v1.VolumeMount{{
+								MountPath: "/test-ebs",
+								Name:      "test-volume",
+							}},
 						},
 						{Name: "worker", Units: conversions.IntPtr(1), Cmd: []string{"celery"}},
 					},

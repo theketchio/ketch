@@ -69,9 +69,9 @@ spec:
       imagePullSecrets:
 {{ $deployment.imagePullSecrets | toYaml | indent 12}}
       {{- end }}
-      {{- if $deployment.extra.volumes }}
+      {{- if $process.extra.volumes }}
       volumes:
-{{ $deployment.extra.volumes | toYaml | indent 12 }}
+{{ $process.extra.volumes | toYaml | indent 12 }}
       {{- end }}
       {{- if $process.extra.nodeSelectorTerms }}
       affinity:
