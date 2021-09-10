@@ -71,11 +71,6 @@ type deployment struct {
 	Processes        []process                 `json:"processes"`
 	Labels           []ketchv1.Label           `json:"labels"`
 	RoutingSettings  ketchv1.RoutingSettings   `json:"routingSettings"`
-	DeploymentExtra  deploymentExtra           `json:"extra"`
-}
-
-type deploymentExtra struct {
-	Volumes []v1.Volume `json:"volumes,omitempty"`
 }
 
 type Option func(opts *Options)
