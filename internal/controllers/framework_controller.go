@@ -46,9 +46,9 @@ type FrameworkReconciler struct {
 
 func (r *FrameworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("framework", req.NamespacedName)
-
 	framework := ketchv1.Framework{}
 	if err := r.Get(ctx, req.NamespacedName, &framework); err != nil {
+
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -59,7 +59,16 @@ func (r *FrameworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, err
 }
 
+func cleanAndUpdateMap(ns *map[string]string, current map[string]string) {
+	*ns = map[string]string{}
+	// directly setting equal will add to error when trying to add the istio-injection key
+	for k, v := range current {
+		(*ns)[k] = v
+	}
+}
+
 func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.Framework) ketchv1.FrameworkStatus {
+
 	frameworks := ketchv1.FrameworkList{}
 	err := r.List(ctx, &frameworks)
 	if err != nil {
@@ -72,6 +81,7 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 		}
 	}
 	namespace := v1.Namespace{}
+
 	failures := 0
 	for {
 		err := r.Get(ctx, types.NamespacedName{Name: framework.Spec.NamespaceName}, &namespace)
@@ -110,14 +120,15 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 			time.Sleep(1 * time.Second)
 		}
 	}
+
+	cleanAndUpdateMap(&namespace.Annotations, framework.Spec.Annotations)
+	cleanAndUpdateMap(&namespace.Labels, framework.Spec.Labels)
+
 	// we rely on istio automatic sidecar injection
 	// https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
 	istioInjectionValue := "disabled"
 	if framework.Spec.IngressController.IngressType == ketchv1.IstioIngressControllerType {
 		istioInjectionValue = "enabled"
-	}
-	if namespace.Labels == nil {
-		namespace.Labels = map[string]string{}
 	}
 	namespace.Labels["istio-injection"] = istioInjectionValue
 
