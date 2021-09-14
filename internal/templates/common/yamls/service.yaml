@@ -6,10 +6,10 @@ kind: Service
 metadata:
   labels:
     app: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
-    theketch.io/app-name: {{ $.Values.app.name }}
-    theketch.io/app-process: {{ $process.name }}
-    theketch.io/app-deployment-version: {{ $deployment.version | quote }}
-    theketch.io/is-isolated-run: "false"
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
+    {{ $.Values.app.group }}/app-process: {{ $process.name }}
+    {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
+    {{ $.Values.app.group }}/is-isolated-run: "false"
     {{- range $i, $label := $deployment.labels }}
     {{ $label.name }}: {{ $label.value }}
     {{- end }}
@@ -19,10 +19,10 @@ spec:
   ports:
 {{ $process.servicePorts | toYaml | indent 4 }}
   selector:
-    theketch.io/app-name: {{ $.Values.app.name }}
-    theketch.io/app-process: {{ $process.name }}
-    theketch.io/app-deployment-version: {{ $deployment.version | quote }}
-    theketch.io/is-isolated-run: "false"
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
+    {{ $.Values.app.group }}/app-process: {{ $process.name }}
+    {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
+    {{ $.Values.app.group }}/is-isolated-run: "false"
 ---
   {{- end }}
   {{ end }}

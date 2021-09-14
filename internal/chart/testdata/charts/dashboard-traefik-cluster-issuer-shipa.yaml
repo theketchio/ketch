@@ -5,10 +5,10 @@ kind: Service
 metadata:
   labels:
     app: dashboard-web-3
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
-    theketch.io/app-deployment-version: "3"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: web
+    shipa.io/app-deployment-version: "3"
+    shipa.io/is-isolated-run: "false"
   name: dashboard-web-3
 spec:
   type: ClusterIP
@@ -18,10 +18,10 @@ spec:
       protocol: TCP
       targetPort: 9090
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
-    theketch.io/app-deployment-version: "3"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: web
+    shipa.io/app-deployment-version: "3"
+    shipa.io/is-isolated-run: "false"
 ---
 # Source: dashboard/templates/service.yaml
 apiVersion: v1
@@ -29,10 +29,10 @@ kind: Service
 metadata:
   labels:
     app: dashboard-worker-3
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
-    theketch.io/app-deployment-version: "3"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: worker
+    shipa.io/app-deployment-version: "3"
+    shipa.io/is-isolated-run: "false"
   name: dashboard-worker-3
 spec:
   type: ClusterIP
@@ -42,10 +42,10 @@ spec:
       protocol: TCP
       targetPort: 9090
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
-    theketch.io/app-deployment-version: "3"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: worker
+    shipa.io/app-deployment-version: "3"
+    shipa.io/is-isolated-run: "false"
 ---
 # Source: dashboard/templates/service.yaml
 apiVersion: v1
@@ -53,10 +53,10 @@ kind: Service
 metadata:
   labels:
     app: dashboard-web-4
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
-    theketch.io/app-deployment-version: "4"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: web
+    shipa.io/app-deployment-version: "4"
+    shipa.io/is-isolated-run: "false"
   name: dashboard-web-4
 spec:
   type: ClusterIP
@@ -66,10 +66,10 @@ spec:
       protocol: TCP
       targetPort: 9091
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
-    theketch.io/app-deployment-version: "4"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: web
+    shipa.io/app-deployment-version: "4"
+    shipa.io/is-isolated-run: "false"
 ---
 # Source: dashboard/templates/service.yaml
 apiVersion: v1
@@ -77,10 +77,10 @@ kind: Service
 metadata:
   labels:
     app: dashboard-worker-4
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
-    theketch.io/app-deployment-version: "4"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: worker
+    shipa.io/app-deployment-version: "4"
+    shipa.io/is-isolated-run: "false"
   name: dashboard-worker-4
 spec:
   type: ClusterIP
@@ -90,10 +90,10 @@ spec:
       protocol: TCP
       targetPort: 9091
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
-    theketch.io/app-deployment-version: "4"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: worker
+    shipa.io/app-deployment-version: "4"
+    shipa.io/is-isolated-run: "false"
 ---
 # Source: dashboard/templates/deployment.yaml
 apiVersion: apps/v1
@@ -101,29 +101,29 @@ kind: Deployment
 metadata:
   labels:
     app: dashboard-web-3
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
-    theketch.io/app-process-replicas: "3"
-    theketch.io/app-deployment-version: "3"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: web
+    shipa.io/app-process-replicas: "3"
+    shipa.io/app-deployment-version: "3"
+    shipa.io/is-isolated-run: "false"
   name: dashboard-web-3
 spec:
   replicas: 3
   selector:
     matchLabels:
       app: dashboard-web-3
-      theketch.io/app-name: dashboard
-      theketch.io/app-process: web
-      theketch.io/app-deployment-version: "3"
-      theketch.io/is-isolated-run: "false"
+      shipa.io/app-name: dashboard
+      shipa.io/app-process: web
+      shipa.io/app-deployment-version: "3"
+      shipa.io/is-isolated-run: "false"
   template:
     metadata:
       labels:
         app: dashboard-web-3
-        theketch.io/app-name: dashboard
-        theketch.io/app-process: web
-        theketch.io/app-deployment-version: "3"
-        theketch.io/is-isolated-run: "false"
+        shipa.io/app-name: dashboard
+        shipa.io/app-process: web
+        shipa.io/app-deployment-version: "3"
+        shipa.io/is-isolated-run: "false"
     spec:
       containers:
         - name: dashboard-web-3
@@ -169,29 +169,29 @@ kind: Deployment
 metadata:
   labels:
     app: dashboard-worker-3
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
-    theketch.io/app-process-replicas: "1"
-    theketch.io/app-deployment-version: "3"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: worker
+    shipa.io/app-process-replicas: "1"
+    shipa.io/app-deployment-version: "3"
+    shipa.io/is-isolated-run: "false"
   name: dashboard-worker-3
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: dashboard-worker-3
-      theketch.io/app-name: dashboard
-      theketch.io/app-process: worker
-      theketch.io/app-deployment-version: "3"
-      theketch.io/is-isolated-run: "false"
+      shipa.io/app-name: dashboard
+      shipa.io/app-process: worker
+      shipa.io/app-deployment-version: "3"
+      shipa.io/is-isolated-run: "false"
   template:
     metadata:
       labels:
         app: dashboard-worker-3
-        theketch.io/app-name: dashboard
-        theketch.io/app-process: worker
-        theketch.io/app-deployment-version: "3"
-        theketch.io/is-isolated-run: "false"
+        shipa.io/app-name: dashboard
+        shipa.io/app-process: worker
+        shipa.io/app-deployment-version: "3"
+        shipa.io/is-isolated-run: "false"
     spec:
       containers:
         - name: dashboard-worker-3
@@ -218,29 +218,29 @@ kind: Deployment
 metadata:
   labels:
     app: dashboard-web-4
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
-    theketch.io/app-process-replicas: "3"
-    theketch.io/app-deployment-version: "4"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: web
+    shipa.io/app-process-replicas: "3"
+    shipa.io/app-deployment-version: "4"
+    shipa.io/is-isolated-run: "false"
   name: dashboard-web-4
 spec:
   replicas: 3
   selector:
     matchLabels:
       app: dashboard-web-4
-      theketch.io/app-name: dashboard
-      theketch.io/app-process: web
-      theketch.io/app-deployment-version: "4"
-      theketch.io/is-isolated-run: "false"
+      shipa.io/app-name: dashboard
+      shipa.io/app-process: web
+      shipa.io/app-deployment-version: "4"
+      shipa.io/is-isolated-run: "false"
   template:
     metadata:
       labels:
         app: dashboard-web-4
-        theketch.io/app-name: dashboard
-        theketch.io/app-process: web
-        theketch.io/app-deployment-version: "4"
-        theketch.io/is-isolated-run: "false"
+        shipa.io/app-name: dashboard
+        shipa.io/app-process: web
+        shipa.io/app-deployment-version: "4"
+        shipa.io/is-isolated-run: "false"
     spec:
       containers:
         - name: dashboard-web-4
@@ -266,29 +266,29 @@ kind: Deployment
 metadata:
   labels:
     app: dashboard-worker-4
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
-    theketch.io/app-process-replicas: "1"
-    theketch.io/app-deployment-version: "4"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: worker
+    shipa.io/app-process-replicas: "1"
+    shipa.io/app-deployment-version: "4"
+    shipa.io/is-isolated-run: "false"
   name: dashboard-worker-4
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: dashboard-worker-4
-      theketch.io/app-name: dashboard
-      theketch.io/app-process: worker
-      theketch.io/app-deployment-version: "4"
-      theketch.io/is-isolated-run: "false"
+      shipa.io/app-name: dashboard
+      shipa.io/app-process: worker
+      shipa.io/app-deployment-version: "4"
+      shipa.io/is-isolated-run: "false"
   template:
     metadata:
       labels:
         app: dashboard-worker-4
-        theketch.io/app-name: dashboard
-        theketch.io/app-process: worker
-        theketch.io/app-deployment-version: "4"
-        theketch.io/is-isolated-run: "false"
+        shipa.io/app-name: dashboard
+        shipa.io/app-process: worker
+        shipa.io/app-deployment-version: "4"
+        shipa.io/is-isolated-run: "false"
     spec:
       containers:
         - name: dashboard-worker-4
@@ -313,7 +313,6 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: dashboard-cname-7698da46d42bea3603f2
-  namespace: istio-system
 spec:
   secretName: dashboard-cname-7698da46d42bea3603f2
   dnsNames:
@@ -327,7 +326,6 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: dashboard-cname-1aacb41a573151295624
-  namespace: istio-system
 spec:
   secretName: dashboard-cname-1aacb41a573151295624
   dnsNames:
@@ -336,91 +334,62 @@ spec:
     name: letsencrypt-production
     kind: ClusterIssuer
 ---
-# Source: dashboard/templates/gateway.yaml
-apiVersion: networking.istio.io/v1alpha3
-kind: Gateway
+# Source: dashboard/templates/ingressroute.yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
 metadata:
-  labels:
-    theketch.io/app-name: dashboard
-  name: dashboard-http-gateway
-spec:
-  selector:
-    istio: ingressgateway
-  servers:
-  - port:
-      number: 80
-      name: http-3
-      protocol: HTTP
-    hosts:
-    - dashboard.10.10.10.10.shipa.cloud
-  - port:
-      number: 443
-      name: https-3-theketch.io
-      protocol: HTTPS
-    tls:
-      mode: SIMPLE
-      credentialName: dashboard-cname-7698da46d42bea3603f2
-    hosts:
-    - theketch.io
-  - port:
-      number: 443
-      name: https-3-app.theketch.io
-      protocol: HTTPS
-    tls:
-      mode: SIMPLE
-      credentialName: dashboard-cname-1aacb41a573151295624
-    hosts:
-    - app.theketch.io
-  - port:
-      number: 80
-      name: http-4
-      protocol: HTTP
-    hosts:
-    - dashboard.10.10.10.10.shipa.cloud
-  - port:
-      number: 443
-      name: https-4-theketch.io
-      protocol: HTTPS
-    tls:
-      mode: SIMPLE
-      credentialName: dashboard-cname-7698da46d42bea3603f2
-    hosts:
-    - theketch.io
-  - port:
-      number: 443
-      name: https-4-app.theketch.io
-      protocol: HTTPS
-    tls:
-      mode: SIMPLE
-      credentialName: dashboard-cname-1aacb41a573151295624
-    hosts:
-    - app.theketch.io
----
-# Source: dashboard/templates/virtualService.yaml
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
+  name: dashboard-http-ingressroute
   annotations:
     kubernetes.io/ingress.class: ingress-class
+    cert-manager.io/cluster-issuer: letsencrypt-production
   labels:
-    theketch.io/app-name: dashboard
-  name: dashboard-http
+    shipa.io/app-name: dashboard
 spec:
-    hosts:
-    - dashboard.10.10.10.10.shipa.cloud
-    - theketch.io
-    - app.theketch.io
-    gateways:
-    - dashboard-http-gateway
-    http:
-    - route:
-        - destination:
-            host: dashboard-web-3
-            port:
-              number: 9090
-          weight: 30
-        - destination:
-            host: dashboard-web-4
-            port:
-              number: 9091
-          weight: 70
+  entryPoints:
+    - web
+  routes:
+  - match: Host("dashboard.10.10.10.10.shipa.cloud")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 30
+    - name: dashboard-web-4
+      port: 9091
+      weight: 70
+---
+# Source: dashboard/templates/ingressroute.yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dashboard-https-ingressroute
+  annotations:
+    kubernetes.io/ingress.class: ingress-class
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  labels:
+    shipa.io/app-name: dashboard
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host("theketch.io")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 30
+    - name: dashboard-web-4
+      port: 9091
+      weight: 70
+  - match: Host("app.theketch.io")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 30
+    - name: dashboard-web-4
+      port: 9091
+      weight: 70
+  tls:
+    secretName: dashboard-cname-7698da46d42bea3603f2
+    secretName: dashboard-cname-1aacb41a573151295624

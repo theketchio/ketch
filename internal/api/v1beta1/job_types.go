@@ -85,10 +85,6 @@ const (
 	OnFailure RestartPolicy = "OnFailure"
 )
 
-func init() {
-	SchemeBuilder.Register(&Job{}, &JobList{})
-}
-
 // Condition looks for a condition with the provided type in the condition list and returns it.
 func (s JobStatus) Condition(t ConditionType) *Condition {
 	for _, c := range s.Conditions {

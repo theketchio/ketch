@@ -316,7 +316,7 @@ metadata:
     theketch.io/app-name: dashboard
   name: dashboard-http-gateway
 spec:
-  selector: 
+  selector:
     istio: ingressgateway
   servers:
   - port:
@@ -350,7 +350,7 @@ spec:
     - theketch.io
     - app.theketch.io
     - dashboard.20.20.20.20.shipa.cloud
-    gateways: 
+    gateways:
     - dashboard-http-gateway
     http:
     - route:

@@ -25,7 +25,7 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = ketchv1.AddToScheme(scheme)
+	_ = ketchv1.AddToScheme()(scheme)
 }
 
 // Configuration provides methods to get initialized clients.
