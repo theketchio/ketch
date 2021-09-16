@@ -12,7 +12,7 @@ import (
 	"helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -143,6 +143,7 @@ func TestNew(t *testing.T) {
 		application *ketchv1.App
 		framework   *ketchv1.Framework
 		opts        []Option
+		group       string
 
 		wantYamlsFilename string
 		wantErr           bool
@@ -197,9 +198,27 @@ func TestNew(t *testing.T) {
 			framework:         frameworkWithClusterIssuer,
 			wantYamlsFilename: "dashboard-traefik-cluster-issuer",
 		},
+		{
+			name: "traefik templates with cluster issuer w/ alternate group",
+			opts: []Option{
+				WithTemplates(templates.TraefikDefaultTemplates),
+				WithExposedPorts(exportedPorts),
+			},
+			application:       dashboard,
+			framework:         frameworkWithClusterIssuer,
+			group:             "shipa.io",
+			wantYamlsFilename: "dashboard-traefik-cluster-issuer-shipa",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.group != "" {
+				original := ketchv1.Group
+				ketchv1.Group = tt.group
+				defer func() {
+					ketchv1.Group = original
+				}()
+			}
 			got, err := New(tt.application, tt.framework, tt.opts...)
 			if tt.wantErr {
 				require.NotNil(t, err, "New() error = %v, wantErr %v", err, tt.wantErr)

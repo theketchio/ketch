@@ -20,17 +20,41 @@ limitations under the License.
 package v1beta1
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
-var (
-	// GroupVersion is group version used to register these objects
-	GroupVersion = schema.GroupVersion{Group: "theketch.io", Version: "v1beta1"}
-
-	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
-	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
-
-	// AddToScheme adds the types in this group-version to the given scheme.
-	AddToScheme = SchemeBuilder.AddToScheme
+const (
+	TheKetchGroup = "theketch.io"
 )
+
+// Group is the exported variable indicating group, defaults to theketch.io
+var Group = TheKetchGroup
+
+type SchemeOptions struct{ group string }
+
+type schemeOption func(opts *SchemeOptions)
+
+func WithGroup(group string) schemeOption {
+	return func(opts *SchemeOptions) { opts.group = group }
+}
+func defaultSchemeOptions() SchemeOptions {
+	return SchemeOptions{group: TheKetchGroup}
+}
+
+// AddToScheme can be easily consumed by ketch-cli and by default it uses `theketch.io` // and it can be consumed by shipa:
+// AddToScheme(WithGroup("shipa.io"))
+func AddToScheme(opts ...schemeOption) func(s *runtime.Scheme) error {
+	options := defaultSchemeOptions()
+	for _, o := range opts {
+		o(&options)
+	}
+	groupVersion := schema.GroupVersion{Group: options.group, Version: "v1beta1"}
+	builder := &scheme.Builder{GroupVersion: groupVersion}
+	builder.Register(&App{}, &AppList{})
+	builder.Register(&Framework{}, &FrameworkList{})
+	builder.Register(&Job{}, &JobList{})
+	Group = options.group
+	return builder.AddToScheme
+}

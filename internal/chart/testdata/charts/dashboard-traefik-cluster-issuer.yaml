@@ -389,7 +389,7 @@ spec:
       weight: 30
     - name: dashboard-web-4
       port: 9091
-      weight: 70  
-  tls: 
-    secretName: dashboard-cname-7698da46d42bea3603f2 
+      weight: 70
+  tls:
+    secretName: dashboard-cname-7698da46d42bea3603f2
     secretName: dashboard-cname-1aacb41a573151295624

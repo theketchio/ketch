@@ -61,7 +61,8 @@ type app struct {
 	// IsAccessible if not set, ketch won't create kubernetes objects like Ingress/Gateway to handle incoming request.
 	// These objects could be broken without valid routes to the application.
 	// For example, "spec.rules" of an Ingress object must contain at least one rule.
-	IsAccessible bool `json:"isAccessible"`
+	IsAccessible bool   `json:"isAccessible"`
+	Group        string `json:"group"`
 }
 
 type deployment struct {
@@ -126,6 +127,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			Name:    application.Name,
 			Ingress: newIngress(*application, *framework),
 			Env:     application.Spec.Env,
+			Group:   ketchv1.Group,
 		},
 		IngressController: &framework.Spec.IngressController,
 	}

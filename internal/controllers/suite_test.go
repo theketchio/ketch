@@ -78,7 +78,7 @@ func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testin
 	if err != nil {
 		return nil, err
 	}
-	if err = ketchv1.AddToScheme(scheme.Scheme); err != nil {
+	if err = ketchv1.AddToScheme()(scheme.Scheme); err != nil {
 		return nil, err
 	}
 	ctx.k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})

@@ -12,7 +12,7 @@ metadata:
     cert-manager.io/cluster-issuer: {{ .Values.ingressController.clusterIssuer }}
     {{- end }}
   labels:
-    theketch.io/app-name: {{ $.Values.app.name }}
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
 spec:
   entryPoints:
     - web
@@ -27,11 +27,11 @@ spec:
     - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
       port: {{ $process.publicServicePort }}
       weight: {{$deployment.routingSettings.weight}}
-      {{- end }}   
-      {{- end }}   
-      {{- end }}  
-  {{- end }}   
-  {{- end }} 
+      {{- end }}
+      {{- end }}
+      {{- end }}
+  {{- end }}
+  {{- end }}
 {{- end }}
 ---
 {{- end }}
@@ -50,7 +50,7 @@ metadata:
     cert-manager.io/cluster-issuer: {{ .Values.ingressController.clusterIssuer }}
     {{- end }}
   labels:
-    theketch.io/app-name: {{ $.Values.app.name }}
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
 spec:
   entryPoints:
     - websecure
@@ -64,14 +64,14 @@ spec:
      {{- if $process.routable }}{{- if gt $deployment.routingSettings.weight 0.0}}
     - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
       port: {{ $process.publicServicePort }}
-      weight: {{$deployment.routingSettings.weight}}  
-      {{- end }}   
-      {{- end }}   
-      {{- end }}   
-  {{- end }}   
-  {{- end }}  
+      weight: {{$deployment.routingSettings.weight}}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+  {{- end }}
+  {{- end }}
   tls:
-  {{- range $_, $https := .Values.app.ingress.https }} 
+  {{- range $_, $https := .Values.app.ingress.https }}
     secretName: {{ $https.secretName }}
   {{- end }}
 {{- end }}

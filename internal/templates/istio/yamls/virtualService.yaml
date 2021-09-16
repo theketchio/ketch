@@ -8,10 +8,10 @@ metadata:
     kubernetes.io/ingress.class: {{ .Values.ingressController.className }}
     {{- end }}
   labels:
-    theketch.io/app-name: {{ $.Values.app.name }}
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
   name: {{ $.Values.app.name }}-http
 spec:
-    hosts: 
+    hosts:
     {{- if  $.Values.app.ingress.http }}
     {{- range $_, $cname := .Values.app.ingress.http }}
     - {{ $cname }}
@@ -22,11 +22,11 @@ spec:
     - {{ $https.cname }}
     {{- end }}
     {{- end }}
-    gateways: 
+    gateways:
     - {{ $.Values.app.name }}-http-gateway
     http:
     - route:
-      {{- range $_, $deployment := $.Values.app.deployments }} 
+      {{- range $_, $deployment := $.Values.app.deployments }}
         {{- range $_, $process := $deployment.processes }}
         {{- if $process.routable }}{{- if gt $deployment.routingSettings.weight 0.0}}
         - destination:

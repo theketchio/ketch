@@ -40,22 +40,22 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
-func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = ketchv1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
-}
-
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var disableWebhooks bool
+	var group string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", true,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&disableWebhooks, "disable-webhooks", false, "Disable webhooks.")
+	flag.StringVar(&group, "group", ketchv1.TheKetchGroup, "specify a non-default group")
 	flag.Parse()
+
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = ketchv1.AddToScheme(ketchv1.WithGroup(group))(scheme)
+	// +kubebuilder:scaffold:scheme
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
