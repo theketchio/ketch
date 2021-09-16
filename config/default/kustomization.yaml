@@ -18,7 +18,7 @@ bases:
 - ../manager
 - ../webhook
 - ../certmanager
-# [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'. 
+# [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 #- ../prometheus
 
 patchesStrategicMerge:
