@@ -219,7 +219,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - shipa.io
   - theketch.io
   resources:
   - apps
@@ -232,7 +231,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - shipa.io
   - theketch.io
   resources:
   - apps/status
@@ -241,7 +239,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - shipa.io
   - theketch.io
   resources:
   - frameworks
@@ -254,7 +251,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - shipa.io
   - theketch.io
   resources:
   - frameworks/status
@@ -263,7 +259,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - shipa.io
   - theketch.io
   resources:
   - jobs
@@ -276,7 +271,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - shipa.io
   - theketch.io
   resources:
   - jobs/status
