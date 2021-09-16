@@ -61,7 +61,7 @@ func (r *FrameworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 func cleanAndUpdateMap(ns *map[string]string, current map[string]string) {
 	*ns = map[string]string{}
-	// directly setting equal will add to error when trying to add the istio-injection key
+	// directly setting ns as current will cause an error when trying to add the istio-injection key
 	for k, v := range current {
 		(*ns)[k] = v
 	}

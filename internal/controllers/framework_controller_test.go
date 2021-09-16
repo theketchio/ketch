@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -143,7 +142,6 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 
 			assert.Equal(t, tt.wantStatusPhase, resultFramework.Status.Phase)
 			assert.Equal(t, tt.wantStatusMessage, resultFramework.Status.Message)
-			fmt.Println(resultFramework)
 
 			if tt.wantStatusPhase == ketchv1.FrameworkCreated {
 				assert.NotNil(t, resultFramework.Status.Namespace.Name)
@@ -151,7 +149,6 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 
 				gotNamespace := v1.Namespace{}
 				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.framework.Spec.NamespaceName}, &gotNamespace)
-				fmt.Println(gotNamespace)
 				assert.Equal(t, tt.wantNamespaceLabels, gotNamespace.Labels)
 				assert.Equal(t, tt.wantNamespaceAnnotations, gotNamespace.Annotations)
 			} else {
