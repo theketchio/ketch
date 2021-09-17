@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -199,6 +200,25 @@ type AppSpec struct {
 
 	// BuildPacks is a list of build packs to use when building from source.
 	BuildPacks []string `json:"buildPacks,omitempty"`
+
+	// Labels is a list of labels that will be applied to processes
+	Labels []MetadataItem `json:"labels,omitempty"`
+
+	// Annotations is a list of annotations that will be applied to processes
+	Annotations []MetadataItem `json:"annotations,omitempty"`
+}
+
+// MetadataItem represent a request to add label/annotations to processes
+type MetadataItem struct {
+	Target            Target            `json:"target,omitempty"`
+	Apply             map[string]string `json:"apply,omitempty"`
+	DeploymentVersion int               `json:"deploymentVersion,omitempty"`
+	ProcessName       string            `json:"processName,omitempty"`
+}
+
+type Target struct {
+	APIVersion string `json:"apiVersion,omitempty"`
+	Kind       string `json:"kind,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -523,3 +543,18 @@ const (
 	// with a container exit code of 0, and the system is not going to restart any of these containers.
 	PodSucceeded PodState = "succeeded"
 )
+
+// Validates the key for annotations & labels. See: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/#syntax-and-character-set
+// https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/#syntax-and-character-set
+func (m *MetadataItem) Validate() error {
+	for key := range m.Apply {
+		ok, err := regexp.MatchString(`^([A-Za-z].{0,252}\/)?[A-Z0-9a-z][A-Z0-9a-z-_\.]{0,63}$`, key)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errors.New("malformed metadata key")
+		}
+	}
+	return nil
+}

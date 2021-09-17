@@ -13,6 +13,15 @@ metadata:
     {{- range $i, $label := $deployment.labels }}
     {{ $label.name }}: {{ $label.value }}
     {{- end }}
+    {{- range $k, $v := $process.extra.serviceMetadata.labels }}
+    {{ $k }}: {{ $v }}
+    {{- end}}
+  {{- if $process.extra.serviceMetadata.annotations }}
+  annotations:
+    {{- range $k, $v := $process.extra.serviceMetadata.annotations }}
+    {{ $k }}: {{ $v }}
+    {{- end }}
+  {{- end }}
   name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
 spec:
   type: ClusterIP

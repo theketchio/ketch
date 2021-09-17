@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -1120,5 +1121,46 @@ func TestApp_DoCanary(t *testing.T) {
 			}
 			require.Equal(t, tt.wantApp, tt.app)
 		})
+	}
+}
+
+func TestValidateMetadataItem(t *testing.T) {
+	tests := []struct {
+		description  string
+		metadataItem MetadataItem
+		expected     error
+	}{
+		{
+			description: "ok",
+			metadataItem: MetadataItem{
+				Apply: map[string]string{"theketch.io/test-item": "test-value"},
+			},
+			expected: nil,
+		},
+		{
+			description: "ok - no prefix",
+			metadataItem: MetadataItem{
+				Apply: map[string]string{"test-item": "test-value"},
+			},
+			expected: nil,
+		},
+		{
+			description: "must begin with alphanumeric",
+			metadataItem: MetadataItem{
+				Apply: map[string]string{"_theketch.io/test-item": "test-value"},
+			},
+			expected: errors.New("malformed metadata key"),
+		},
+		{
+			description: "invalid characters",
+			metadataItem: MetadataItem{
+				Apply: map[string]string{"theketch.io/test@item": "test-value"},
+			},
+			expected: errors.New("malformed metadata key"),
+		},
+	}
+	for _, tt := range tests {
+		err := tt.metadataItem.Validate()
+		require.Equal(t, tt.expected, err, tt.description)
 	}
 }

@@ -36,6 +36,13 @@ type podExtra struct {
 	ReadinessProbe       *v1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe        *v1.Probe                `json:"livenessProbe,omitempty"`
 	Lifecycle            *v1.Lifecycle            `json:"lifecycle,omitempty"`
+	ServiceMetadata      extraMetadata            `json:"serviceMetadata,omitempty"`
+	DeploymentMetadata   extraMetadata            `json:"deploymentMetadata,omitempty"`
+}
+
+type extraMetadata struct {
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type processOption func(p *process) error
@@ -125,12 +132,75 @@ func withVolumeMounts(vm []v1.VolumeMount) processOption {
 	}
 }
 
+// withLabels returns a function that populates Kind labels which specify a matching/unspecified deploymentVersion, a matching/unspecified
+// processName, and apiVersion v1.
+func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.DeploymentVersion) processOption {
+	return func(p *process) error {
+		for _, label := range labels {
+			if label.DeploymentVersion > 0 && int(deploymentVersion) != label.DeploymentVersion ||
+				label.ProcessName != "" && label.ProcessName != p.Name ||
+				label.Target.APIVersion != "v1" {
+				continue
+			}
+			if err := label.Validate(); err != nil {
+				return err
+			}
+			for k, v := range label.Apply {
+				switch label.Target.Kind {
+				case "Deployment":
+					if p.PodExtra.DeploymentMetadata.Labels == nil {
+						p.PodExtra.DeploymentMetadata.Labels = make(map[string]string)
+					}
+					p.PodExtra.DeploymentMetadata.Labels[k] = v
+				case "Service":
+					if p.PodExtra.ServiceMetadata.Labels == nil {
+						p.PodExtra.ServiceMetadata.Labels = make(map[string]string)
+					}
+					p.PodExtra.ServiceMetadata.Labels[k] = v
+				}
+			}
+		}
+		return nil
+	}
+}
+
+// withAnnotations returns a function that populates Kind annotations which specify a matching/unspecified deploymentVersion, a matching/unspecified
+// processName, and apiVersion v1.
+func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketchv1.DeploymentVersion) processOption {
+	return func(p *process) error {
+		for _, annotation := range annotations {
+			if annotation.DeploymentVersion > 0 && int(deploymentVersion) != annotation.DeploymentVersion ||
+				annotation.ProcessName != "" && annotation.ProcessName != p.Name ||
+				annotation.Target.APIVersion != "v1" {
+				continue
+			}
+			if err := annotation.Validate(); err != nil {
+				return err
+			}
+			for k, v := range annotation.Apply {
+				switch annotation.Target.Kind {
+				case "Deployment":
+					if p.PodExtra.DeploymentMetadata.Annotations == nil {
+						p.PodExtra.DeploymentMetadata.Annotations = make(map[string]string)
+					}
+					p.PodExtra.DeploymentMetadata.Annotations[k] = v
+				case "Service":
+					if p.PodExtra.ServiceMetadata.Annotations == nil {
+						p.PodExtra.ServiceMetadata.Annotations = make(map[string]string)
+					}
+					p.PodExtra.ServiceMetadata.Annotations[k] = v
+				}
+			}
+		}
+		return nil
+	}
+}
+
 func newProcess(name string, isRoutable bool, opts ...processOption) (*process, error) {
 	process := &process{
 		Name:     name,
 		Units:    ketchv1.DefaultNumberOfUnits,
 		Routable: isRoutable,
-		PodExtra: podExtra{},
 	}
 
 	for _, opt := range opts {
