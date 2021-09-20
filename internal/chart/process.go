@@ -137,6 +137,10 @@ func withVolumeMounts(vm []v1.VolumeMount) processOption {
 func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.DeploymentVersion) processOption {
 	return func(p *process) error {
 		for _, label := range labels {
+			// Proceeds with label assignment if:
+			// annotation.DeploymentVersion is unspecified OR matches deploymentVersion
+			// annotation.ProcessName is unspecified OR matches process.Name
+			// apiVersion is v1
 			if label.DeploymentVersion > 0 && int(deploymentVersion) != label.DeploymentVersion ||
 				label.ProcessName != "" && label.ProcessName != p.Name ||
 				label.Target.APIVersion != "v1" {
@@ -157,6 +161,8 @@ func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.Deploym
 						p.PodExtra.ServiceMetadata.Labels = make(map[string]string)
 					}
 					p.PodExtra.ServiceMetadata.Labels[k] = v
+				default:
+					return fmt.Errorf("unsupported target kind: %s", label.Target.Kind)
 				}
 			}
 		}
@@ -169,6 +175,10 @@ func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.Deploym
 func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketchv1.DeploymentVersion) processOption {
 	return func(p *process) error {
 		for _, annotation := range annotations {
+			// Proceeds with annotation assignment if:
+			// annotation.DeploymentVersion is unspecified OR matches deploymentVersion
+			// annotation.ProcessName is unspecified OR matches process.Name
+			// apiVersion is v1
 			if annotation.DeploymentVersion > 0 && int(deploymentVersion) != annotation.DeploymentVersion ||
 				annotation.ProcessName != "" && annotation.ProcessName != p.Name ||
 				annotation.Target.APIVersion != "v1" {
@@ -189,6 +199,8 @@ func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketch
 						p.PodExtra.ServiceMetadata.Annotations = make(map[string]string)
 					}
 					p.PodExtra.ServiceMetadata.Annotations[k] = v
+				default:
+					return fmt.Errorf("unsupported target kind: %s", annotation.Target.Kind)
 				}
 			}
 		}
