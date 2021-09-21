@@ -268,6 +268,16 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 					ProcessName:       "web",
 					Apply:             map[string]string{"theketch.io/test": "value"},
 				},
+				{
+					Target:            ketchv1.Target{Kind: "Service", APIVersion: "v1"},
+					DeploymentVersion: 1,
+					Apply:             map[string]string{"theketch.io/any-deployment-1": "any-deployment-1-value"},
+				},
+				{
+					Target:      ketchv1.Target{Kind: "Service", APIVersion: "v1"},
+					ProcessName: "web",
+					Apply:       map[string]string{"theketch.io/any-process-web": "any-process-web-value"},
+				},
 			},
 			labels: []ketchv1.MetadataItem{
 				{
@@ -312,8 +322,12 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 				Name: "web",
 				PodExtra: podExtra{
 					ServiceMetadata: extraMetadata{
-						Labels:      map[string]string{"theketch.io/test": "value"},
-						Annotations: map[string]string{"theketch.io/test": "value"},
+						Labels: map[string]string{"theketch.io/test": "value"},
+						Annotations: map[string]string{
+							"theketch.io/test":             "value",
+							"theketch.io/any-deployment-1": "any-deployment-1-value",
+							"theketch.io/any-process-web":  "any-process-web-value",
+						},
 					},
 					DeploymentMetadata: extraMetadata{
 						Labels:      map[string]string{"theketch.io/test": "value"},

@@ -132,18 +132,11 @@ func withVolumeMounts(vm []v1.VolumeMount) processOption {
 	}
 }
 
-// withLabels returns a function that populates Kind labels which specify a matching/unspecified deploymentVersion, a matching/unspecified
-// processName, and apiVersion v1.
+// withLabels returns a function that populates Kind labels.
 func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.DeploymentVersion) processOption {
 	return func(p *process) error {
 		for _, label := range labels {
-			// Proceeds with label assignment if:
-			// annotation.DeploymentVersion is unspecified OR matches deploymentVersion
-			// annotation.ProcessName is unspecified OR matches process.Name
-			// apiVersion is v1
-			if label.DeploymentVersion > 0 && int(deploymentVersion) != label.DeploymentVersion ||
-				label.ProcessName != "" && label.ProcessName != p.Name ||
-				label.Target.APIVersion != "v1" {
+			if !canBeApplied(label, p.Name, deploymentVersion) {
 				continue
 			}
 			if err := label.Validate(); err != nil {
@@ -170,18 +163,11 @@ func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.Deploym
 	}
 }
 
-// withAnnotations returns a function that populates Kind annotations which specify a matching/unspecified deploymentVersion, a matching/unspecified
-// processName, and apiVersion v1.
+// withAnnotations returns a function that populates Kind annotations.
 func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketchv1.DeploymentVersion) processOption {
 	return func(p *process) error {
 		for _, annotation := range annotations {
-			// Proceeds with annotation assignment if:
-			// annotation.DeploymentVersion is unspecified OR matches deploymentVersion
-			// annotation.ProcessName is unspecified OR matches process.Name
-			// apiVersion is v1
-			if annotation.DeploymentVersion > 0 && int(deploymentVersion) != annotation.DeploymentVersion ||
-				annotation.ProcessName != "" && annotation.ProcessName != p.Name ||
-				annotation.Target.APIVersion != "v1" {
+			if !canBeApplied(annotation, p.Name, deploymentVersion) {
 				continue
 			}
 			if err := annotation.Validate(); err != nil {
@@ -206,6 +192,23 @@ func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketch
 		}
 		return nil
 	}
+}
+
+// canBeApplied returns true if:
+// item.DeploymentVersion is unspecified OR matches deploymentVersion
+// item.ProcessName is unspecified OR matches processName
+// item.Target.ApiVersion is v1
+func canBeApplied(item ketchv1.MetadataItem, processName string, version ketchv1.DeploymentVersion) bool {
+	if item.Target.APIVersion != "v1" {
+		return false
+	}
+	if item.DeploymentVersion > 0 && int(version) != item.DeploymentVersion {
+		return false
+	}
+	if item.ProcessName != "" && processName != item.ProcessName {
+		return false
+	}
+	return true
 }
 
 func newProcess(name string, isRoutable bool, opts ...processOption) (*process, error) {

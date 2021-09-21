@@ -544,7 +544,7 @@ const (
 	PodSucceeded PodState = "succeeded"
 )
 
-// Validates the key for annotations & labels. See: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/#syntax-and-character-set
+// Validate validates the key for annotations & labels. See: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/#syntax-and-character-set
 // https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/#syntax-and-character-set
 func (m *MetadataItem) Validate() error {
 	for key := range m.Apply {
