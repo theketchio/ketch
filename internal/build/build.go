@@ -5,16 +5,9 @@ import (
 	"context"
 	"os"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/shipa-corp/ketch/internal/errors"
 	"github.com/shipa-corp/ketch/internal/pack"
 )
-
-type resourceGetter interface {
-	Get(ctx context.Context, name types.NamespacedName, object runtime.Object) error
-}
 
 type builder interface {
 	BuildAndPushImage(ctx context.Context, request pack.BuildRequest) error

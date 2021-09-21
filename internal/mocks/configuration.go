@@ -34,7 +34,10 @@ type Configuration struct {
 
 func (cfg *Configuration) Client() client.Client {
 	if cfg.ctrlClient == nil {
-		cfg.ctrlClient = ctrlFake.NewFakeClientWithScheme(scheme, cfg.CtrlClientObjects...)
+		cfg.ctrlClient = ctrlFake.NewClientBuilder().
+			WithScheme(scheme).
+			WithRuntimeObjects(cfg.CtrlClientObjects...).
+			Build()
 	}
 	return cfg.ctrlClient
 }
