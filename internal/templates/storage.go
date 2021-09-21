@@ -17,8 +17,6 @@ package templates
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -123,26 +121,4 @@ func (tpl Templates) toConfigMap(name string, namespace string) *v1.ConfigMap {
 		cm.Data[name] = value
 	}
 	return &cm
-}
-
-// ReadDirectory reads files in the directory and returns a Templates instance populated with the files.
-func ReadDirectory(directory string) (*Templates, error) {
-	infos, err := ioutil.ReadDir(directory)
-	if err != nil {
-		return nil, err
-	}
-	templates := Templates{
-		Yamls: make(map[string]string, len(infos)),
-	}
-	for _, info := range infos {
-		if !info.IsDir() {
-			fileName := filepath.Join(directory, info.Name())
-			content, err := ioutil.ReadFile(fileName)
-			if err != nil {
-				return nil, err
-			}
-			templates.Yamls[info.Name()] = string(content)
-		}
-	}
-	return &templates, nil
 }
