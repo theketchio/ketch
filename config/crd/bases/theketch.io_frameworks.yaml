@@ -49,6 +49,10 @@ spec:
           spec:
             description: FrameworkSpec defines the desired state of Framework
             properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                type: object
               appQuotaLimit:
                 type: integer
               ingressController:
@@ -70,6 +74,10 @@ spec:
                     type: string
                 required:
                 - type
+                type: object
+              labels:
+                additionalProperties:
+                  type: string
                 type: object
               name:
                 type: string
