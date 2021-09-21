@@ -72,6 +72,9 @@ var (
 	JobTemplates = Templates{
 		Yamls: GeneratedYamls.JobYamls,
 	}
+	AppTemplates = Templates{
+		Yamls: GeneratedYamls.AppYamls,
+	}
 )
 
 // IngressConfigMapName returns a name of a configmap to store the ingress' templates to render helm chart.
@@ -82,6 +85,11 @@ func IngressConfigMapName(ingress string) string {
 // JobConfigMapName returns a name of a configmap to store the job's templates to render the helm chart
 func JobConfigMapName() string {
 	return "job-templates"
+}
+
+// AppConfigMapName returns a name of a configmap to store the app's templates to render the helm chart
+func AppConfigMapName() string {
+	return "app-templates"
 }
 
 // Get returns templates stored in a configmap with the provided name.

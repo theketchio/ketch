@@ -93,6 +93,10 @@ func main() {
 		setupLog.Error(err, "unable to set default templates")
 		os.Exit(1)
 	}
+	if err = storage.Update(templates.AppConfigMapName(), templates.AppTemplates); err != nil {
+		setupLog.Error(err, "unable to set default templates")
+		os.Exit(1)
+	}
 
 	if err = (&controllers.AppReconciler{
 		TemplateReader: storage,
