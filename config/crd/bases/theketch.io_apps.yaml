@@ -43,6 +43,30 @@ spec:
           spec:
             description: AppSpec defines the desired state of App.
             properties:
+              annotations:
+                description: Annotations is a list of annotations that will be applied
+                  to processes
+                items:
+                  description: MetadataItem represent a request to add label/annotations
+                    to processes
+                  properties:
+                    apply:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    deploymentVersion:
+                      type: integer
+                    processName:
+                      type: string
+                    target:
+                      properties:
+                        apiVersion:
+                          type: string
+                        kind:
+                          type: string
+                      type: object
+                  type: object
+                type: array
               buildPacks:
                 description: BuildPacks is a list of build packs to use when building
                   from source.
@@ -2236,6 +2260,29 @@ spec:
                 required:
                 - generateDefaultCname
                 type: object
+              labels:
+                description: Labels is a list of labels that will be applied to processes
+                items:
+                  description: MetadataItem represent a request to add label/annotations
+                    to processes
+                  properties:
+                    apply:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    deploymentVersion:
+                      type: integer
+                    processName:
+                      type: string
+                    target:
+                      properties:
+                        apiVersion:
+                          type: string
+                        kind:
+                          type: string
+                      type: object
+                  type: object
+                type: array
               version:
                 type: string
             required:

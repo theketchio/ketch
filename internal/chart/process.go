@@ -36,6 +36,13 @@ type podExtra struct {
 	ReadinessProbe       *v1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe        *v1.Probe                `json:"livenessProbe,omitempty"`
 	Lifecycle            *v1.Lifecycle            `json:"lifecycle,omitempty"`
+	ServiceMetadata      extraMetadata            `json:"serviceMetadata,omitempty"`
+	DeploymentMetadata   extraMetadata            `json:"deploymentMetadata,omitempty"`
+}
+
+type extraMetadata struct {
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type processOption func(p *process) error
@@ -125,12 +132,90 @@ func withVolumeMounts(vm []v1.VolumeMount) processOption {
 	}
 }
 
+// withLabels returns a function that populates Kind labels.
+func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.DeploymentVersion) processOption {
+	return func(p *process) error {
+		for _, label := range labels {
+			if !canBeApplied(label, p.Name, deploymentVersion) {
+				continue
+			}
+			if err := label.Validate(); err != nil {
+				return err
+			}
+			for k, v := range label.Apply {
+				switch label.Target.Kind {
+				case "Deployment":
+					if p.PodExtra.DeploymentMetadata.Labels == nil {
+						p.PodExtra.DeploymentMetadata.Labels = make(map[string]string)
+					}
+					p.PodExtra.DeploymentMetadata.Labels[k] = v
+				case "Service":
+					if p.PodExtra.ServiceMetadata.Labels == nil {
+						p.PodExtra.ServiceMetadata.Labels = make(map[string]string)
+					}
+					p.PodExtra.ServiceMetadata.Labels[k] = v
+				default:
+					return fmt.Errorf("unsupported target kind: %s", label.Target.Kind)
+				}
+			}
+		}
+		return nil
+	}
+}
+
+// withAnnotations returns a function that populates Kind annotations.
+func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketchv1.DeploymentVersion) processOption {
+	return func(p *process) error {
+		for _, annotation := range annotations {
+			if !canBeApplied(annotation, p.Name, deploymentVersion) {
+				continue
+			}
+			if err := annotation.Validate(); err != nil {
+				return err
+			}
+			for k, v := range annotation.Apply {
+				switch annotation.Target.Kind {
+				case "Deployment":
+					if p.PodExtra.DeploymentMetadata.Annotations == nil {
+						p.PodExtra.DeploymentMetadata.Annotations = make(map[string]string)
+					}
+					p.PodExtra.DeploymentMetadata.Annotations[k] = v
+				case "Service":
+					if p.PodExtra.ServiceMetadata.Annotations == nil {
+						p.PodExtra.ServiceMetadata.Annotations = make(map[string]string)
+					}
+					p.PodExtra.ServiceMetadata.Annotations[k] = v
+				default:
+					return fmt.Errorf("unsupported target kind: %s", annotation.Target.Kind)
+				}
+			}
+		}
+		return nil
+	}
+}
+
+// canBeApplied returns true if:
+// item.DeploymentVersion is unspecified OR matches deploymentVersion
+// item.ProcessName is unspecified OR matches processName
+// item.Target.ApiVersion is v1
+func canBeApplied(item ketchv1.MetadataItem, processName string, version ketchv1.DeploymentVersion) bool {
+	if item.Target.APIVersion != "v1" {
+		return false
+	}
+	if item.DeploymentVersion > 0 && int(version) != item.DeploymentVersion {
+		return false
+	}
+	if item.ProcessName != "" && processName != item.ProcessName {
+		return false
+	}
+	return true
+}
+
 func newProcess(name string, isRoutable bool, opts ...processOption) (*process, error) {
 	process := &process{
 		Name:     name,
 		Units:    ketchv1.DefaultNumberOfUnits,
 		Routable: isRoutable,
-		PodExtra: podExtra{},
 	}
 
 	for _, opt := range opts {

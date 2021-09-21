@@ -10,9 +10,15 @@ metadata:
     {{ $.Values.app.group }}/app-process-replicas: {{ $process.units | quote }}
     {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
-    {{- range $i, $label := $deployment.labels }}
-    {{ $label.name }}: {{ $label.value }}
+    {{- range $k, $v := $process.extra.deploymentMetadata.labels }}
+    {{ $k }}: {{ $v }}
+    {{- end}}
+  {{- if $process.extra.deploymentMetadata.annotations }}
+  annotations:
+    {{- range $k, $v := $process.extra.deploymentMetadata.annotations }}
+    {{ $k }}: {{ $v }}
     {{- end }}
+  {{- end }}
   name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
 spec:
   replicas: {{ $process.units }}

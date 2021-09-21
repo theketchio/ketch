@@ -161,6 +161,8 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 				withResourceRequirements(processSpec.Resources),
 				withVolumes(processSpec.Volumes),
 				withVolumeMounts(processSpec.VolumeMounts),
+				withLabels(application.Spec.Labels, deployment.Version),
+				withAnnotations(application.Spec.Annotations, deployment.Version),
 			)
 
 			if err != nil {
