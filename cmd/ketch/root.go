@@ -1,12 +1,9 @@
 package main
 
 import (
-	"context"
 	"io"
 
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,27 +20,6 @@ type config interface {
 	KubernetesClient() kubernetes.Interface
 	// DynamicClient returns kubernetes dynamic client. It's used to work with CRDs for which we don't have go types like ClusterIssuer.
 	DynamicClient() dynamic.Interface
-}
-
-type resourceCreator interface {
-	Create(context.Context, runtime.Object, ...client.CreateOption) error
-}
-
-type resourceLister interface {
-	List(context.Context, runtime.Object, ...client.ListOption) error
-}
-
-type resourceGetter interface {
-	Get(ctx context.Context, name types.NamespacedName, object runtime.Object) error
-}
-
-type resourceDeleter interface {
-	Delete(context.Context, runtime.Object, ...client.DeleteOption) error
-}
-
-type resourceGetDeleter interface {
-	resourceGetter
-	resourceDeleter
 }
 
 // RootCmd represents the base command when called without any subcommands
