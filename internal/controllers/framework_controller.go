@@ -59,14 +59,6 @@ func (r *FrameworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, err
 }
 
-func cleanAndUpdateMap(ns *map[string]string, current map[string]string) {
-	*ns = map[string]string{}
-	// directly setting ns as current will cause an error when trying to add the istio-injection key
-	for k, v := range current {
-		(*ns)[k] = v
-	}
-}
-
 func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.Framework) ketchv1.FrameworkStatus {
 
 	frameworks := ketchv1.FrameworkList{}
@@ -121,8 +113,15 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 		}
 	}
 
-	cleanAndUpdateMap(&namespace.Annotations, framework.Spec.Annotations)
-	cleanAndUpdateMap(&namespace.Labels, framework.Spec.Labels)
+	namespace.Annotations = framework.Spec.Annotations
+	if namespace.Annotations == nil {
+		namespace.Annotations = map[string]string{}
+	}
+
+	namespace.Labels = framework.Spec.Labels
+	if namespace.Labels == nil {
+		namespace.Labels = map[string]string{}
+	}
 
 	// we rely on istio automatic sidecar injection
 	// https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
