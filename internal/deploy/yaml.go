@@ -51,6 +51,7 @@ type Restart struct {
 
 type CName struct {
 	DNSName string `json:"dnsName"`
+	Secure  bool   `json:"secure"`
 }
 
 const (
@@ -107,7 +108,7 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 		c.sourcePath = &o.AppSourcePath
 	}
 	if application.CName != nil {
-		c.cname = &ketchv1.CnameList{application.CName.DNSName}
+		c.cname = &ketchv1.CnameList{{Name: application.CName.DNSName, Secure: application.CName.Secure}}
 	}
 	if application.Environment != nil {
 		c.envs = &application.Environment
@@ -180,7 +181,8 @@ func GetApplicationFromKetchApp(app ketchv1.App) *Application {
 
 	if len(app.Spec.Ingress.Cnames) > 0 {
 		application.CName = &CName{
-			DNSName: app.Spec.Ingress.Cnames[0],
+			DNSName: app.Spec.Ingress.Cnames[0].Name,
+			Secure:  app.Spec.Ingress.Cnames[0].Secure,
 		}
 	}
 	if app.Spec.Description != "" {

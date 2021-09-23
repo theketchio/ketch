@@ -22,6 +22,8 @@ const (
 	ErrLogUnknownTimeFormat cliError = "unknown time format"
 
 	ErrClusterIssuerNotFound cliError = "cluster issuer not found"
+
+	ErrClusterIssuerRequired cliError = "secure cnames require framework.IngressController.ClusterIssuer to be set"
 )
 
 func unwrappedError(err error) error {

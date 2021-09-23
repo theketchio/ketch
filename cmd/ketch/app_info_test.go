@@ -89,7 +89,7 @@ func Test_appInfo(t *testing.T) {
 			Framework: "aws",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
-				Cnames:               []string{"theketch.io", "www.theketch.io"},
+				Cnames:               ketchv1.CnameList{{Name: "theketch.io"}, {Name: "www.theketch.io"}},
 			},
 			DockerRegistry: ketchv1.DockerRegistrySpec{
 				SecretName: "go-app-pull-credentials",

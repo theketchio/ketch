@@ -2251,7 +2251,15 @@ spec:
                   cnames:
                     description: Cnames is a list of additional cnames.
                     items:
-                      type: string
+                      properties:
+                        name:
+                          type: string
+                        secure:
+                          type: boolean
+                      required:
+                      - name
+                      - secure
+                      type: object
                     type: array
                   generateDefaultCname:
                     description: GenerateDefaultCname if set the application will
