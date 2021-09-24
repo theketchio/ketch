@@ -19,6 +19,8 @@ package v1beta1
 import (
 	"errors"
 	"fmt"
+	"log"
+	"math"
 	"regexp"
 	"time"
 
@@ -170,6 +172,8 @@ type CanarySpec struct {
 	Active bool `json:"active,omitempty"`
 	// Started holds time when canary started
 	Started *metav1.Time `json:"started,omitempty"`
+	// Target map of processes and target units value
+	Target map[string]uint16 `json:"target,omitempty"`
 }
 
 // AppSpec defines the desired state of App.
@@ -483,6 +487,19 @@ func (s AppStatus) Condition(t ConditionType) *Condition {
 	return nil
 }
 
+func getUpdatedUnits(weight uint8, target uint16) (int, int) {
+	if weight > 100 {
+		weight = 100
+	}
+	// get the split of p1's units and p2's units
+	unitSplit := (float64(weight) / 100) * float64(target)
+	// we want an integer so take the floor of the float and subtract that total from the target
+	p2Units := target - uint16(math.Floor(unitSplit))
+	// subtract p2's units from target to find p1's new units
+	p1Units := target - p2Units
+	return int(p1Units), int(p2Units)
+}
+
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
 func (app *App) DoCanary(now metav1.Time) error {
@@ -500,16 +517,45 @@ func (app *App) DoCanary(now metav1.Time) error {
 	}
 
 	if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
+
 		// update traffic weight distributions across deployments
 		app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
 		app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
 		app.Spec.Canary.CurrentStep++
+
+		// scale units based on weight and process target
+		for processName, target := range app.Spec.Canary.Target {
+			p1Units, p2Units := getUpdatedUnits(app.Spec.Deployments[0].RoutingSettings.Weight, target)
+			// might be fine to ignore these errors
+			if err := app.Spec.Deployments[0].setUnits(processName, p1Units); err != nil {
+				log.Printf("the process: %s is not present in the previous deployment\n", processName)
+			}
+			if err := app.Spec.Deployments[1].setUnits(processName, p2Units); err != nil {
+				log.Printf("the process: %s in not present in the updated deployment\n", processName)
+			}
+		}
+
+		// if a process in the updated deployment isn't found in target create 1 unit
+		for _, process := range app.Spec.Deployments[1].Processes {
+			if _, found := app.Spec.Canary.Target[process.Name]; !found {
+				_ = app.Spec.Deployments[1].setUnits(process.Name, 1)
+			}
+		}
+		// for previous deployment, any processes not in target will be terminated by the end of the canary deployment
 
 		// update next scheduled time
 		*app.Spec.Canary.NextScheduledTime = metav1.NewTime(app.Spec.Canary.NextScheduledTime.Add(app.Spec.Canary.StepTimeInteval))
 
 		// check if the canary weight is exceeding 100% of traffic
 		if app.Spec.Deployments[1].RoutingSettings.Weight >= 100 || app.Spec.Canary.CurrentStep == app.Spec.Canary.Steps {
+			// canary is finished, update new deployment to the target values
+			for i, process := range app.Spec.Deployments[1].Processes {
+				if target, found := app.Spec.Canary.Target[process.Name]; found {
+					finalUnits := int(target)
+					process.Units = &finalUnits
+					app.Spec.Deployments[1].Processes[i] = process
+				}
+			}
 
 			// we need to set weight of the target deployment to 100
 			// because there is a chance that on the last step weight is not equal to 100 (e.g. steps=3, step-weight=33)

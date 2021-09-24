@@ -2,8 +2,10 @@ package v1beta1
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
+	"testing/quick"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -982,10 +984,11 @@ func TestApp_DoCanary(t *testing.T) {
 						NextScheduledTime: timeRef(10, 30),
 						CurrentStep:       1,
 						Active:            true,
+						Target:            map[string]uint16{"p1": 8},
 					},
 					Deployments: []AppDeploymentSpec{
-						{Version: 2, RoutingSettings: RoutingSettings{Weight: 67}},
-						{Version: 3, RoutingSettings: RoutingSettings{Weight: 33}},
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 67}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 33}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}}},
 					},
 				},
 			},
@@ -998,10 +1001,11 @@ func TestApp_DoCanary(t *testing.T) {
 						NextScheduledTime: timeRef(10, 40),
 						CurrentStep:       2,
 						Active:            true,
+						Target:            map[string]uint16{"p1": 8},
 					},
 					Deployments: []AppDeploymentSpec{
-						{Version: 2, RoutingSettings: RoutingSettings{Weight: 34}},
-						{Version: 3, RoutingSettings: RoutingSettings{Weight: 66}},
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 34}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(2)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 66}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(6)}}},
 					},
 				},
 			},
@@ -1036,6 +1040,84 @@ func TestApp_DoCanary(t *testing.T) {
 					},
 					Deployments: []AppDeploymentSpec{
 						{Version: 3, RoutingSettings: RoutingSettings{Weight: 100}},
+					},
+				},
+			},
+		},
+		{
+			// process not in target should be updated to 1 unit
+			name: "updated version's process not in target",
+			now:  *timeRef(10, 31),
+			app: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             5,
+						StepWeight:        20,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 30),
+						CurrentStep:       1,
+						Active:            true,
+						Target:            map[string]uint16{"p1": 7},
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 80}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 20}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}, {Name: "p2", Units: intRef(4)}}},
+					},
+				},
+			},
+			wantApp: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             5,
+						StepWeight:        20,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 40),
+						CurrentStep:       2,
+						Active:            true,
+						Target:            map[string]uint16{"p1": 7},
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 60}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(4)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 40}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(3)}, {Name: "p2", Units: intRef(1)}}},
+					},
+				},
+			},
+		},
+		{
+			// process not in target should keep its units until canary completes
+			name: "previous version's process not in target",
+			now:  *timeRef(10, 31),
+			app: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             5,
+						StepWeight:        20,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 30),
+						CurrentStep:       1,
+						Active:            true,
+						Target:            map[string]uint16{"p1": 7},
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 80}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}, {Name: "p2", Units: intRef(4)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 20}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}}},
+					},
+				},
+			},
+			wantApp: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             5,
+						StepWeight:        20,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 40),
+						CurrentStep:       2,
+						Active:            true,
+						Target:            map[string]uint16{"p1": 7},
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 60}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(4)}, {Name: "p2", Units: intRef(4)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 40}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(3)}}},
 					},
 				},
 			},
@@ -1119,6 +1201,7 @@ func TestApp_DoCanary(t *testing.T) {
 				require.Equal(t, originalApp, tt.app)
 				return
 			}
+			fmt.Printf("%+v\n", tt.app)
 			require.Equal(t, tt.wantApp, tt.app)
 		})
 	}
@@ -1162,5 +1245,19 @@ func TestValidateMetadataItem(t *testing.T) {
 	for _, tt := range tests {
 		err := tt.metadataItem.Validate()
 		require.Equal(t, tt.expected, err, tt.description)
+	}
+}
+
+func TestGetUpdatedUnits(t *testing.T) {
+	comm := func(weight uint8, target uint16) bool {
+		p1u, p2u := getUpdatedUnits(weight, target)
+		if (p1u + p2u) != int(target) {
+			return false
+		}
+		return true
+	}
+
+	if err := quick.Check(comm, nil); err != nil {
+		t.Error(err)
 	}
 }

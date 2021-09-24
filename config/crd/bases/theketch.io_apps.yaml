@@ -113,6 +113,11 @@ spec:
                     maximum: 100
                     minimum: 0
                     type: integer
+                  target:
+                    additionalProperties:
+                      type: integer
+                    description: Target map of processes and target units value
+                    type: object
                 type: object
               deployments:
                 description: Deployments is a list of running deployments.
