@@ -18,6 +18,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/pkg/errors"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/templates"
 )
@@ -122,10 +123,15 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 		opt(options)
 	}
 
+	ingress, err := newIngress(*application, *framework)
+	if err != nil {
+		return nil, err
+	}
+
 	values := &values{
 		App: &app{
 			Name:    application.Name,
-			Ingress: newIngress(*application, *framework),
+			Ingress: *ingress,
 			Env:     application.Spec.Env,
 			Group:   ketchv1.Group,
 		},
@@ -304,15 +310,21 @@ func isAppAccessible(a *app) bool {
 	return false
 }
 
-func newIngress(app ketchv1.App, framework ketchv1.Framework) ingress {
+func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) {
 	var http []string
 	var https []string
-	if len(framework.Spec.IngressController.ClusterIssuer) > 0 {
-		// cluster issuer is mandatory to obtain SSL certificates.
-		https = app.Spec.Ingress.Cnames
-	} else {
-		http = app.Spec.Ingress.Cnames
+
+	for _, cname := range app.Spec.Ingress.Cnames {
+		if cname.Secure {
+			if len(framework.Spec.IngressController.ClusterIssuer) == 0 {
+				return nil, errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified")
+			}
+			https = append(https, cname.Name)
+		} else {
+			http = append(http, cname.Name)
+		}
 	}
+
 	var httpsEndpoints []httpsEndpoint
 	for _, cname := range https {
 		hash := sha256.New()
@@ -325,8 +337,8 @@ func newIngress(app ketchv1.App, framework ketchv1.Framework) ingress {
 	if defaultCname != nil {
 		http = append(http, *defaultCname)
 	}
-	return ingress{
+	return &ingress{
 		Http:  http,
 		Https: httpsEndpoints,
-	}
+	}, nil
 }

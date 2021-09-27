@@ -46,9 +46,9 @@ func cnameRemove(ctx context.Context, cfg config, options cnameRemoveOptions, ou
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get the app: %w", err)
 	}
-	cnames := make([]string, 0, len(app.Spec.Ingress.Cnames))
+	cnames := make(ketchv1.CnameList, 0, len(app.Spec.Ingress.Cnames))
 	for _, cname := range app.Spec.Ingress.Cnames {
-		if cname == options.cname {
+		if cname.Name == options.cname {
 			continue
 		}
 		cnames = append(cnames, cname)

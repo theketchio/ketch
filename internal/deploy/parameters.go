@@ -410,3 +410,15 @@ func (c *ChangeSet) getKetchYaml() (*ketchv1.KetchYamlData, error) {
 	}
 	return data, nil
 }
+
+func (cs *ChangeSet) hasSecureCnames() bool {
+	if cs.cname == nil {
+		return false
+	}
+	for _, cname := range *cs.cname {
+		if cname.Secure {
+			return true
+		}
+	}
+	return false
+}

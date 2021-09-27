@@ -433,28 +433,28 @@ func TestApp_CNames(t *testing.T) {
 		name                 string
 		generateDefaultCname bool
 		framework            Framework
-		cnames               []string
+		cnames               []Cname
 		want                 []string
 	}{
 		{
 			name:                 "with default cname",
 			generateDefaultCname: true,
 			framework:            framework,
-			cnames:               []string{"theketch.io", "app.theketch.io"},
+			cnames:               []Cname{{Name: "theketch.io"}, {Name: "app.theketch.io"}},
 			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud", "http://theketch.io", "http://app.theketch.io"},
 		},
 		{
 			name:                 "with default cname and framework with cluster issuer",
 			generateDefaultCname: true,
 			framework:            frameworkWithClusterIssuer,
-			cnames:               []string{"theketch.io", "app.theketch.io"},
-			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud", "https://theketch.io", "https://app.theketch.io"},
+			cnames:               []Cname{{Name: "theketch.io"}, {Name: "app.theketch.io", Secure: true}},
+			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud", "http://theketch.io", "https://app.theketch.io"},
 		},
 		{
 			name:                 "without default cname",
 			generateDefaultCname: false,
 			framework:            framework,
-			cnames:               []string{"theketch.io", "app.theketch.io"},
+			cnames:               []Cname{{Name: "theketch.io"}, {Name: "app.theketch.io"}},
 			want:                 []string{"http://theketch.io", "http://app.theketch.io"},
 		},
 		{

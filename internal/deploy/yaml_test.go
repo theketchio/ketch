@@ -56,7 +56,7 @@ cname:
 				dockerRegistrySecret: nil,
 				builder:              conversions.StrPtr("heroku/buildpacks:20"),
 				buildPacks:           &[]string{"test-buildpack"},
-				cname:                &ketchv1.CnameList{"test.10.10.10.20"},
+				cname:                &ketchv1.CnameList{{Name: "test.10.10.10.20", Secure: false}},
 				timeout:              conversions.StrPtr("1m"),
 				wait:                 conversions.BoolPtr(true),
 				processes: &[]ketchv1.ProcessSpec{
@@ -275,7 +275,7 @@ func TestGetApplicationFromKetchApp(t *testing.T) {
 							Image:   "gcr.io/shipa-ci/sample-go-app:not_latest",
 						},
 					},
-					Ingress: ketchv1.IngressSpec{Cnames: []string{"test.com", "another.com"}},
+					Ingress: ketchv1.IngressSpec{Cnames: ketchv1.CnameList{{Name: "test.com"}, {Name: "another.com"}}},
 				},
 			},
 			application: &Application{
