@@ -4,8 +4,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    theketch.io/app-name: dashboard
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/is-isolated-run: "false"
   name: app-dashboard
 spec:
   type: ClusterIP
@@ -15,10 +15,10 @@ spec:
       protocol: TCP
       targetPort: 9091
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
-    theketch.io/app-deployment-version: "4"
-    theketch.io/is-isolated-run: "false"
+    shipa.io/app-name: dashboard
+    shipa.io/app-process: web
+    shipa.io/app-deployment-version: "4"
+    shipa.io/is-isolated-run: "false"
 ---
 # Source: dashboard/templates/service.yaml
 apiVersion: v1

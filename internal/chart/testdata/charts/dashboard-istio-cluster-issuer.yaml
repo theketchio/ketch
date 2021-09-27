@@ -20,27 +20,6 @@ spec:
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
 ---
-# Source: dashboard/templates/gateway_service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    theketch.io/app-name: dashboard
-    theketch.io/is-isolated-run: "false"
-  name: app-dashboard
-spec:
-  type: ClusterIP
-  ports:
-    - name: http-default-1
-      port: 9091
-      protocol: TCP
-      targetPort: 9091
-  selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
-    theketch.io/app-deployment-version: "4"
-    theketch.io/is-isolated-run: "false"
----
 # Source: dashboard/templates/service.yaml
 apiVersion: v1
 kind: Service
