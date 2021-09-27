@@ -252,16 +252,6 @@ func TestNewApplicationChart(t *testing.T) {
 			group:             "shipa.io",
 			wantYamlsFilename: "dashboard-traefik-cluster-issuer-shipa",
 		},
-		{
-			name: "additional app service",
-			opts: []Option{
-				WithTemplates(templates.AppTemplates),
-				WithExposedPorts(exportedPorts),
-			},
-			application:       dashboard,
-			framework:         frameworkWithoutClusterIssuer,
-			wantYamlsFilename: "app-service",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

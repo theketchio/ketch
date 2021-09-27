@@ -54,7 +54,8 @@ type ingress struct {
 	Https []httpsEndpoint `json:"https"`
 }
 
-type GatewayService struct {
+// gatewayService contains values for populating the gateway_service.yaml
+type gatewayService struct {
 	Deployment deployment
 	Process    process
 }
@@ -70,7 +71,7 @@ type app struct {
 	IsAccessible bool   `json:"isAccessible"`
 	Group        string `json:"group"`
 
-	Service *GatewayService
+	Service *gatewayService
 }
 
 type deployment struct {
@@ -184,7 +185,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			// the most recent version will always be the last entry in the array. In the event of
 			// a rollback the most recent version is still in the array, but its weight will be changed to 0
 			if isRoutable && deploymentSpec.RoutingSettings.Weight > 0 {
-				values.App.Service = &GatewayService{
+				values.App.Service = &gatewayService{
 					Deployment: deployment,
 					Process:    *process,
 				}

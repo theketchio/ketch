@@ -168,23 +168,11 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 			message: fmt.Sprintf(`failed to read configmap with the app's chart templates: %v`, err),
 		}
 	}
-	// template for service pointing to the most recent deployment
-	appTpls, err := r.TemplateReader.Get(templates.AppConfigMapName())
-	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`failed to read configmap with the app's chart templates: %v`, err),
-		}
-	}
 	if !framework.HasApp(app.Name) && framework.Spec.AppQuotaLimit != nil && len(framework.Status.Apps) >= *framework.Spec.AppQuotaLimit && *framework.Spec.AppQuotaLimit != -1 {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
 			message: fmt.Sprintf(`you have reached the limit of apps`),
 		}
-	}
-	if value, found := appTpls.Yamls["service.yaml"]; found {
-		// add the template for the service pointing to the other templates
-		tpls.Yamls["app_service.yaml"] = value
 	}
 
 	options := []chart.Option{
