@@ -54,6 +54,7 @@ type Label struct {
 // CnameList is a list of an app's CNAMEs.
 type CnameList []Cname
 
+// Cname represents a DNS record and whether the record use TLS.
 type Cname struct {
 	Name   string `json:"name"`
 	Secure bool   `json:"secure"`
