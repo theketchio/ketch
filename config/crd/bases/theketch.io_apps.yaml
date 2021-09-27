@@ -2251,6 +2251,8 @@ spec:
                   cnames:
                     description: Cnames is a list of additional cnames.
                     items:
+                      description: Cname represents a DNS record and whether the record
+                        use TLS.
                       properties:
                         name:
                           type: string

@@ -54,6 +54,12 @@ type ingress struct {
 	Https []httpsEndpoint `json:"https"`
 }
 
+// gatewayService contains values for populating the gateway_service.yaml
+type gatewayService struct {
+	Deployment deployment
+	Process    process
+}
+
 type app struct {
 	Name        string        `json:"name"`
 	Deployments []deployment  `json:"deployments"`
@@ -64,6 +70,8 @@ type app struct {
 	// For example, "spec.rules" of an Ingress object must contain at least one rule.
 	IsAccessible bool   `json:"isAccessible"`
 	Group        string `json:"group"`
+
+	Service *gatewayService
 }
 
 type deployment struct {
@@ -170,9 +178,17 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 				withLabels(application.Spec.Labels, deployment.Version),
 				withAnnotations(application.Spec.Annotations, deployment.Version),
 			)
-
 			if err != nil {
 				return nil, err
+			}
+
+			// the most recent version will always be the last entry in the array. In the event of
+			// a rollback the most recent version is still in the array, but its weight will be changed to 0
+			if isRoutable && deploymentSpec.RoutingSettings.Weight > 0 {
+				values.App.Service = &gatewayService{
+					Deployment: deployment,
+					Process:    *process,
+				}
 			}
 
 			deployment.Processes = append(deployment.Processes, *process)
@@ -180,6 +196,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 		values.App.Deployments = append(values.App.Deployments, deployment)
 	}
 	values.App.IsAccessible = isAppAccessible(values.App)
+
 	return &ApplicationChart{
 		values:    *values,
 		templates: options.Templates.Yamls,
