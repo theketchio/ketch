@@ -31,6 +31,8 @@ func newCnameAddCmd(cfg config, out io.Writer) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&options.appName, deploy.FlagApp, deploy.FlagAppShort, "", "The name of the app.")
 	cmd.MarkFlagRequired("app")
+	cmd.Flags().BoolVar(&options.secure, "secure", false, "Whether the CName should be https")
+
 	cmd.RegisterFlagCompletionFunc(deploy.FlagApp, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return autoCompleteAppNames(cfg, toComplete)
 	})
@@ -40,6 +42,7 @@ func newCnameAddCmd(cfg config, out io.Writer) *cobra.Command {
 type cnameAddOptions struct {
 	appName string
 	cname   string
+	secure  bool
 }
 
 func cnameAdd(ctx context.Context, cfg config, options cnameAddOptions, out io.Writer) error {
@@ -51,11 +54,18 @@ func cnameAdd(ctx context.Context, cfg config, options cnameAddOptions, out io.W
 		return fmt.Errorf("failed to get the app: %w", err)
 	}
 	for _, cname := range app.Spec.Ingress.Cnames {
-		if cname == options.cname {
+		if cname.Name == options.cname {
 			return nil
 		}
 	}
-	app.Spec.Ingress.Cnames = append(app.Spec.Ingress.Cnames, options.cname)
+	var framework ketchv1.Framework
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
+		return fmt.Errorf("failed to get the framework: %w", err)
+	}
+	if options.secure && len(framework.Spec.IngressController.ClusterIssuer) == 0 {
+		return ErrClusterIssuerRequired
+	}
+	app.Spec.Ingress.Cnames = append(app.Spec.Ingress.Cnames, ketchv1.Cname{Name: options.cname, Secure: options.secure})
 	if err := cfg.Client().Update(ctx, &app); err != nil {
 		return fmt.Errorf("failed to update the app: %w", err)
 	}

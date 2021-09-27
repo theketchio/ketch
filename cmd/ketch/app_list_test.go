@@ -23,7 +23,7 @@ func Test_appList(t *testing.T) {
 			Framework:   "fw1",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: false,
-				Cnames:               []string{"app-a-cname1"},
+				Cnames:               ketchv1.CnameList{{Name: "app-a-cname1"}},
 			},
 			Builder: "",
 		},
@@ -38,7 +38,7 @@ func Test_appList(t *testing.T) {
 			Framework:   "fw1",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: false,
-				Cnames:               []string{"app-b-cname1"},
+				Cnames:               ketchv1.CnameList{{Name: "app-b-cname1"}},
 			},
 			Builder: "",
 		},

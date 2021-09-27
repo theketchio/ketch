@@ -18,6 +18,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/pkg/errors"
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/templates"
 )
@@ -40,6 +41,9 @@ type httpsEndpoint struct {
 
 	// SecretName is a name of a Kubernetes Secret to store SSL certificate for the cname.
 	SecretName string `json:"secretName"`
+
+	// ClusterIssuer is the name of the cert-manager's ClusterIssuer to use for this endpoint (overriding the Framework default).
+	ClusterIssuer string `json:"clusterIssuer"`
 }
 
 // Ingress contains information about entrypoints of an application.
@@ -53,6 +57,12 @@ type ingress struct {
 	Https []httpsEndpoint `json:"https"`
 }
 
+// gatewayService contains values for populating the gateway_service.yaml
+type gatewayService struct {
+	Deployment deployment
+	Process    process
+}
+
 type app struct {
 	Name        string        `json:"name"`
 	Deployments []deployment  `json:"deployments"`
@@ -63,6 +73,8 @@ type app struct {
 	// For example, "spec.rules" of an Ingress object must contain at least one rule.
 	IsAccessible bool   `json:"isAccessible"`
 	Group        string `json:"group"`
+	Secret       string `json:"secret"`
+	Service      *gatewayService
 }
 
 type deployment struct {
@@ -122,12 +134,18 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 		opt(options)
 	}
 
+	ingress, err := newIngress(*application, *framework)
+	if err != nil {
+		return nil, err
+	}
+
 	values := &values{
 		App: &app{
 			Name:    application.Name,
-			Ingress: newIngress(*application, *framework),
+			Ingress: *ingress,
 			Env:     application.Spec.Env,
 			Group:   ketchv1.Group,
+			Secret:  application.Spec.SecretName,
 		},
 		IngressController: &framework.Spec.IngressController,
 	}
@@ -164,9 +182,17 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 				withLabels(application.Spec.Labels, deployment.Version),
 				withAnnotations(application.Spec.Annotations, deployment.Version),
 			)
-
 			if err != nil {
 				return nil, err
+			}
+
+			// the most recent version will always be the last entry in the array. In the event of
+			// a rollback the most recent version is still in the array, but its weight will be changed to 0
+			if isRoutable && deploymentSpec.RoutingSettings.Weight > 0 {
+				values.App.Service = &gatewayService{
+					Deployment: deployment,
+					Process:    *process,
+				}
 			}
 
 			deployment.Processes = append(deployment.Processes, *process)
@@ -174,6 +200,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 		values.App.Deployments = append(values.App.Deployments, deployment)
 	}
 	values.App.IsAccessible = isAppAccessible(values.App)
+
 	return &ApplicationChart{
 		values:    *values,
 		templates: options.Templates.Yamls,
@@ -304,29 +331,41 @@ func isAppAccessible(a *app) bool {
 	return false
 }
 
-func newIngress(app ketchv1.App, framework ketchv1.Framework) ingress {
+func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) {
 	var http []string
-	var https []string
-	if len(framework.Spec.IngressController.ClusterIssuer) > 0 {
-		// cluster issuer is mandatory to obtain SSL certificates.
-		https = app.Spec.Ingress.Cnames
-	} else {
-		http = app.Spec.Ingress.Cnames
+	var https []httpsEndpoint
+
+	for _, cname := range app.Spec.Ingress.Cnames {
+		if cname.Secure {
+			secretName := app.Spec.SecretName
+			clusterIssuer := fmt.Sprintf("%s-clusterissuer", app.Spec.SecretName)
+
+			if secretName == "" {
+				if len(framework.Spec.IngressController.ClusterIssuer) == 0 {
+					return nil, errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified")
+				}
+				clusterIssuer = framework.Spec.IngressController.ClusterIssuer
+				secretName = generateSecret(app.Name, cname.Name)
+			}
+			https = append(https, httpsEndpoint{Cname: cname.Name, SecretName: secretName, ClusterIssuer: clusterIssuer})
+		} else {
+			http = append(http, cname.Name)
+		}
 	}
-	var httpsEndpoints []httpsEndpoint
-	for _, cname := range https {
-		hash := sha256.New()
-		hash.Write([]byte(fmt.Sprintf("cname-%s", cname)))
-		bs := hash.Sum(nil)
-		secretName := fmt.Sprintf("%s-cname-%x", app.Name, bs[:10])
-		httpsEndpoints = append(httpsEndpoints, httpsEndpoint{Cname: cname, SecretName: secretName})
-	}
+
 	defaultCname := app.DefaultCname(&framework)
 	if defaultCname != nil {
 		http = append(http, *defaultCname)
 	}
-	return ingress{
+	return &ingress{
 		Http:  http,
-		Https: httpsEndpoints,
-	}
+		Https: https,
+	}, nil
+}
+
+func generateSecret(appName, cname string) string {
+	hash := sha256.New()
+	hash.Write([]byte(fmt.Sprintf("cname-%s", cname)))
+	bs := hash.Sum(nil)
+	return fmt.Sprintf("%s-cname-%x", appName, bs[:10])
 }

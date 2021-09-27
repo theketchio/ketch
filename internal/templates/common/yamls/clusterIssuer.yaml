@@ -1,0 +1,10 @@
+{{- if $.Values.app.secret }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ $.Values.app.secret }}-clusterissuer
+spec:
+  ca:
+    secretName: {{ $.Values.app.secret }}
+---
+{{ end }}

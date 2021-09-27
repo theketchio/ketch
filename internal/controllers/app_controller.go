@@ -174,6 +174,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 			message: fmt.Sprintf(`you have reached the limit of apps`),
 		}
 	}
+
 	options := []chart.Option{
 		chart.WithExposedPorts(app.ExposedPorts()),
 		chart.WithTemplates(*tpls),
@@ -264,6 +265,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 			message: fmt.Sprintf("failed to update helm chart: %v", err),
 		}
 	}
+
 	return reconcileResult{
 		framework: ref,
 		status:    v1.ConditionTrue,

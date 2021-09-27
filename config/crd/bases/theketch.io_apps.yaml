@@ -2251,7 +2251,17 @@ spec:
                   cnames:
                     description: Cnames is a list of additional cnames.
                     items:
-                      type: string
+                      description: Cname represents a DNS record and whether the record
+                        use TLS.
+                      properties:
+                        name:
+                          type: string
+                        secure:
+                          type: boolean
+                      required:
+                      - name
+                      - secure
+                      type: object
                     type: array
                   generateDefaultCname:
                     description: GenerateDefaultCname if set the application will
@@ -2283,6 +2293,10 @@ spec:
                       type: object
                   type: object
                 type: array
+              secretName:
+                description: Secret is the secret TLS certifificate to associate with
+                  the App
+                type: string
               version:
                 type: string
             required:

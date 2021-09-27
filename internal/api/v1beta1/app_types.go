@@ -52,7 +52,13 @@ type Label struct {
 }
 
 // CnameList is a list of an app's CNAMEs.
-type CnameList []string
+type CnameList []Cname
+
+// Cname represents a DNS record and whether the record use TLS.
+type Cname struct {
+	Name   string `json:"name"`
+	Secure bool   `json:"secure"`
+}
 
 // RoutingSettings contains a weight of the current deployment used to route incoming traffic.
 // If an application has two deployments with corresponding weights of 30 and 70,
@@ -206,6 +212,9 @@ type AppSpec struct {
 
 	// Annotations is a list of annotations that will be applied to processes
 	Annotations []MetadataItem `json:"annotations,omitempty"`
+
+	// Secret is the secret TLS certifificate to associate with the App
+	SecretName string `json:"secretName,omitempty"`
 }
 
 // MetadataItem represent a request to add label/annotations to processes
@@ -379,17 +388,17 @@ func (app *App) Start(selector Selector) error {
 
 // CNames returns all CNAMEs to access the application including a default cname.
 func (app *App) CNames(framework *Framework) []string {
-	scheme := "http"
-	if len(framework.Spec.IngressController.ClusterIssuer) > 0 {
-		scheme = "https"
-	}
 	cnames := []string{}
 	defaultCname := app.DefaultCname(framework)
 	if defaultCname != nil {
 		cnames = append(cnames, fmt.Sprintf("http://%s", *defaultCname))
 	}
 	for _, cname := range app.Spec.Ingress.Cnames {
-		cnames = append(cnames, fmt.Sprintf("%s://%s", scheme, cname))
+		scheme := "http"
+		if cname.Secure {
+			scheme = "https"
+		}
+		cnames = append(cnames, fmt.Sprintf("%s://%s", scheme, cname.Name))
 	}
 	return cnames
 }

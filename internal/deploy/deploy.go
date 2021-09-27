@@ -200,6 +200,10 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 		return errors.Wrap(err, "failed to get framework %q", app.Spec.Framework)
 	}
 
+	if len(framework.Spec.IngressController.ClusterIssuer) == 0 && params.hasSecureCnames() {
+		return errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified")
+	}
+
 	image, _ := params.getImage()
 
 	fromSource := params.sourcePath != nil

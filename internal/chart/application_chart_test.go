@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/kube/fake"
@@ -21,7 +22,7 @@ import (
 	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
 
-func TestNew(t *testing.T) {
+func TestNewApplicationChart(t *testing.T) {
 
 	const chartDirectory = "./testdata/charts/"
 
@@ -133,7 +134,15 @@ func TestNew(t *testing.T) {
 			},
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
-				Cnames:               []string{"theketch.io", "app.theketch.io"},
+				Cnames: []ketchv1.Cname{
+					{
+						Name:   "theketch.io",
+						Secure: true,
+					}, {
+						Name:   "app.theketch.io",
+						Secure: true,
+					},
+				},
 			},
 			Labels: []ketchv1.MetadataItem{{
 				Apply:             map[string]string{"theketch.io/test-label": "test-label-value"},
@@ -162,6 +171,23 @@ func TestNew(t *testing.T) {
 		},
 	}
 
+	// convertSecureEndpoints returns a copy of app with Cnames made not secure
+	convertSecureEndpoints := func(app *ketchv1.App) *ketchv1.App {
+		out := *app
+		out.Spec.Ingress.Cnames = []ketchv1.Cname{}
+		for _, cname := range app.Spec.Ingress.Cnames {
+			out.Spec.Ingress.Cnames = append(out.Spec.Ingress.Cnames, ketchv1.Cname{Name: cname.Name, Secure: false})
+		}
+		return &out
+	}
+
+	// addAppSecret returns a copy of app with a SecretName set in the app.Spec
+	addAppSecret := func(app *ketchv1.App, secret string) *ketchv1.App {
+		out := *app
+		out.Spec.SecretName = secret
+		return &out
+	}
+
 	tests := []struct {
 		name        string
 		application *ketchv1.App
@@ -188,7 +214,7 @@ func TestNew(t *testing.T) {
 				WithTemplates(templates.IstioDefaultTemplates),
 				WithExposedPorts(exportedPorts),
 			},
-			application:       dashboard,
+			application:       convertSecureEndpoints(dashboard),
 			framework:         frameworkWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-istio",
 		},
@@ -208,7 +234,7 @@ func TestNew(t *testing.T) {
 				WithTemplates(templates.TraefikDefaultTemplates),
 				WithExposedPorts(exportedPorts),
 			},
-			application:       dashboard,
+			application:       convertSecureEndpoints(dashboard),
 			framework:         frameworkWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-traefik",
 		},
@@ -232,6 +258,17 @@ func TestNew(t *testing.T) {
 			framework:         frameworkWithClusterIssuer,
 			group:             "shipa.io",
 			wantYamlsFilename: "dashboard-traefik-cluster-issuer-shipa",
+		},
+		{
+			name: "traefik templates with app secret",
+			opts: []Option{
+				WithTemplates(templates.TraefikDefaultTemplates),
+				WithExposedPorts(exportedPorts),
+			},
+			application:       addAppSecret(convertSecureEndpoints(dashboard), "foobar"),
+			framework:         frameworkWithoutClusterIssuer,
+			group:             "theketch.io",
+			wantYamlsFilename: "dashboard-traefik-secret",
 		},
 	}
 	for _, tt := range tests {
@@ -271,6 +308,101 @@ func TestNew(t *testing.T) {
 			expected, err := ioutil.ReadFile(expectedFilename)
 			require.Nil(t, err)
 			require.Equal(t, string(expected), actualManifests)
+		})
+	}
+}
+
+func TestNewIngress(t *testing.T) {
+	tests := []struct {
+		name          string
+		cnames        ketchv1.CnameList
+		clusterIssuer string
+		appSecret     string
+		expected      *ingress
+		expectedError error
+	}{
+		{
+			name: "happy",
+			cnames: ketchv1.CnameList{
+				{
+					Name:   "a.name",
+					Secure: true,
+				},
+				{
+					Name: "b.name",
+				},
+			},
+			clusterIssuer: "test-cluster-issuer",
+			expected: &ingress{
+				Https: []httpsEndpoint{{Cname: "a.name", SecretName: "-cname-2bffdc1c076b2cc72660", ClusterIssuer: "test-cluster-issuer"}},
+				Http:  []string{"b.name"},
+			},
+		},
+		{
+			name: "happy - no https, no cluster issuer",
+			cnames: ketchv1.CnameList{
+				{
+					Name: "a.name",
+				},
+				{
+					Name: "b.name",
+				},
+			},
+			expected: &ingress{
+				Http: []string{"a.name", "b.name"},
+			},
+		},
+		{
+			name: "happy - app secret",
+			cnames: ketchv1.CnameList{
+				{
+					Name:   "a.name",
+					Secure: true,
+				},
+				{
+					Name: "b.name",
+				},
+			},
+			appSecret: "app-secret",
+			expected: &ingress{
+				Https: []httpsEndpoint{{Cname: "a.name", SecretName: "app-secret", ClusterIssuer: "app-secret-clusterissuer"}},
+				Http:  []string{"b.name"},
+			},
+		},
+		{
+			name: "sad - no cluster issuer",
+			cnames: ketchv1.CnameList{
+				{
+					Name:   "a.name",
+					Secure: true,
+				},
+			},
+			expectedError: errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := ketchv1.App{
+				Spec: ketchv1.AppSpec{
+					Ingress: ketchv1.IngressSpec{
+						Cnames: tt.cnames,
+					},
+					SecretName: tt.appSecret,
+				},
+			}
+			framework := ketchv1.Framework{
+				Spec: ketchv1.FrameworkSpec{
+					IngressController: ketchv1.IngressControllerSpec{
+						ClusterIssuer: tt.clusterIssuer,
+					},
+				},
+			}
+			issuer, err := newIngress(app, framework)
+			if tt.expectedError != nil {
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.Equal(t, tt.expected, issuer)
+			}
 		})
 	}
 }
