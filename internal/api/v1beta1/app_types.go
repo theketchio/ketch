@@ -523,25 +523,27 @@ func (app *App) DoCanary(now metav1.Time) error {
 		app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
 		app.Spec.Canary.CurrentStep++
 
-		// scale units based on weight and process target
-		for processName, target := range app.Spec.Canary.Target {
-			p1Units, p2Units := getUpdatedUnits(app.Spec.Deployments[0].RoutingSettings.Weight, target)
-			// might be fine to ignore these errors
-			if err := app.Spec.Deployments[0].setUnits(processName, p1Units); err != nil {
-				log.Printf("the process: %s is not present in the previous deployment\n", processName)
+		if app.Spec.Canary.Target != nil {
+			// scale units based on weight and process target
+			for processName, target := range app.Spec.Canary.Target {
+				p1Units, p2Units := getUpdatedUnits(app.Spec.Deployments[0].RoutingSettings.Weight, target)
+				// might be fine to ignore these errors
+				if err := app.Spec.Deployments[0].setUnits(processName, p1Units); err != nil {
+					log.Printf("the process: %s is not present in the previous deployment\n", processName)
+				}
+				if err := app.Spec.Deployments[1].setUnits(processName, p2Units); err != nil {
+					log.Printf("the process: %s in not present in the updated deployment\n", processName)
+				}
 			}
-			if err := app.Spec.Deployments[1].setUnits(processName, p2Units); err != nil {
-				log.Printf("the process: %s in not present in the updated deployment\n", processName)
-			}
-		}
 
-		// if a process in the updated deployment isn't found in target create 1 unit
-		for _, process := range app.Spec.Deployments[1].Processes {
-			if _, found := app.Spec.Canary.Target[process.Name]; !found {
-				_ = app.Spec.Deployments[1].setUnits(process.Name, 1)
+			// if a process in the updated deployment isn't found in target create 1 unit
+			for _, process := range app.Spec.Deployments[1].Processes {
+				if _, found := app.Spec.Canary.Target[process.Name]; !found {
+					_ = app.Spec.Deployments[1].setUnits(process.Name, 1)
+				}
 			}
+			// for previous deployment, any processes not in target will be terminated by the end of the canary deployment
 		}
-		// for previous deployment, any processes not in target will be terminated by the end of the canary deployment
 
 		// update next scheduled time
 		*app.Spec.Canary.NextScheduledTime = metav1.NewTime(app.Spec.Canary.NextScheduledTime.Add(app.Spec.Canary.StepTimeInteval))
