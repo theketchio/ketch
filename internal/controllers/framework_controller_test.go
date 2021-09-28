@@ -99,16 +99,35 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "framework annotations and labels added to namespace",
+			name: "nginx controller - everything is ok",
 			framework: ketchv1.Framework{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "framework-5",
 				},
 				Spec: ketchv1.FrameworkSpec{
 					AppQuotaLimit: conversions.IntPtr(1),
+					NamespaceName: "another-namespace-5",
+					IngressController: ketchv1.IngressControllerSpec{
+						IngressType: ketchv1.NginxIngressControllerType,
+					},
+				},
+			},
+			wantStatusPhase:     ketchv1.FrameworkCreated,
+			wantNamespaceLabels: map[string]string{
+				"istio-injection": "disabled",
+			},
+		},
+		{
+			name: "framework annotations and labels added to namespace",
+			framework: ketchv1.Framework{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "framework-6",
+				},
+				Spec: ketchv1.FrameworkSpec{
+					AppQuotaLimit: conversions.IntPtr(1),
 					Annotations:   map[string]string{"test-annotation": "value"},
 					Labels:        map[string]string{"test-label": "value"},
-					NamespaceName: "another-namespace-5",
+					NamespaceName: "another-namespace-6",
 					IngressController: ketchv1.IngressControllerSpec{
 						IngressType: ketchv1.IstioIngressControllerType,
 					},

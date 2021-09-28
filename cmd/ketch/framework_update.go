@@ -54,7 +54,7 @@ func newFrameworkUpdateCmd(cfg config, out io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
 	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik or istio")
 	cmd.RegisterFlagCompletionFunc("ingress-type", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{defaultIstioIngressClassName, defaultTraefikIngressClassName}, cobra.ShellCompDirectiveDefault
+		return []string{defaultIstioIngressClassName, defaultTraefikIngressClassName, defaultNginxIngressClassName}, cobra.ShellCompDirectiveDefault
 	})
 	return cmd
 }

@@ -192,6 +192,26 @@ func TestNewApplicationChart(t *testing.T) {
 		wantErr           bool
 	}{
 		{
+			name: "nginx templates with cluster issuer",
+			opts: []Option{
+				WithTemplates(templates.NginxDefaultTemplates),
+				WithExposedPorts(exportedPorts),
+			},
+			application:       dashboard,
+			framework:         frameworkWithClusterIssuer,
+			wantYamlsFilename: "dashboard-nginx-cluster-issuer",
+		},
+		{
+			name: "nginx templates without cluster issuer",
+			opts: []Option{
+				WithTemplates(templates.NginxDefaultTemplates),
+				WithExposedPorts(exportedPorts),
+			},
+			application:       dashboard,
+			framework:         frameworkWithoutClusterIssuer,
+			wantYamlsFilename: "dashboard-nginx",
+		},
+		{
 			name: "istio templates with cluster issuer",
 			opts: []Option{
 				WithTemplates(templates.IstioDefaultTemplates),

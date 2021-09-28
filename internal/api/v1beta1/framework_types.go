@@ -71,7 +71,7 @@ const (
 	FrameworkFailed  FrameworkPhase = "Failed"
 )
 
-// +kubebuilder:validation:Enum=traefik;istio
+// +kubebuilder:validation:Enum=traefik;istio;nginx
 
 // IngressControllerType is a type of an ingress controller for this framework.
 type IngressControllerType string
@@ -81,6 +81,7 @@ func (t IngressControllerType) String() string { return string(t) }
 const (
 	TraefikIngressControllerType IngressControllerType = "traefik"
 	IstioIngressControllerType   IngressControllerType = "istio"
+	NginxIngressControllerType   IngressControllerType = "nginx"
 )
 
 // IngressControllerSpec contains configuration for an ingress controller.

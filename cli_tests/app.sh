@@ -13,7 +13,8 @@ setup() {
   else
     KETCH="${KETCH_EXECUTABLE_PATH}"
   fi
-  INGRESS=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  INGRESS_TRAEFIK=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  INGRESS_NGINX=$(kubectl get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   FRAMEWORK="myframework"
   APP_IMAGE="gcr.io/shipa-ci/sample-go-app:latest"
   APP_NAME="sample-app"
@@ -36,13 +37,19 @@ teardown() {
 }
 
 @test "framework add" {
-  result=$($KETCH framework add "$FRAMEWORK" --ingress-service-endpoint "$INGRESS" --ingress-type "traefik")
+  result=$($KETCH framework add "$FRAMEWORK" --ingress-service-endpoint "$INGRESS_TRAEFIK" --ingress-type "traefik")
+  echo "RECEIVED:" $result
+  [[ $result =~ "Successfully added!" ]]
+}
+
+@test "framework add nginx" {
+  result=$($KETCH framework add "$FRAMEWORK-nginx" --ingress-service-endpoint "$INGRESS_NGINX" --ingress-type "nginx")
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully added!" ]]
 }
 
 @test "framework add error" {
-  run $KETCH framework add "$FRAMEWORK" --ingress-service-endpoint "$INGRESS" --ingress-type "traefik"
+  run $KETCH framework add "$FRAMEWORK" --ingress-service-endpoint "$INGRESS_TRAEFIK" --ingress-type "traefik"
   [[ $status -eq 1 ]]
   [[ $output =~ "\"$FRAMEWORK\" already exists" ]]
 }
@@ -70,10 +77,12 @@ EOF
 @test "framework list" {
   result=$($KETCH framework list)
   headerRegex="NAME[ \t]+STATUS[ \t]+NAMESPACE[ \t]+INGRESS TYPE[ \t]+INGRESS CLASS NAME[ \t]+CLUSTER ISSUER[ \t]+APPS"
-  dataRegex="$FRAMEWORK[ \t]+ketch-$FRAMEWORK[ \t]+traefik[ \t]+traefik"
+  dataRegexTraefik="$FRAMEWORK[ \t]+ketch-$FRAMEWORK[ \t]+traefik[ \t]+traefik"
+  dataRegexNginx="$FRAMEWORK-nginx[ \t]+ketch-$FRAMEWORK-nginx[ \t]+nginx[ \t]+nginx"
   echo "RECEIVED:" $result
   [[ $result =~ $headerRegex ]]
-  [[ $result =~ $dataRegex ]]
+  [[ $result =~ $dataRegexTraefik ]]
+  [[ $result =~ $dataRegexNginx ]]
 }
 
 @test "framework update" {
@@ -113,6 +122,11 @@ EOF
 
 @test "app deploy" {
   run $KETCH app deploy "$APP_NAME" --framework "$FRAMEWORK" -i "$APP_IMAGE"
+  [[ $status -eq 0 ]]
+}
+
+@test "app deploy nginx" {
+  run $KETCH app deploy "$APP_NAME-nginx" --framework "$FRAMEWORK-nginx" -i "$APP_IMAGE"
   [[ $status -eq 0 ]]
 }
 
