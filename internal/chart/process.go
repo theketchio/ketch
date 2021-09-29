@@ -199,7 +199,7 @@ func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketch
 // item.ProcessName is unspecified OR matches processName
 // item.Target.ApiVersion is v1
 func canBeApplied(item ketchv1.MetadataItem, processName string, version ketchv1.DeploymentVersion) bool {
-	if item.Target.APIVersion != "v1" {
+	if !strings.Contains(item.Target.APIVersion, "v1") {
 		return false
 	}
 	if item.DeploymentVersion > 0 && int(version) != item.DeploymentVersion {

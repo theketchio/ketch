@@ -281,7 +281,7 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 			},
 			labels: []ketchv1.MetadataItem{
 				{
-					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "v1"},
+					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
 					DeploymentVersion: 1,
 					ProcessName:       "web",
 					Apply:             map[string]string{"theketch.io/test": "value"},
