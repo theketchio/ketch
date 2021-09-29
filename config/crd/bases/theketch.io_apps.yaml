@@ -2293,7 +2293,7 @@ spec:
                       type: object
                   type: object
                 type: array
-              secretName:
+              secretNames:
                 description: SecretNames are the secret TLS certifificates to associate
                   with the App
                 items:

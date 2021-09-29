@@ -214,7 +214,7 @@ type AppSpec struct {
 	Annotations []MetadataItem `json:"annotations,omitempty"`
 
 	// SecretNames are the secret TLS certifificates to associate with the App
-	SecretNames []string `json:"secretName,omitempty"`
+	SecretNames []string `json:"secretNames,omitempty"`
 }
 
 // MetadataItem represent a request to add label/annotations to processes
