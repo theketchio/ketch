@@ -71,9 +71,9 @@ type app struct {
 	// IsAccessible if not set, ketch won't create kubernetes objects like Ingress/Gateway to handle incoming request.
 	// These objects could be broken without valid routes to the application.
 	// For example, "spec.rules" of an Ingress object must contain at least one rule.
-	IsAccessible bool   `json:"isAccessible"`
-	Group        string `json:"group"`
-	Secret       string `json:"secret"`
+	IsAccessible bool     `json:"isAccessible"`
+	Group        string   `json:"group"`
+	SecretNames  []string `json:"secretNames"`
 	Service      *gatewayService
 }
 
@@ -141,11 +141,11 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 
 	values := &values{
 		App: &app{
-			Name:    application.Name,
-			Ingress: *ingress,
-			Env:     application.Spec.Env,
-			Group:   ketchv1.Group,
-			Secret:  application.Spec.SecretName,
+			Name:        application.Name,
+			Ingress:     *ingress,
+			Env:         application.Spec.Env,
+			Group:       ketchv1.Group,
+			SecretNames: application.Spec.SecretNames,
 		},
 		IngressController: &framework.Spec.IngressController,
 	}
@@ -337,17 +337,17 @@ func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) 
 
 	for _, cname := range app.Spec.Ingress.Cnames {
 		if cname.Secure {
-			secretName := app.Spec.SecretName
-			clusterIssuer := fmt.Sprintf("%s-clusterissuer", app.Spec.SecretName)
-
-			if secretName == "" {
+			if len(app.Spec.SecretNames) == 0 {
 				if len(framework.Spec.IngressController.ClusterIssuer) == 0 {
 					return nil, errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified")
 				}
-				clusterIssuer = framework.Spec.IngressController.ClusterIssuer
-				secretName = generateSecret(app.Name, cname.Name)
+				https = append(https, httpsEndpoint{Cname: cname.Name, SecretName: generateSecret(app.Name, cname.Name), ClusterIssuer: framework.Spec.IngressController.ClusterIssuer})
+
+			} else {
+				for _, secretName := range app.Spec.SecretNames {
+					https = append(https, httpsEndpoint{Cname: cname.Name, SecretName: secretName, ClusterIssuer: fmt.Sprintf("%s-clusterissuer", secretName)})
+				}
 			}
-			https = append(https, httpsEndpoint{Cname: cname.Name, SecretName: secretName, ClusterIssuer: clusterIssuer})
 		} else {
 			http = append(http, cname.Name)
 		}

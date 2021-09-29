@@ -1,10 +1,10 @@
-{{- if $.Values.app.secret }}
+{{ range $_, $secretName := .Values.app.secretNames }}
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: {{ $.Values.app.secret }}-clusterissuer
+  name: {{ $secretName }}-clusterissuer
 spec:
   ca:
-    secretName: {{ $.Values.app.secret }}
+    secretName: {{ $secretName }}
 ---
 {{ end }}

@@ -161,6 +161,17 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 			message: fmt.Sprintf(`framework "%s" is not linked to a kubernetes namespace`, framework.Name),
 		}
 	}
+	// assert that secretName exists in "cert-manager" namespace
+	for _, appSecretName := range app.Spec.SecretNames {
+		var secret v1.Secret
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: appSecretName, Namespace: "cert-manager"}, &secret); err != nil {
+			return reconcileResult{
+				status:  v1.ConditionFalse,
+				message: fmt.Sprintf(`app.secretName %s was declared, but not found in namespace "cert-manager"`, appSecretName),
+			}
+		}
+	}
+
 	tpls, err := r.TemplateReader.Get(templates.IngressConfigMapName(framework.Spec.IngressController.IngressType.String()))
 	if err != nil {
 		return reconcileResult{

@@ -2294,9 +2294,11 @@ spec:
                   type: object
                 type: array
               secretName:
-                description: Secret is the secret TLS certifificate to associate with
-                  the App
-                type: string
+                description: SecretNames are the secret TLS certifificates to associate
+                  with the App
+                items:
+                  type: string
+                type: array
               version:
                 type: string
             required:
