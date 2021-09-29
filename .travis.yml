@@ -29,6 +29,17 @@ jobs:
         - docker build -t shipasoftware/ketch:$TRAVIS_COMMIT .
         - docker push shipasoftware/ketch:$TRAVIS_COMMIT
 
+    - stage: build
+      branches:
+        only:
+          - master
+      language: bash
+      sudo: required
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
+        - docker build -t shipasoftware/ketch:$TRAVIS_COMMIT .
+        - docker push shipasoftware/ketch:$TRAVIS_COMMIT
+
     - stage: test
       sudo: required
       name: "Running integration tests"
