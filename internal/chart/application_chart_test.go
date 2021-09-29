@@ -207,7 +207,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithTemplates(templates.NginxDefaultTemplates),
 				WithExposedPorts(exportedPorts),
 			},
-			application:       dashboard,
+			application:       convertSecureEndpoints(dashboard),
 			framework:         frameworkWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-nginx",
 		},

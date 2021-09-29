@@ -2,7 +2,7 @@
 {{- if .Values.app.ingress.http }}
 {{- range $i, $deployment := .Values.app.deployments }}
 {{- if gt $deployment.routingSettings.weight 0.0}}
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $.Values.app.name }}-{{ $i }}-http-ingress
@@ -43,7 +43,7 @@ spec:
 {{- if .Values.app.ingress.https }}
 {{- range $i, $deployment := .Values.app.deployments }}
 {{- if gt $deployment.routingSettings.weight 0.0}}
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $.Values.app.name }}-{{ $i }}-https-ingress
