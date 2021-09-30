@@ -79,7 +79,7 @@ metadata:
     shipa.io/app-deployment-version: "4"
     shipa.io/is-isolated-run: "false"
   annotations:
-    theketch.io/test-annotation: test-annotation-value
+    theketch.io/test-annotation: "test-annotation-value"
   name: dashboard-web-4
 spec:
   type: ClusterIP
@@ -129,8 +129,8 @@ metadata:
     shipa.io/app-process-replicas: "3"
     shipa.io/app-deployment-version: "3"
     shipa.io/is-isolated-run: "false"
-    theketch.io/test-label: test-label-value
-    theketch.io/test-label-all: test-label-value-all
+    theketch.io/test-label: "test-label-value"
+    theketch.io/test-label-all: "test-label-value-all"
   name: dashboard-web-3
 spec:
   replicas: 3
@@ -199,7 +199,7 @@ metadata:
     shipa.io/app-process-replicas: "1"
     shipa.io/app-deployment-version: "3"
     shipa.io/is-isolated-run: "false"
-    theketch.io/test-label-all: test-label-value-all
+    theketch.io/test-label-all: "test-label-value-all"
   name: dashboard-worker-3
 spec:
   replicas: 1
@@ -249,7 +249,7 @@ metadata:
     shipa.io/app-process-replicas: "3"
     shipa.io/app-deployment-version: "4"
     shipa.io/is-isolated-run: "false"
-    theketch.io/test-label-all: test-label-value-all
+    theketch.io/test-label-all: "test-label-value-all"
   name: dashboard-web-4
 spec:
   replicas: 3
@@ -298,7 +298,7 @@ metadata:
     shipa.io/app-process-replicas: "1"
     shipa.io/app-deployment-version: "4"
     shipa.io/is-isolated-run: "false"
-    theketch.io/test-label-all: test-label-value-all
+    theketch.io/test-label-all: "test-label-value-all"
   name: dashboard-worker-4
 spec:
   replicas: 1
