@@ -143,18 +143,17 @@ func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.Deploym
 				return err
 			}
 			for k, v := range label.Apply {
-				switch label.Target.Kind {
-				case "Deployment":
+				if label.Target.IsDeployment() {
 					if p.PodExtra.DeploymentMetadata.Labels == nil {
 						p.PodExtra.DeploymentMetadata.Labels = make(map[string]string)
 					}
 					p.PodExtra.DeploymentMetadata.Labels[k] = v
-				case "Service":
+				} else if label.Target.IsService() {
 					if p.PodExtra.ServiceMetadata.Labels == nil {
 						p.PodExtra.ServiceMetadata.Labels = make(map[string]string)
 					}
 					p.PodExtra.ServiceMetadata.Labels[k] = v
-				default:
+				} else {
 					return fmt.Errorf("unsupported target kind: %s", label.Target.Kind)
 				}
 			}
@@ -174,18 +173,17 @@ func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketch
 				return err
 			}
 			for k, v := range annotation.Apply {
-				switch annotation.Target.Kind {
-				case "Deployment":
+				if annotation.Target.IsDeployment() {
 					if p.PodExtra.DeploymentMetadata.Annotations == nil {
 						p.PodExtra.DeploymentMetadata.Annotations = make(map[string]string)
 					}
 					p.PodExtra.DeploymentMetadata.Annotations[k] = v
-				case "Service":
+				} else if annotation.Target.IsService() {
 					if p.PodExtra.ServiceMetadata.Annotations == nil {
 						p.PodExtra.ServiceMetadata.Annotations = make(map[string]string)
 					}
 					p.PodExtra.ServiceMetadata.Annotations[k] = v
-				default:
+				} else {
 					return fmt.Errorf("unsupported target kind: %s", annotation.Target.Kind)
 				}
 			}
@@ -199,9 +197,6 @@ func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketch
 // item.ProcessName is unspecified OR matches processName
 // item.Target.ApiVersion is v1
 func canBeApplied(item ketchv1.MetadataItem, processName string, version ketchv1.DeploymentVersion) bool {
-	if item.Target.APIVersion != "v1" {
-		return false
-	}
 	if item.DeploymentVersion > 0 && int(version) != item.DeploymentVersion {
 		return false
 	}

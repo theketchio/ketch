@@ -257,7 +257,7 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 			description: "ok - specify deploymentVersion and processName",
 			annotations: []ketchv1.MetadataItem{
 				{
-					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "v1"},
+					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
 					DeploymentVersion: 1,
 					ProcessName:       "web",
 					Apply:             map[string]string{"theketch.io/test": "value"},
@@ -281,7 +281,7 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 			},
 			labels: []ketchv1.MetadataItem{
 				{
-					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "v1"},
+					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
 					DeploymentVersion: 1,
 					ProcessName:       "web",
 					Apply:             map[string]string{"theketch.io/test": "value"},
@@ -293,13 +293,13 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 					Apply:             map[string]string{"theketch.io/test": "value"},
 				},
 				{
-					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "v1"},
+					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
 					DeploymentVersion: 2,
 					ProcessName:       "web",
 					Apply:             map[string]string{"theketch.io/NON-MATCHING-DEPLOYEMT-VERSION": "value"},
 				},
 				{
-					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "v1"},
+					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
 					DeploymentVersion: 1,
 					ProcessName:       "SOMETHING_ELSE",
 					Apply:             map[string]string{"theketch.io/NON-MATCHING-PROCESS": "value"},
@@ -340,7 +340,7 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 			description: "error - malformed label",
 			labels: []ketchv1.MetadataItem{
 				{
-					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "v1"},
+					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
 					DeploymentVersion: 1,
 					ProcessName:       "web",
 					Apply:             map[string]string{"_theketch.io/test": "CANT_START_KEY_WITH_UNDERSCORE"},
@@ -351,15 +351,17 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		p := newProcess()
-		fn := withAnnotations(tt.annotations, tt.deploymentVersion)
-		fn(p)
-		fn = withLabels(tt.labels, tt.deploymentVersion)
-		err := fn(p)
-		if tt.expectedError != nil {
-			require.EqualError(t, err, tt.expectedError.Error())
-		} else {
-			require.Equal(t, tt.expected, p)
-		}
+		t.Run(tt.description, func(t *testing.T) {
+			p := newProcess()
+			fn := withAnnotations(tt.annotations, tt.deploymentVersion)
+			fn(p)
+			fn = withLabels(tt.labels, tt.deploymentVersion)
+			err := fn(p)
+			if tt.expectedError != nil {
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.Equal(t, tt.expected, p)
+			}
+		})
 	}
 }
