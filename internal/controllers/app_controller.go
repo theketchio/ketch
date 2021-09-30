@@ -89,7 +89,7 @@ type Helm interface {
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;create;update
 
 func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("app", req.NamespacedName)
+	logger := r.Log.WithValues("app", req.NamespacedName)
 
 	app := ketchv1.App{}
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
@@ -104,7 +104,7 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		err    error
 		result ctrl.Result
 	)
-	scheduleResult := r.reconcile(ctx, &app)
+	scheduleResult := r.reconcile(ctx, &app, logger)
 	if scheduleResult.status == v1.ConditionFalse {
 		// we have to return an error to run reconcile again.
 		err = fmt.Errorf(scheduleResult.message)
@@ -140,7 +140,7 @@ type reconcileResult struct {
 	useTimeout bool
 }
 
-func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconcileResult {
+func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger logr.Logger) reconcileResult {
 	framework := ketchv1.Framework{}
 	if err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
 		return reconcileResult{
@@ -244,7 +244,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App) reconci
 		}
 
 		// Once all pods are running then Perform canary deployment.
-		if err = app.DoCanary(metav1.NewTime(r.Now())); err != nil {
+		if err = app.DoCanary(metav1.NewTime(r.Now()), logger); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
 				message: fmt.Sprintf("canary update failed: %v", err),

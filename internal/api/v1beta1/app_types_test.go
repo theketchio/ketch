@@ -8,6 +8,7 @@ import (
 	"testing/quick"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -1188,7 +1189,7 @@ func TestApp_DoCanary(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.app.DoCanary(tt.now)
+			err := tt.app.DoCanary(tt.now, logr.Discard())
 			originalApp := *tt.app.DeepCopy()
 			if len(tt.wantErr) > 0 {
 				require.NotNil(t, err)

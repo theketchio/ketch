@@ -19,7 +19,7 @@ package v1beta1
 import (
 	"errors"
 	"fmt"
-	"log"
+	"github.com/go-logr/logr"
 	"math"
 	"regexp"
 	"time"
@@ -487,22 +487,23 @@ func (s AppStatus) Condition(t ConditionType) *Condition {
 	return nil
 }
 
-func getUpdatedUnits(weight uint8, target uint16) (int, int) {
+// getUpdatedUnits(weight=75, target=4) -> (3 units in the source deploy, 1 unit in the target deployment)
+func getUpdatedUnits(weight uint8, targetUnits uint16) (int, int) {
 	if weight > 100 {
 		weight = 100
 	}
 	// get the split of p1's units and p2's units
-	unitSplit := (float64(weight) / 100) * float64(target)
+	unitSplit := (float64(weight) / 100) * float64(targetUnits)
 	// we want an integer so take the floor of the float and subtract that total from the target
-	p2Units := target - uint16(math.Floor(unitSplit))
-	// subtract p2's units from target to find p1's new units
-	p1Units := target - p2Units
-	return int(p1Units), int(p2Units)
+	destUnits := targetUnits - uint16(math.Floor(unitSplit))
+	// subtract destination's units from target to find source's new units
+	sourceUnits := targetUnits - destUnits
+	return int(sourceUnits), int(destUnits)
 }
 
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
-func (app *App) DoCanary(now metav1.Time) error {
+func (app *App) DoCanary(now metav1.Time, logger logr.Logger) error {
 
 	if !app.Spec.Canary.Active {
 		return nil
@@ -529,10 +530,10 @@ func (app *App) DoCanary(now metav1.Time) error {
 				p1Units, p2Units := getUpdatedUnits(app.Spec.Deployments[0].RoutingSettings.Weight, target)
 				// might be fine to ignore these errors
 				if err := app.Spec.Deployments[0].setUnits(processName, p1Units); err != nil {
-					log.Printf("the process: %s is not present in the previous deployment\n", processName)
+					logger.Info("the process: %s is not present in the previous deployment\n", processName)
 				}
 				if err := app.Spec.Deployments[1].setUnits(processName, p2Units); err != nil {
-					log.Printf("the process: %s in not present in the updated deployment\n", processName)
+					logger.Info("the process: %s in not present in the updated deployment\n", processName)
 				}
 			}
 
