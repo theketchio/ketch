@@ -1,0 +1,81 @@
+{{- if .Values.app.isAccessible }}
+{{- if .Values.app.ingress.http }}
+{{- range $i, $deployment := .Values.app.deployments }}
+{{- if gt $deployment.routingSettings.weight 0.0}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.app.name }}-{{ $i }}-http-ingress
+  annotations:
+    {{- if $.Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ $.Values.ingressController.className }}
+    {{- end }}
+    {{- if $.Values.ingressController.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ $.Values.ingressController.clusterIssuer }}
+    {{- end }}
+    {{- if gt $i 0 }}
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
+    {{- end }}
+  labels:
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
+spec:
+  rules:
+  {{- range $_, $cname := $.Values.app.ingress.http }}
+  - host: {{ $cname }}
+    http:
+      paths:
+      {{- range $_, $process := $deployment.processes }}
+        {{- if $process.routable }}
+      - backend:
+          serviceName: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+          servicePort: {{ $process.publicServicePort }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.app.isAccessible }}
+{{- if .Values.app.ingress.https }}
+{{- range $i, $deployment := .Values.app.deployments }}
+{{- if gt $deployment.routingSettings.weight 0.0}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Values.app.name }}-{{ $i }}-https-ingress
+  annotations:
+    {{- if $.Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ $.Values.ingressController.className }}
+    {{- end }}
+    {{- if $.Values.ingressController.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ $.Values.ingressController.clusterIssuer }}
+    {{- end }}
+    {{- if gt $i 0 }}
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
+    {{- end }}
+  labels:
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
+spec:
+  rules:
+  {{- range $_, $cname := $.Values.app.ingress.https }}
+  - host: {{ $cname }}
+    http:
+      paths:
+      {{- range $_, $process := $deployment.processes }}
+      {{- if $process.routable }}
+      - backend:
+          serviceName: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+          servicePort: {{ $process.publicServicePort }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+  {{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

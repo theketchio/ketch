@@ -1,0 +1,399 @@
+---
+# Source: dashboard/templates/gateway_service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    theketch.io/app-name: dashboard
+    theketch.io/is-isolated-run: "false"
+  name: app-dashboard
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-default-1
+      port: 9091
+      protocol: TCP
+      targetPort: 9091
+  selector:
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+---
+# Source: dashboard/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: dashboard-web-3
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-deployment-version: "3"
+    theketch.io/is-isolated-run: "false"
+  name: dashboard-web-3
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-default-1
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+  selector:
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-deployment-version: "3"
+    theketch.io/is-isolated-run: "false"
+---
+# Source: dashboard/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: dashboard-worker-3
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: worker
+    theketch.io/app-deployment-version: "3"
+    theketch.io/is-isolated-run: "false"
+  name: dashboard-worker-3
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-default-1
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+  selector:
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: worker
+    theketch.io/app-deployment-version: "3"
+    theketch.io/is-isolated-run: "false"
+---
+# Source: dashboard/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: dashboard-web-4
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+  annotations:
+    theketch.io/test-annotation: test-annotation-value
+  name: dashboard-web-4
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-default-1
+      port: 9091
+      protocol: TCP
+      targetPort: 9091
+  selector:
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+---
+# Source: dashboard/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: dashboard-worker-4
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: worker
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+  name: dashboard-worker-4
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-default-1
+      port: 9091
+      protocol: TCP
+      targetPort: 9091
+  selector:
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: worker
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+---
+# Source: dashboard/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: dashboard-web-3
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-process-replicas: "3"
+    theketch.io/app-deployment-version: "3"
+    theketch.io/is-isolated-run: "false"
+    theketch.io/test-label: test-label-value
+    theketch.io/test-label-all: test-label-value-all
+  name: dashboard-web-3
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dashboard-web-3
+      theketch.io/app-name: dashboard
+      theketch.io/app-process: web
+      theketch.io/app-deployment-version: "3"
+      theketch.io/is-isolated-run: "false"
+  template:
+    metadata:
+      labels:
+        app: dashboard-web-3
+        theketch.io/app-name: dashboard
+        theketch.io/app-process: web
+        theketch.io/app-deployment-version: "3"
+        theketch.io/is-isolated-run: "false"
+    spec:
+      containers:
+        - name: dashboard-web-3
+          command: ["python"]
+          env:
+            - name: TEST_API_KEY
+              value: SECRET
+            - name: TEST_API_URL
+              value: example.com
+            - name: port
+              value: "9090"
+            - name: PORT
+              value: "9090"
+            - name: PORT_web
+              value: "9090"
+            - name: VAR
+              value: VALUE
+          image: shipasoftware/go-app:v1
+          ports:
+          - containerPort: 9090
+          volumeMounts:
+            - mountPath: /test-ebs
+              name: test-volume
+          resources:
+            limits:
+              cpu: 5Gi
+              memory: 5300m
+            requests:
+              cpu: 5Gi
+              memory: 5300m
+      imagePullSecrets:
+            - name: registry-secret
+            - name: private-registry-secret
+      volumes:
+            - awsElasticBlockStore:
+                fsType: ext4
+                volumeID: volume-id
+              name: test-volume
+---
+# Source: dashboard/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: dashboard-worker-3
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: worker
+    theketch.io/app-process-replicas: "1"
+    theketch.io/app-deployment-version: "3"
+    theketch.io/is-isolated-run: "false"
+    theketch.io/test-label-all: test-label-value-all
+  name: dashboard-worker-3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-worker-3
+      theketch.io/app-name: dashboard
+      theketch.io/app-process: worker
+      theketch.io/app-deployment-version: "3"
+      theketch.io/is-isolated-run: "false"
+  template:
+    metadata:
+      labels:
+        app: dashboard-worker-3
+        theketch.io/app-name: dashboard
+        theketch.io/app-process: worker
+        theketch.io/app-deployment-version: "3"
+        theketch.io/is-isolated-run: "false"
+    spec:
+      containers:
+        - name: dashboard-worker-3
+          command: ["celery"]
+          env:
+            - name: port
+              value: "9090"
+            - name: PORT
+              value: "9090"
+            - name: PORT_worker
+              value: "9090"
+            - name: VAR
+              value: VALUE
+          image: shipasoftware/go-app:v1
+          ports:
+          - containerPort: 9090
+      imagePullSecrets:
+            - name: registry-secret
+            - name: private-registry-secret
+---
+# Source: dashboard/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: dashboard-web-4
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: web
+    theketch.io/app-process-replicas: "3"
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+    theketch.io/test-label-all: test-label-value-all
+  name: dashboard-web-4
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dashboard-web-4
+      theketch.io/app-name: dashboard
+      theketch.io/app-process: web
+      theketch.io/app-deployment-version: "4"
+      theketch.io/is-isolated-run: "false"
+  template:
+    metadata:
+      labels:
+        app: dashboard-web-4
+        theketch.io/app-name: dashboard
+        theketch.io/app-process: web
+        theketch.io/app-deployment-version: "4"
+        theketch.io/is-isolated-run: "false"
+    spec:
+      containers:
+        - name: dashboard-web-4
+          command: ["python"]
+          env:
+            - name: port
+              value: "9091"
+            - name: PORT
+              value: "9091"
+            - name: PORT_web
+              value: "9091"
+            - name: VAR
+              value: VALUE
+          image: shipasoftware/go-app:v2
+          ports:
+          - containerPort: 9091
+      imagePullSecrets:
+            - name: default-image-pull-secret
+---
+# Source: dashboard/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: dashboard-worker-4
+    theketch.io/app-name: dashboard
+    theketch.io/app-process: worker
+    theketch.io/app-process-replicas: "1"
+    theketch.io/app-deployment-version: "4"
+    theketch.io/is-isolated-run: "false"
+    theketch.io/test-label-all: test-label-value-all
+  name: dashboard-worker-4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-worker-4
+      theketch.io/app-name: dashboard
+      theketch.io/app-process: worker
+      theketch.io/app-deployment-version: "4"
+      theketch.io/is-isolated-run: "false"
+  template:
+    metadata:
+      labels:
+        app: dashboard-worker-4
+        theketch.io/app-name: dashboard
+        theketch.io/app-process: worker
+        theketch.io/app-deployment-version: "4"
+        theketch.io/is-isolated-run: "false"
+    spec:
+      containers:
+        - name: dashboard-worker-4
+          command: ["celery"]
+          env:
+            - name: port
+              value: "9091"
+            - name: PORT
+              value: "9091"
+            - name: PORT_worker
+              value: "9091"
+            - name: VAR
+              value: VALUE
+          image: shipasoftware/go-app:v2
+          ports:
+          - containerPort: 9091
+      imagePullSecrets:
+            - name: default-image-pull-secret
+---
+# Source: dashboard/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dashboard-0-http-ingress
+  annotations:
+    kubernetes.io/ingress.class: gke
+  labels:
+    theketch.io/app-name: dashboard
+spec:
+  rules:
+  - host: theketch.io
+    http:
+      paths:
+      - backend:
+          serviceName: dashboard-web-3
+          servicePort: 9090
+  - host: app.theketch.io
+    http:
+      paths:
+      - backend:
+          serviceName: dashboard-web-3
+          servicePort: 9090
+  - host: dashboard.20.20.20.20.shipa.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: dashboard-web-3
+          servicePort: 9090
+---
+# Source: dashboard/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dashboard-1-http-ingress
+  annotations:
+    kubernetes.io/ingress.class: gke
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "70"
+  labels:
+    theketch.io/app-name: dashboard
+spec:
+  rules:
+  - host: theketch.io
+    http:
+      paths:
+      - backend:
+          serviceName: dashboard-web-4
+          servicePort: 9091
+  - host: app.theketch.io
+    http:
+      paths:
+      - backend:
+          serviceName: dashboard-web-4
+          servicePort: 9091
+  - host: dashboard.20.20.20.20.shipa.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: dashboard-web-4
+          servicePort: 9091

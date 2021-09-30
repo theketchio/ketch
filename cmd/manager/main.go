@@ -89,6 +89,10 @@ func main() {
 		setupLog.Error(err, "unable to set default templates")
 		os.Exit(1)
 	}
+	if err = storage.Update(templates.IngressConfigMapName(ketchv1.NginxIngressControllerType.String()), templates.NginxDefaultTemplates); err != nil {
+		setupLog.Error(err, "unable to set default templates")
+		os.Exit(1)
+	}
 	if err = storage.Update(templates.JobConfigMapName(), templates.JobTemplates); err != nil {
 		setupLog.Error(err, "unable to set default templates")
 		os.Exit(1)

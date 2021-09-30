@@ -18,6 +18,7 @@ NOTE: "pool" has been deprecated and replaced with "framework". The functionalit
 const (
 	defaultIstioIngressClassName   = "istio"
 	defaultTraefikIngressClassName = "traefik"
+	defaultNginxIngressClassName   = "nginx"
 	defaultVersion                 = "v1"
 )
 
@@ -58,11 +59,13 @@ func assignDefaultsToFramework(framework *ketchv1.Framework) {
 		framework.Spec.AppQuotaLimit = &defaultAppQuotaLimit
 	}
 	if len(framework.Spec.IngressController.IngressType) == 0 {
-		framework.Spec.IngressController.IngressType = ketchv1.TraefikIngressControllerType
+		framework.Spec.IngressController.IngressType = defaultTraefikIngressClassName
 	}
 	if len(framework.Spec.IngressController.ClassName) == 0 {
 		if framework.Spec.IngressController.IngressType.String() == defaultIstioIngressClassName {
 			framework.Spec.IngressController.ClassName = defaultIstioIngressClassName
+		} else if framework.Spec.IngressController.IngressType.String() == defaultNginxIngressClassName {
+			framework.Spec.IngressController.ClassName = defaultNginxIngressClassName
 		} else {
 			framework.Spec.IngressController.ClassName = defaultTraefikIngressClassName
 		}

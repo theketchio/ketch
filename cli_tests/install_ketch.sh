@@ -41,6 +41,11 @@ helm repo add traefik https://helm.traefik.io/traefik
 helm repo update
 helm install traefik traefik/traefik
 
+# nginx
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install ingress-nginx ingress-nginx/ingress-nginx
+
 # wait for containers
 kubectl wait --for=condition=Ready=true pod -n cert-manager --all
 kubectl get pods -A

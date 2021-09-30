@@ -32,11 +32,13 @@ type ingressType enumflag.Flag
 const (
 	traefik ingressType = iota
 	istio
+	nginx
 )
 
 var ingressTypeIds = map[ingressType][]string{
 	traefik: {ketchv1.TraefikIngressControllerType.String()},
 	istio:   {ketchv1.IstioIngressControllerType.String()},
+	nginx:   {ketchv1.NginxIngressControllerType.String()},
 }
 
 type addFrameworkFn func(ctx context.Context, cfg config, options frameworkAddOptions, out io.Writer) error
@@ -60,9 +62,9 @@ func newFrameworkAddCmd(cfg config, out io.Writer, addFramework addFrameworkFn) 
 	cmd.Flags().StringVar(&options.ingressClassName, "ingress-class-name", "", `if set, it is used as kubernetes.io/ingress.class annotations. Ketch uses "istio" class name for istio ingress controller, if class name is not specified`)
 	cmd.Flags().StringVar(&options.ingressClusterIssuer, "cluster-issuer", "", "ClusterIssuer to obtain SSL certificates")
 	cmd.Flags().StringVar(&options.ingressServiceEndpoint, "ingress-service-endpoint", "", "an IP address or dns name of the ingress controller's Service")
-	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik or istio")
+	cmd.Flags().Var(enumflag.New(&options.ingressType, "ingress-type", ingressTypeIds, enumflag.EnumCaseInsensitive), "ingress-type", "ingress controller type: traefik, istio or nginx")
 	cmd.RegisterFlagCompletionFunc("ingress-type", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{defaultIstioIngressClassName, defaultTraefikIngressClassName}, cobra.ShellCompDirectiveDefault
+		return []string{defaultIstioIngressClassName, defaultTraefikIngressClassName, defaultNginxIngressClassName}, cobra.ShellCompDirectiveDefault
 	})
 	return cmd
 }
@@ -178,6 +180,10 @@ func (o frameworkAddOptions) IngressClassName() string {
 		return defaultTraefikIngressClassName
 	}
 
+	if !o.ingressClassNameSet && o.ingressType.ingressControllerType() == ketchv1.NginxIngressControllerType {
+		return defaultNginxIngressClassName
+	}
+
 	return o.ingressClassName
 }
 
@@ -185,6 +191,8 @@ func (t ingressType) ingressControllerType() ketchv1.IngressControllerType {
 	switch t {
 	case istio:
 		return ketchv1.IstioIngressControllerType
+	case nginx:
+		return ketchv1.NginxIngressControllerType
 	default:
 		return ketchv1.TraefikIngressControllerType
 	}

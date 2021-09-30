@@ -69,6 +69,9 @@ var (
 	TraefikDefaultTemplates = Templates{
 		Yamls: GeneratedYamls.TraefikYamls,
 	}
+	NginxDefaultTemplates = Templates{
+		Yamls: GeneratedYamls.NginxYamls,
+	}
 	JobTemplates = Templates{
 		Yamls: GeneratedYamls.JobYamls,
 	}
