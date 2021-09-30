@@ -11,12 +11,12 @@ metadata:
     {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
     {{- range $k, $v := $process.extra.deploymentMetadata.labels }}
-    {{ $k }}: "{{ $v }}"
+    {{ $k }}: {{ $v | quote }}
     {{- end}}
   {{- if $process.extra.deploymentMetadata.annotations }}
   annotations:
     {{- range $k, $v := $process.extra.deploymentMetadata.annotations }}
-    {{ $k }}: "{{ $v }}"
+    {{ $k }}: {{ $v | quote }}
     {{- end }}
   {{- end }}
   name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}

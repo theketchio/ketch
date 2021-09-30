@@ -6,7 +6,7 @@ metadata:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
     {{- range $i, $label := $.Values.app.Service.Deployment.labels }}
-    {{ $label.name }}: "{{ $label.value }}"
+    {{ $label.name }}: {{ $label.value | quote }}
     {{- end }}
   name: app-{{ $.Values.app.name }}
 spec:
