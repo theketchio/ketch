@@ -71,6 +71,7 @@ spec:
                     enum:
                     - traefik
                     - istio
+                    - nginx
                     type: string
                 required:
                 - type

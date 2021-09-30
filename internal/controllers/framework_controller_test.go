@@ -112,7 +112,7 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 					},
 				},
 			},
-			wantStatusPhase:     ketchv1.FrameworkCreated,
+			wantStatusPhase: ketchv1.FrameworkCreated,
 			wantNamespaceLabels: map[string]string{
 				"istio-injection": "disabled",
 			},
