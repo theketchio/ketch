@@ -149,13 +149,13 @@ func TestNewApplicationChart(t *testing.T) {
 				DeploymentVersion: 3,
 				ProcessName:       "web",
 				Target: ketchv1.Target{
-					APIVersion: "v1",
+					APIVersion: "apps/v1",
 					Kind:       "Deployment",
 				},
 			}, {
 				Apply: map[string]string{"theketch.io/test-label-all": "test-label-value-all"},
 				Target: ketchv1.Target{
-					APIVersion: "v1",
+					APIVersion: "apps/v1",
 					Kind:       "Deployment",
 				},
 			}},

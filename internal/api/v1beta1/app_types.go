@@ -564,3 +564,13 @@ func (m *MetadataItem) Validate() error {
 	}
 	return nil
 }
+
+// IsDeployment returns true if the target is a Deployment.
+func (t Target) IsDeployment() bool {
+	return t.Kind == "Deployment" && t.APIVersion == "apps/v1"
+}
+
+// IsService returns true if the target is a Service.
+func (t Target) IsService() bool {
+	return t.Kind == "Service" && t.APIVersion == "v1"
+}
