@@ -14,10 +14,20 @@ endif
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 
-KUBEBUILDER_VERSION="2.3.0"
-KUBEBUILDER_INSTALL_DIR ?= "/usr/local"
-KUBEBUILDER_RELEASE="kubebuilder_${KUBEBUILDER_VERSION}_${GOOS}_${GOARCH}"
+KUBECTL_VERSION=v1.22.2
+KUBECTL_INSTALL_DIR ?= "/usr/local/bin"
 
+KUBEAPI_SERVER_VERSION=v1.22.2
+KUBEAPI_SERVER_INSTALL_DIR ?= "/usr/local/bin"
+
+ETCD_VERSION=v3.4.16
+ETCD_INSTALL_DIR ?= "/usr/local/bin"
+
+KUBEBUILDER_VERSION=3.1.0
+KUBEBUILDER_INSTALL_DIR ?= "/usr/local/bin"
+KUBEBUILDER_RELEASE=kubebuilder_${GOOS}_${GOARCH}
+
+KUSTOMIZE_VERSION=4.3.0
 KUSTOMIZE ?= $(shell which kustomize)
 KUSTOMIZE_INSTALL_DIR ?= "/usr/local/bin"
 
@@ -49,17 +59,33 @@ run: generate fmt vet manifests
 install: manifests
 	kustomize build config/crd | kubectl apply -f -
 
+.PHONY: install-kubectl
+install-kubectl:
+	curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/${GOOS}/${GOARCH}/kubectl"
+	chmod 777 kubectl && sudo mv kubectl ${KUBECTL_INSTALL_DIR}
+
+.PHONY: install-kube-apiserver
+install-kube-apiserver:
+	curl -LO https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/${GOOS}/${GOARCH}/kube-apiserver
+	chmod 777 kube-apiserver && sudo mv kube-apiserver ${KUBEAPI_SERVER_INSTALL_DIR}
+
+.PHONY: install-etcd
+install-etcd:
+	curl -L -O "https://github.com/etcd-io/etcd/releases/download/${ETCD_VERSION}/etcd-${ETCD_VERSION}-${GOOS}-${GOARCH}.tar.gz"
+	tar -zxvf etcd-${ETCD_VERSION}-${GOOS}-${GOARCH}.tar.gz && mv etcd-${ETCD_VERSION}-${GOOS}-${GOARCH}/etcd etcd
+	chmod 777 etcd && sudo mv etcd ${ETCD_INSTALL_DIR}
+	rm etcd-${ETCD_VERSION}-${GOOS}-${GOARCH}.tar.gz
+	rm -rf etcd-${ETCD_VERSION}-${GOOS}-${GOARCH}
+
 .PHONY: install-kubebuilder
-install-kubebuilder:
-	curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/${KUBEBUILDER_RELEASE}.tar.gz"
-	tar -zxvf ${KUBEBUILDER_RELEASE}.tar.gz
-	mv ${KUBEBUILDER_RELEASE} kubebuilder && sudo mv kubebuilder ${KUBEBUILDER_INSTALL_DIR}
-	rm ${KUBEBUILDER_RELEASE}.tar.gz
+install-kubebuilder: install-kubectl install-kube-apiserver install-etcd
+	curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/${KUBEBUILDER_RELEASE}"
+	mv ${KUBEBUILDER_RELEASE} kubebuilder && chmod 777 kubebuilder && sudo mv kubebuilder ${KUBEBUILDER_INSTALL_DIR}
 
 .PHONY: install-kustomize
 install-kustomize:
-	curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -s 3.8.6
-	mv kustomize ${KUSTOMIZE_INSTALL_DIR}/
+	curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -s ${KUSTOMIZE_VERSION}
+	sudo mv kustomize ${KUSTOMIZE_INSTALL_DIR}/
 
 # Uninstall CRDs from a cluster
 .PHONY: uninstall
