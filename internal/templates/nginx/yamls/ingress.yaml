@@ -28,8 +28,11 @@ spec:
       {{- range $_, $process := $deployment.processes }}
         {{- if $process.routable }}
       - backend:
-          serviceName: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
-          servicePort: {{ $process.publicServicePort }}
+          service:
+            name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+            port:
+              number: {{ $process.publicServicePort }}
+        pathType: ImplementationSpecific
         {{- end }}
       {{- end }}
   {{- end }}
