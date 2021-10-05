@@ -4,7 +4,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   labels:
-    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
   name: {{ $.Values.app.name }}-http-gateway
 spec:
   selector:

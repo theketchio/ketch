@@ -6,8 +6,8 @@ kind: Service
 metadata:
   labels:
     app: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
-    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
-    {{ $.Values.app.group }}/app-process: {{ $process.name }}
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
+    {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
     {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
     {{- range $i, $label := $deployment.labels }}
@@ -28,8 +28,8 @@ spec:
   ports:
 {{ $process.servicePorts | toYaml | indent 4 }}
   selector:
-    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
-    {{ $.Values.app.group }}/app-process: {{ $process.name }}
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
+    {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
     {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
 ---

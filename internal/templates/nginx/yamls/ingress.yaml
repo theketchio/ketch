@@ -8,17 +8,17 @@ metadata:
   name: {{ $.Values.app.name }}-{{ $i }}-http-ingress
   annotations:
     {{- if $.Values.ingressController.className }}
-    kubernetes.io/ingress.class: {{ $.Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ $.Values.ingressController.className | quote }}
     {{- end }}
     {{- if $.Values.ingressController.clusterIssuer }}
-    cert-manager.io/cluster-issuer: {{ $.Values.ingressController.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ $.Values.ingressController.clusterIssuer | quote }}
     {{- end }}
     {{- if gt $i 0 }}
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
     {{- end }}
   labels:
-    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
   rules:
   {{- range $_, $cname := $.Values.app.ingress.http }}
@@ -52,17 +52,17 @@ metadata:
   name: {{ $.Values.app.name }}-{{ $i }}-https-ingress
   annotations:
     {{- if $.Values.ingressController.className }}
-    kubernetes.io/ingress.class: {{ $.Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ $.Values.ingressController.className | quote }}
     {{- end }}
     {{- if $.Values.ingressController.clusterIssuer }}
-    cert-manager.io/cluster-issuer: {{ $.Values.ingressController.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ $.Values.ingressController.clusterIssuer | quote }}
     {{- end }}
     {{- if gt $i 0 }}
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
     {{- end }}
   labels:
-    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name }}
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
   rules:
   {{- range $_, $cname := $.Values.app.ingress.https }}
