@@ -4,7 +4,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    theketch.io/app-name: dashboard
+    theketch.io/app-name: "dashboard"
     theketch.io/is-isolated-run: "false"
   name: app-dashboard
 spec:
@@ -15,8 +15,8 @@ spec:
       protocol: TCP
       targetPort: 9091
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "web"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
 ---
@@ -26,8 +26,8 @@ kind: Service
 metadata:
   labels:
     app: dashboard-web-3
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "web"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
   name: dashboard-web-3
@@ -39,8 +39,8 @@ spec:
       protocol: TCP
       targetPort: 9090
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "web"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
 ---
@@ -50,8 +50,8 @@ kind: Service
 metadata:
   labels:
     app: dashboard-worker-3
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "worker"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
   name: dashboard-worker-3
@@ -63,8 +63,8 @@ spec:
       protocol: TCP
       targetPort: 9090
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "worker"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
 ---
@@ -74,8 +74,8 @@ kind: Service
 metadata:
   labels:
     app: dashboard-web-4
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "web"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
   annotations:
@@ -89,8 +89,8 @@ spec:
       protocol: TCP
       targetPort: 9091
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "web"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
 ---
@@ -100,8 +100,8 @@ kind: Service
 metadata:
   labels:
     app: dashboard-worker-4
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "worker"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
   name: dashboard-worker-4
@@ -113,8 +113,8 @@ spec:
       protocol: TCP
       targetPort: 9091
   selector:
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "worker"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
 ---
@@ -124,8 +124,8 @@ kind: Deployment
 metadata:
   labels:
     app: dashboard-web-3
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "web"
     theketch.io/app-process-replicas: "3"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
@@ -137,16 +137,16 @@ spec:
   selector:
     matchLabels:
       app: dashboard-web-3
-      theketch.io/app-name: dashboard
-      theketch.io/app-process: web
+      theketch.io/app-name: "dashboard"
+      theketch.io/app-process: "web"
       theketch.io/app-deployment-version: "3"
       theketch.io/is-isolated-run: "false"
   template:
     metadata:
       labels:
         app: dashboard-web-3
-        theketch.io/app-name: dashboard
-        theketch.io/app-process: web
+        theketch.io/app-name: "dashboard"
+        theketch.io/app-process: "web"
         theketch.io/app-deployment-version: "3"
         theketch.io/is-isolated-run: "false"
     spec:
@@ -194,8 +194,8 @@ kind: Deployment
 metadata:
   labels:
     app: dashboard-worker-3
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "worker"
     theketch.io/app-process-replicas: "1"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
@@ -206,16 +206,16 @@ spec:
   selector:
     matchLabels:
       app: dashboard-worker-3
-      theketch.io/app-name: dashboard
-      theketch.io/app-process: worker
+      theketch.io/app-name: "dashboard"
+      theketch.io/app-process: "worker"
       theketch.io/app-deployment-version: "3"
       theketch.io/is-isolated-run: "false"
   template:
     metadata:
       labels:
         app: dashboard-worker-3
-        theketch.io/app-name: dashboard
-        theketch.io/app-process: worker
+        theketch.io/app-name: "dashboard"
+        theketch.io/app-process: "worker"
         theketch.io/app-deployment-version: "3"
         theketch.io/is-isolated-run: "false"
     spec:
@@ -244,8 +244,8 @@ kind: Deployment
 metadata:
   labels:
     app: dashboard-web-4
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: web
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "web"
     theketch.io/app-process-replicas: "3"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
@@ -256,16 +256,16 @@ spec:
   selector:
     matchLabels:
       app: dashboard-web-4
-      theketch.io/app-name: dashboard
-      theketch.io/app-process: web
+      theketch.io/app-name: "dashboard"
+      theketch.io/app-process: "web"
       theketch.io/app-deployment-version: "4"
       theketch.io/is-isolated-run: "false"
   template:
     metadata:
       labels:
         app: dashboard-web-4
-        theketch.io/app-name: dashboard
-        theketch.io/app-process: web
+        theketch.io/app-name: "dashboard"
+        theketch.io/app-process: "web"
         theketch.io/app-deployment-version: "4"
         theketch.io/is-isolated-run: "false"
     spec:
@@ -293,8 +293,8 @@ kind: Deployment
 metadata:
   labels:
     app: dashboard-worker-4
-    theketch.io/app-name: dashboard
-    theketch.io/app-process: worker
+    theketch.io/app-name: "dashboard"
+    theketch.io/app-process: "worker"
     theketch.io/app-process-replicas: "1"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
@@ -305,16 +305,16 @@ spec:
   selector:
     matchLabels:
       app: dashboard-worker-4
-      theketch.io/app-name: dashboard
-      theketch.io/app-process: worker
+      theketch.io/app-name: "dashboard"
+      theketch.io/app-process: "worker"
       theketch.io/app-deployment-version: "4"
       theketch.io/is-isolated-run: "false"
   template:
     metadata:
       labels:
         app: dashboard-worker-4
-        theketch.io/app-name: dashboard
-        theketch.io/app-process: worker
+        theketch.io/app-name: "dashboard"
+        theketch.io/app-process: "worker"
         theketch.io/app-deployment-version: "4"
         theketch.io/is-isolated-run: "false"
     spec:
@@ -340,7 +340,7 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: dashboard-cname-7698da46d42bea3603f2
+  name: "dashboard-cname-7698da46d42bea3603f2"
   namespace: istio-system
 spec:
   secretName: dashboard-cname-7698da46d42bea3603f2
@@ -354,7 +354,7 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: dashboard-cname-1aacb41a573151295624
+  name: "dashboard-cname-1aacb41a573151295624"
   namespace: istio-system
 spec:
   secretName: dashboard-cname-1aacb41a573151295624
@@ -369,7 +369,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   labels:
-    theketch.io/app-name: dashboard
+    theketch.io/app-name: "dashboard"
   name: dashboard-http-gateway
 spec:
   selector:
@@ -429,9 +429,9 @@ apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
   annotations:
-    kubernetes.io/ingress.class: ingress-class
+    kubernetes.io/ingress.class: "ingress-class"
   labels:
-    theketch.io/app-name: dashboard
+    theketch.io/app-name: "dashboard"
   name: dashboard-http
 spec:
     hosts:
