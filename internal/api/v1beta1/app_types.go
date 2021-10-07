@@ -19,10 +19,12 @@ package v1beta1
 import (
 	"errors"
 	"fmt"
-	"github.com/go-logr/logr"
 	"math"
 	"regexp"
 	"time"
+
+	"github.com/go-logr/logr"
+	"k8s.io/client-go/tools/record"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +33,15 @@ import (
 const (
 	ShipaCloudDomain     = "shipa.cloud"
 	DefaultNumberOfUnits = 1
+)
+
+const (
+	CanaryNotActiveEvent   = "CanaryNotActiveEvent"
+	CanaryNoDeployments    = "CanaryNoDeployments"
+	CanaryNoScheduledSteps = "CanaryNoScheduledSteps"
+	CanaryStep             = "CanaryStep"
+	CanaryStepTarget       = "CanaryStepTarget"
+	CanaryFinished         = "CanaryFinished"
 )
 
 // Env represents an environment variable present in an application.
@@ -503,17 +514,20 @@ func getUpdatedUnits(weight uint8, targetUnits uint16) (int, int) {
 
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
-func (app *App) DoCanary(now metav1.Time, logger logr.Logger) error {
+func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder) error {
 
 	if !app.Spec.Canary.Active {
+		recorder.Eventf(app, v1.EventTypeNormal, CanaryNotActiveEvent, "Canary for %s - not active", app.Name)
 		return nil
 	}
 
 	if len(app.Spec.Deployments) <= 1 {
+		recorder.Eventf(app, v1.EventTypeWarning, CanaryNoDeployments, "Canary for %s - error no deployments", app.Name)
 		return errors.New("no canary deployment found")
 	}
 
 	if app.Spec.Canary.NextScheduledTime == nil {
+		recorder.Eventf(app, v1.EventTypeWarning, CanaryNoScheduledSteps, "Canary for %s - error no scheduled steps", app.Name)
 		return errors.New("canary is active but the next step is not scheduled")
 	}
 
@@ -523,6 +537,12 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger) error {
 		app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
 		app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
 		app.Spec.Canary.CurrentStep++
+		recorder.Eventf(app, v1.EventTypeNormal, CanaryStep,
+			fmt.Sprintf("Canary for %s - next step: %d, weight1: %d, weight2: %d",
+				app.Name,
+				app.Spec.Canary.CurrentStep,
+				app.Spec.Deployments[0].RoutingSettings.Weight,
+				app.Spec.Deployments[1].RoutingSettings.Weight))
 
 		if app.Spec.Canary.Target != nil {
 			// scale units based on weight and process target
@@ -535,6 +555,13 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger) error {
 				if err := app.Spec.Deployments[1].setUnits(processName, p2Units); err != nil {
 					logger.Info("the process: %s in not present in the updated deployment\n", processName)
 				}
+
+				recorder.Eventf(app, v1.EventTypeNormal, CanaryStepTarget,
+					fmt.Sprintf("Canary for %s - set units for process: %s, units p1: %d, units p2: %d",
+						app.Name,
+						processName,
+						p1Units,
+						p2Units))
 			}
 
 			// if a process in the updated deployment isn't found in target create 1 unit
@@ -567,6 +594,11 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger) error {
 			app.Spec.Canary.Active = false
 			app.Spec.Canary.CurrentStep = app.Spec.Canary.Steps
 			app.Spec.Canary.NextScheduledTime = nil
+
+			recorder.Eventf(app, v1.EventTypeNormal, CanaryFinished,
+				fmt.Sprintf("Canary for %s - finished after: %d",
+					app.Name,
+					app.Spec.Canary.CurrentStep))
 
 			// remove the primary deployment
 			app.Spec.Deployments = []AppDeploymentSpec{app.Spec.Deployments[1]}

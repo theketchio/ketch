@@ -244,7 +244,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 
 		// Once all pods are running then Perform canary deployment.
-		if err = app.DoCanary(metav1.NewTime(r.Now()), logger); err != nil {
+		if err = app.DoCanary(metav1.NewTime(r.Now()), logger, r.Recorder); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
 				message: fmt.Sprintf("canary update failed: %v", err),
