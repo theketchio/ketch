@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 )
 
 func intRef(i int) *int {
@@ -1189,7 +1190,7 @@ func TestApp_DoCanary(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.app.DoCanary(tt.now, logr.Discard())
+			err := tt.app.DoCanary(tt.now, logr.Discard(), &record.FakeRecorder{})
 			originalApp := *tt.app.DeepCopy()
 			if len(tt.wantErr) > 0 {
 				require.NotNil(t, err)
