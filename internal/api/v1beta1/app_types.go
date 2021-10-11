@@ -191,6 +191,13 @@ type CanarySpec struct {
 type AppSpec struct {
 	Version *string `json:"version,omitempty"`
 
+	// ID is an additional unique identifier of this application besides the app's name if needed.
+	// Ketch internally doesn't rely on this field, so it can be anything useful for a user.
+	// Ketch uses either this ID or the app name and adds "app=<ID or name>" label to all pods.
+	// ID is preferred and used if set, otherwise the label will be "app=<app-name>".
+	// Thus, istio time series will have "destination_app=<ID or name>" label.
+	ID string `json:"id,omitempty"`
+
 	// +kubebuilder:validation:MaxLength=140
 	Description string `json:"description,omitempty"`
 

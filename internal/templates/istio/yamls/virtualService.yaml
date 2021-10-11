@@ -33,6 +33,7 @@ spec:
             host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
             port:
               number: {{ $process.publicServicePort }}
+            subset: "v{{ $deployment.version }}"
           weight: {{$deployment.routingSettings.weight}}
           {{- end }}
           {{- end }}

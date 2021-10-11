@@ -1,0 +1,18 @@
+{{- range $_ , $deployment := .Values.app.deployments }}
+  {{- range $_, $process := $deployment.processes }}
+  {{- if $process.routable }}
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: shipa-{{ $.Values.app.name}}-rule-{{ $deployment.version }}
+spec:
+  host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+  subsets:
+    - name: v{{ $deployment.version }}
+      labels:
+        app: {{ default $.Values.app.name $.Values.app.id | quote }}
+        version: "{{ $deployment.version }}"
+---
+  {{- end }}
+  {{- end }}
+{{- end }}

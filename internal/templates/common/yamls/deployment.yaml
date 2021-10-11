@@ -4,7 +4,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
     {{ $.Values.app.group }}/app-process-replicas: {{ $process.units | quote }}
@@ -24,7 +23,8 @@ spec:
   replicas: {{ $process.units }}
   selector:
     matchLabels:
-      app: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+      app: {{ default $.Values.app.name $.Values.app.id | quote }}
+      version: {{ $deployment.version | quote }}
       {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
       {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
       {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
@@ -32,7 +32,8 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+        app: {{ default $.Values.app.name $.Values.app.id | quote }}
+        version: {{ $deployment.version | quote }}
         {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
         {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
         {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}

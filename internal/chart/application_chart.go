@@ -19,6 +19,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/pkg/errors"
+
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/templates"
 )
@@ -61,6 +62,7 @@ type gatewayService struct {
 }
 
 type app struct {
+	ID          string        `json:"id"`
 	Name        string        `json:"name"`
 	Deployments []deployment  `json:"deployments"`
 	Env         []ketchv1.Env `json:"env"`
@@ -138,6 +140,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 
 	values := &values{
 		App: &app{
+			ID:      application.Spec.ID,
 			Name:    application.Name,
 			Ingress: *ingress,
 			Env:     application.Spec.Env,
