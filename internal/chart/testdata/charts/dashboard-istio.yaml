@@ -25,7 +25,6 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: dashboard-web-3
     theketch.io/app-name: "dashboard"
     theketch.io/app-process: "web"
     theketch.io/app-deployment-version: "3"
@@ -49,7 +48,6 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: dashboard-worker-3
     theketch.io/app-name: "dashboard"
     theketch.io/app-process: "worker"
     theketch.io/app-deployment-version: "3"
@@ -73,7 +71,6 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: dashboard-web-4
     theketch.io/app-name: "dashboard"
     theketch.io/app-process: "web"
     theketch.io/app-deployment-version: "4"
@@ -99,7 +96,6 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: dashboard-worker-4
     theketch.io/app-name: "dashboard"
     theketch.io/app-process: "worker"
     theketch.io/app-deployment-version: "4"
@@ -123,7 +119,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: dashboard-web-3
     theketch.io/app-name: "dashboard"
     theketch.io/app-process: "web"
     theketch.io/app-process-replicas: "3"
@@ -136,7 +131,8 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      app: dashboard-web-3
+      app: "dashboard"
+      version: "3"
       theketch.io/app-name: "dashboard"
       theketch.io/app-process: "web"
       theketch.io/app-deployment-version: "3"
@@ -144,7 +140,8 @@ spec:
   template:
     metadata:
       labels:
-        app: dashboard-web-3
+        app: "dashboard"
+        version: "3"
         theketch.io/app-name: "dashboard"
         theketch.io/app-process: "web"
         theketch.io/app-deployment-version: "3"
@@ -193,7 +190,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: dashboard-worker-3
     theketch.io/app-name: "dashboard"
     theketch.io/app-process: "worker"
     theketch.io/app-process-replicas: "1"
@@ -205,7 +201,8 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dashboard-worker-3
+      app: "dashboard"
+      version: "3"
       theketch.io/app-name: "dashboard"
       theketch.io/app-process: "worker"
       theketch.io/app-deployment-version: "3"
@@ -213,7 +210,8 @@ spec:
   template:
     metadata:
       labels:
-        app: dashboard-worker-3
+        app: "dashboard"
+        version: "3"
         theketch.io/app-name: "dashboard"
         theketch.io/app-process: "worker"
         theketch.io/app-deployment-version: "3"
@@ -243,7 +241,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: dashboard-web-4
     theketch.io/app-name: "dashboard"
     theketch.io/app-process: "web"
     theketch.io/app-process-replicas: "3"
@@ -255,7 +252,8 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      app: dashboard-web-4
+      app: "dashboard"
+      version: "4"
       theketch.io/app-name: "dashboard"
       theketch.io/app-process: "web"
       theketch.io/app-deployment-version: "4"
@@ -263,7 +261,8 @@ spec:
   template:
     metadata:
       labels:
-        app: dashboard-web-4
+        app: "dashboard"
+        version: "4"
         theketch.io/app-name: "dashboard"
         theketch.io/app-process: "web"
         theketch.io/app-deployment-version: "4"
@@ -292,7 +291,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: dashboard-worker-4
     theketch.io/app-name: "dashboard"
     theketch.io/app-process: "worker"
     theketch.io/app-process-replicas: "1"
@@ -304,7 +302,8 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dashboard-worker-4
+      app: "dashboard"
+      version: "4"
       theketch.io/app-name: "dashboard"
       theketch.io/app-process: "worker"
       theketch.io/app-deployment-version: "4"
@@ -312,7 +311,8 @@ spec:
   template:
     metadata:
       labels:
-        app: dashboard-worker-4
+        app: "dashboard"
+        version: "4"
         theketch.io/app-name: "dashboard"
         theketch.io/app-process: "worker"
         theketch.io/app-deployment-version: "4"
@@ -335,6 +335,32 @@ spec:
           - containerPort: 9091
       imagePullSecrets:
             - name: default-image-pull-secret
+---
+# Source: dashboard/templates/destinationRule.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: shipa-dashboard-rule-3
+spec:
+  host: dashboard-web-3
+  subsets:
+    - name: v3
+      labels:
+        app: "dashboard"
+        version: "3"
+---
+# Source: dashboard/templates/destinationRule.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: shipa-dashboard-rule-4
+spec:
+  host: dashboard-web-4
+  subsets:
+    - name: v4
+      labels:
+        app: "dashboard"
+        version: "4"
 ---
 # Source: dashboard/templates/gateway.yaml
 apiVersion: networking.istio.io/v1alpha3
@@ -386,9 +412,11 @@ spec:
             host: dashboard-web-3
             port:
               number: 9090
+            subset: "v3"
           weight: 30
         - destination:
             host: dashboard-web-4
             port:
               number: 9091
+            subset: "v4"
           weight: 70
