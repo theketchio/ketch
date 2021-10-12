@@ -159,15 +159,24 @@ func TestNewApplicationChart(t *testing.T) {
 					Kind:       "Deployment",
 				},
 			}},
-			Annotations: []ketchv1.MetadataItem{{
-				Apply:             map[string]string{"theketch.io/test-annotation": "test-annotation-value"},
-				DeploymentVersion: 4,
-				ProcessName:       "web",
-				Target: ketchv1.Target{
-					APIVersion: "v1",
-					Kind:       "Service",
+			Annotations: []ketchv1.MetadataItem{
+				{
+					Apply:             map[string]string{"theketch.io/test-annotation": "test-annotation-value"},
+					DeploymentVersion: 4,
+					ProcessName:       "web",
+					Target: ketchv1.Target{
+						APIVersion: "v1",
+						Kind:       "Service",
+					},
 				},
-			}},
+				{
+					Apply:             map[string]string{"theketch.io/gateway-annotation": "test-gateway"},
+					Target: ketchv1.Target{
+						APIVersion: "networking.istio.io/v1alpha3",
+						Kind:       "Gateway",
+					},
+				},
+			},
 		},
 	}
 
