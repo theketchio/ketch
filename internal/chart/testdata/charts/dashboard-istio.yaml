@@ -369,6 +369,10 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
   name: dashboard-http-gateway
+  annotations:
+    theketch.io/metadata-item-kind: Gateway
+    theketch.io/metadata-item-apiVersion: networking.istio.io/v1alpha3
+    theketch.io/gateway-annotation: "test-gateway"
 spec:
   selector:
     istio: ingressgateway

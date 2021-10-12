@@ -13,12 +13,10 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/chartutil"
-
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
-
-	"github.com/pkg/errors"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/templates"
@@ -72,8 +70,11 @@ type app struct {
 	// For example, "spec.rules" of an Ingress object must contain at least one rule.
 	IsAccessible bool   `json:"isAccessible"`
 	Group        string `json:"group"`
-
-	Service *gatewayService
+	Service      *gatewayService
+	// MetadataLabels is a list of labels to be added to k8s resources.
+	MetadataLabels []ketchv1.MetadataItem
+	// MetadataAnnotations is a list of labels to be added to k8s resources.
+	MetadataAnnotations []ketchv1.MetadataItem `json:"metadataAnnotations"`
 }
 
 type deployment struct {
@@ -140,11 +141,13 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 
 	values := &values{
 		App: &app{
-			ID:      application.Spec.ID,
-			Name:    application.Name,
-			Ingress: *ingress,
-			Env:     application.Spec.Env,
-			Group:   ketchv1.Group,
+			ID:                  application.Spec.ID,
+			Name:                application.Name,
+			Ingress:             *ingress,
+			Env:                 application.Spec.Env,
+			Group:               ketchv1.Group,
+			MetadataLabels:      application.Spec.Labels,
+			MetadataAnnotations: application.Spec.Annotations,
 		},
 		IngressController: &framework.Spec.IngressController,
 	}

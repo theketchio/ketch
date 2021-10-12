@@ -6,6 +6,8 @@ metadata:
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
   name: {{ $.Values.app.name }}-http-gateway
+  {{- $data := dict "kind" "Gateway" "apiVersion" "networking.istio.io/v1alpha3" "metadataItems" $.Values.app.metadataAnnotations }}
+  annotations: {{- include "ketch.renderMetadata" $data | nindent 4 }}
 spec:
   selector:
     istio: ingressgateway

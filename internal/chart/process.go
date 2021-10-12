@@ -153,8 +153,6 @@ func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.Deploym
 						p.PodExtra.ServiceMetadata.Labels = make(map[string]string)
 					}
 					p.PodExtra.ServiceMetadata.Labels[k] = v
-				} else {
-					return fmt.Errorf("unsupported target kind: %s", label.Target.Kind)
 				}
 			}
 		}
@@ -183,8 +181,6 @@ func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketch
 						p.PodExtra.ServiceMetadata.Annotations = make(map[string]string)
 					}
 					p.PodExtra.ServiceMetadata.Annotations[k] = v
-				} else {
-					return fmt.Errorf("unsupported target kind: %s", annotation.Target.Kind)
 				}
 			}
 		}

@@ -229,10 +229,10 @@ type AppSpec struct {
 	// BuildPacks is a list of build packs to use when building from source.
 	BuildPacks []string `json:"buildPacks,omitempty"`
 
-	// Labels is a list of labels that will be applied to processes
+	// Labels is a list of labels that will be applied to Services/Deployments.
 	Labels []MetadataItem `json:"labels,omitempty"`
 
-	// Annotations is a list of annotations that will be applied to processes
+	// Annotations is a list of annotations that will be applied to Services/Deployments/Gateways.
 	Annotations []MetadataItem `json:"annotations,omitempty"`
 }
 
