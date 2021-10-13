@@ -365,6 +365,15 @@ spec:
             port:
               number: 9090
         pathType: ImplementationSpecific
+  - host: darkweb.theketch.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: dashboard-web-3
+            port:
+              number: 9090
+        pathType: ImplementationSpecific
   - host: dashboard.20.20.20.20.shipa.cloud
     http:
       paths:
@@ -398,6 +407,15 @@ spec:
               number: 9091
         pathType: ImplementationSpecific
   - host: app.theketch.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: dashboard-web-4
+            port:
+              number: 9091
+        pathType: ImplementationSpecific
+  - host: darkweb.theketch.io
     http:
       paths:
       - backend:

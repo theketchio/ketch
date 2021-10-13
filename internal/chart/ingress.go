@@ -9,14 +9,28 @@ import (
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
 
-// httpsEndpoint holds cname and its corresponding secret name with SSL certificates.
+// sslCertificateManager describes who is responsible for getting an SSL certificate.
+type sslCertificateManager string
+
+const (
+	user        sslCertificateManager = "user"
+	certManager sslCertificateManager = "cert-manager"
+)
+
+// httpsEndpoint holds configuration of a https endpoint.
 type httpsEndpoint struct {
 	// UniqueName is a unique and deterministic identifier that can be used to name a k8s resource for this https endpoint.
 	UniqueName string `json:"uniqueName"`
 	// Cname of this endpoint.
 	Cname string `json:"cname"`
-	// SecretName is a name of a Kubernetes Secret to store SSL certificate for the cname.
+	// SecretName is a name of a k8s Secret containing an SSL certificate for the cname.
+	// If the ManagedBy field is "cert-manager",
+	// then cert-manager will use this name to store a Lets Encrypt certificate.
+	// If the ManagedBy field is "user",
+	// the secret must already contain a valid SSL certificate.
 	SecretName string `json:"secretName"`
+	// ManagedBy specifies who is responsible for getting an SSL certificate and storing it in the secret.
+	ManagedBy sslCertificateManager `json:"managedBy"`
 }
 
 // Ingress contains information about entrypoints of an application.
@@ -31,19 +45,6 @@ type ingress struct {
 }
 
 func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) {
-	var http []string
-	var https []string
-
-	for _, cname := range app.Spec.Ingress.Cnames {
-		if cname.Secure {
-			if len(framework.Spec.IngressController.ClusterIssuer) == 0 {
-				return nil, errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified")
-			}
-			https = append(https, cname.Name)
-		} else {
-			http = append(http, cname.Name)
-		}
-	}
 
 	// CNAMEs contain only:
 	// A to Z ; upper case characters
@@ -54,14 +55,35 @@ func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) 
 	// so here we are transforming each CNAME in a way that we can use them to name k8s resources.
 	regex := regexp.MustCompile("[^a-z0-9]+")
 
-	var httpsEndpoints []httpsEndpoint
-	for _, cname := range https {
-		strippedCname := regex.ReplaceAllString(cname, "-")
-		httpsEndpoints = append(httpsEndpoints, httpsEndpoint{
-			Cname:      cname,
-			SecretName: fmt.Sprintf("%s-cname-%s", app.Name, strippedCname),
-			UniqueName: fmt.Sprintf("%s-https-%s", app.Name, strippedCname),
-		})
+	var http []string
+	var https []httpsEndpoint
+
+	for _, cname := range app.Spec.Ingress.Cnames {
+		if !cname.Secure {
+			http = append(http, cname.Name)
+			continue
+		}
+
+		if len(framework.Spec.IngressController.ClusterIssuer) == 0 {
+			return nil, errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified")
+		}
+
+		strippedCname := regex.ReplaceAllString(cname.Name, "-")
+		if len(cname.SecretName) > 0 {
+			https = append(https, httpsEndpoint{
+				Cname:      cname.Name,
+				SecretName: cname.SecretName,
+				UniqueName: fmt.Sprintf("%s-https-%s", app.Name, strippedCname),
+				ManagedBy:  user,
+			})
+		} else {
+			https = append(https, httpsEndpoint{
+				Cname:      cname.Name,
+				SecretName: fmt.Sprintf("%s-cname-%s", app.Name, strippedCname),
+				UniqueName: fmt.Sprintf("%s-https-%s", app.Name, strippedCname),
+				ManagedBy:  certManager,
+			})
+		}
 	}
 	defaultCname := app.DefaultCname(&framework)
 	if defaultCname != nil {
@@ -69,6 +91,6 @@ func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) 
 	}
 	return &ingress{
 		Http:  http,
-		Https: httpsEndpoints,
+		Https: https,
 	}, nil
 }

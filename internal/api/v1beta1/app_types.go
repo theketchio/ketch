@@ -71,6 +71,9 @@ type CnameList []Cname
 type Cname struct {
 	Name   string `json:"name"`
 	Secure bool   `json:"secure"`
+	// SecretName if provided must contain an SSL certificate that will be used to serve this cname.
+	// Currently, the secret must be in the framework's namespace.
+	SecretName string `json:"secretName,omitempty"`
 }
 
 // RoutingSettings contains a weight of the current deployment used to route incoming traffic.

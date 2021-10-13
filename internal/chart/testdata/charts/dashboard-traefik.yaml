@@ -367,6 +367,15 @@ spec:
     - name: dashboard-web-4
       port: 9091
       weight: 70
+  - match: Host("darkweb.theketch.io")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 30
+    - name: dashboard-web-4
+      port: 9091
+      weight: 70
   - match: Host("dashboard.20.20.20.20.shipa.cloud")
     kind: Rule
     services:

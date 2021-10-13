@@ -437,3 +437,29 @@ spec:
       weight: 70
   tls:
     secretName: dashboard-cname-app-theketch-io
+---
+# Source: dashboard/templates/https-ingress-routes.yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dashboard-https-darkweb-theketch-io
+  annotations:
+    kubernetes.io/ingress.class: "ingress-class"
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+  labels:
+    theketch.io/app-name: "dashboard"
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host("darkweb.theketch.io")
+    kind: Rule
+    services:
+    - name: dashboard-web-3
+      port: 9090
+      weight: 30
+    - name: dashboard-web-4
+      port: 9091
+      weight: 70
+  tls:
+    secretName: darkweb-ssl

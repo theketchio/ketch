@@ -2270,6 +2270,11 @@ spec:
                       properties:
                         name:
                           type: string
+                        secretName:
+                          description: SecretName if provided must contain an SSL
+                            certificate that will be used to serve this cname. Currently,
+                            the secret must be in the framework's namespace.
+                          type: string
                         secure:
                           type: boolean
                       required:

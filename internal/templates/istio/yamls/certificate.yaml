@@ -1,4 +1,5 @@
-{{ range $_, $https := .Values.app.ingress.https }}
+{{- range $_, $https := .Values.app.ingress.https }}
+{{- if eq $https.managedBy "cert-manager" }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -12,4 +13,5 @@ spec:
     name: {{ $.Values.ingressController.clusterIssuer }}
     kind: ClusterIssuer
 ---
+{{ end }}
 {{ end }}

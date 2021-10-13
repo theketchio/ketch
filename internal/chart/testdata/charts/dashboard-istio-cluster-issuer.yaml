@@ -430,6 +430,15 @@ spec:
     hosts:
     - app.theketch.io
   - port:
+      number: 443
+      name: https-3-darkweb.theketch.io
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: darkweb-ssl
+    hosts:
+    - darkweb.theketch.io
+  - port:
       number: 80
       name: http-4
       protocol: HTTP
@@ -453,6 +462,15 @@ spec:
       credentialName: dashboard-cname-app-theketch-io
     hosts:
     - app.theketch.io
+  - port:
+      number: 443
+      name: https-4-darkweb.theketch.io
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: darkweb-ssl
+    hosts:
+    - darkweb.theketch.io
 ---
 # Source: dashboard/templates/virtualService.yaml
 apiVersion: networking.istio.io/v1alpha3
@@ -468,6 +486,7 @@ spec:
     - dashboard.10.10.10.10.shipa.cloud
     - theketch.io
     - app.theketch.io
+    - darkweb.theketch.io
     gateways:
     - dashboard-http-gateway
     http:

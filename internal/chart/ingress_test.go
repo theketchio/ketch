@@ -21,18 +21,17 @@ func TestNewIngress(t *testing.T) {
 		{
 			name: "happy",
 			cnames: ketchv1.CnameList{
-				{
-					Name:   "a.name",
-					Secure: true,
-				},
-				{
-					Name: "b.name",
-				},
+				{Name: "a.name"},
+				{Name: "b.name", Secure: true},
+				{Name: "c.name", Secure: true, SecretName: "c-ssl"},
 			},
 			clusterIssuer: "test-cluster-issuer",
 			expected: &ingress{
-				Https: []httpsEndpoint{{Cname: "a.name", SecretName: "my-app-cname-a-name", UniqueName: "my-app-https-a-name"}},
-				Http:  []string{"b.name"},
+				Http: []string{"a.name"},
+				Https: []httpsEndpoint{
+					{Cname: "b.name", SecretName: "my-app-cname-b-name", UniqueName: "my-app-https-b-name", ManagedBy: certManager},
+					{Cname: "c.name", SecretName: "c-ssl", UniqueName: "my-app-https-c-name", ManagedBy: user},
+				},
 			},
 		},
 		{

@@ -384,6 +384,7 @@ spec:
     hosts:
     - theketch.io
     - app.theketch.io
+    - darkweb.theketch.io
     - dashboard.20.20.20.20.shipa.cloud
   - port:
       number: 80
@@ -392,6 +393,7 @@ spec:
     hosts:
     - theketch.io
     - app.theketch.io
+    - darkweb.theketch.io
     - dashboard.20.20.20.20.shipa.cloud
 ---
 # Source: dashboard/templates/virtualService.yaml
@@ -407,6 +409,7 @@ spec:
     hosts:
     - theketch.io
     - app.theketch.io
+    - darkweb.theketch.io
     - dashboard.20.20.20.20.shipa.cloud
     gateways:
     - dashboard-http-gateway
