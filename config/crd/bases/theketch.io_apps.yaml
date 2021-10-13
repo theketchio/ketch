@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.6.2
   creationTimestamp: null
   name: apps.theketch.io
 spec:
@@ -45,7 +45,7 @@ spec:
             properties:
               annotations:
                 description: Annotations is a list of annotations that will be applied
-                  to processes
+                  to Services/Deployments/Gateways.
                 items:
                   description: MetadataItem represent a request to add label/annotations
                     to processes
@@ -2285,7 +2285,7 @@ spec:
                 - generateDefaultCname
                 type: object
               labels:
-                description: Labels is a list of labels that will be applied to processes
+                description: Labels is a list of labels that will be applied to Services/Deployments.
                 items:
                   description: MetadataItem represent a request to add label/annotations
                     to processes
