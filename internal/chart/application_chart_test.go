@@ -134,13 +134,9 @@ func TestNewApplicationChart(t *testing.T) {
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 				Cnames: []ketchv1.Cname{
-					{
-						Name:   "theketch.io",
-						Secure: true,
-					}, {
-						Name:   "app.theketch.io",
-						Secure: true,
-					},
+					{Name: "theketch.io", Secure: true},
+					{Name: "app.theketch.io", Secure: true},
+					{Name: "darkweb.theketch.io", Secure: true, SecretName: "darkweb-ssl"},
 				},
 			},
 			Labels: []ketchv1.MetadataItem{{
@@ -298,7 +294,7 @@ func TestNewApplicationChart(t *testing.T) {
 			require.Nil(t, err)
 
 			expectedFilename := filepath.Join(chartDirectory, fmt.Sprintf("%s.yaml", tt.wantYamlsFilename))
-			actualFilename := filepath.Join(chartDirectory, fmt.Sprintf("%s-output.yaml", tt.wantYamlsFilename))
+			actualFilename := filepath.Join(chartDirectory, fmt.Sprintf("%s.output.yaml", tt.wantYamlsFilename))
 
 			chartConfig := ChartConfig{
 				Version: "0.0.1",

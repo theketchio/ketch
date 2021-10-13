@@ -406,6 +406,12 @@ spec:
       - backend:
           serviceName: dashboard-web-3
           servicePort: 9090
+  - host: darkweb.theketch.io
+    http:
+      paths:
+      - backend:
+          serviceName: dashboard-web-3
+          servicePort: 9090
 ---
 # Source: dashboard/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
@@ -428,6 +434,12 @@ spec:
           serviceName: dashboard-web-4
           servicePort: 9091
   - host: app.theketch.io
+    http:
+      paths:
+      - backend:
+          serviceName: dashboard-web-4
+          servicePort: 9091
+  - host: darkweb.theketch.io
     http:
       paths:
       - backend:
