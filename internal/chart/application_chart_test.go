@@ -170,7 +170,7 @@ func TestNewApplicationChart(t *testing.T) {
 					},
 				},
 				{
-					Apply:             map[string]string{"theketch.io/gateway-annotation": "test-gateway"},
+					Apply: map[string]string{"theketch.io/gateway-annotation": "test-gateway"},
 					Target: ketchv1.Target{
 						APIVersion: "networking.istio.io/v1alpha3",
 						Kind:       "Gateway",
