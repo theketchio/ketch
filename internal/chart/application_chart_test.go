@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/kube/fake"
@@ -319,82 +318,6 @@ func TestNewApplicationChart(t *testing.T) {
 			expected, err := ioutil.ReadFile(expectedFilename)
 			require.Nil(t, err)
 			require.Equal(t, string(expected), actualManifests)
-		})
-	}
-}
-
-func TestNewIngress(t *testing.T) {
-	tests := []struct {
-		name          string
-		cnames        ketchv1.CnameList
-		clusterIssuer string
-		expected      *ingress
-		expectedError error
-	}{
-		{
-			name: "happy",
-			cnames: ketchv1.CnameList{
-				{
-					Name:   "a.name",
-					Secure: true,
-				},
-				{
-					Name: "b.name",
-				},
-			},
-			clusterIssuer: "test-cluster-issuer",
-			expected: &ingress{
-				Https: []httpsEndpoint{{Cname: "a.name", SecretName: "-cname-2bffdc1c076b2cc72660"}},
-				Http:  []string{"b.name"},
-			},
-		},
-		{
-			name: "happy - no https, no cluster issuer",
-			cnames: ketchv1.CnameList{
-				{
-					Name: "a.name",
-				},
-				{
-					Name: "b.name",
-				},
-			},
-			expected: &ingress{
-				Http: []string{"a.name", "b.name"},
-			},
-		},
-		{
-			name: "sad - no cluster issuer",
-			cnames: ketchv1.CnameList{
-				{
-					Name:   "a.name",
-					Secure: true,
-				},
-			},
-			expectedError: errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified"),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			app := ketchv1.App{
-				Spec: ketchv1.AppSpec{
-					Ingress: ketchv1.IngressSpec{
-						Cnames: tt.cnames,
-					},
-				},
-			}
-			framework := ketchv1.Framework{
-				Spec: ketchv1.FrameworkSpec{
-					IngressController: ketchv1.IngressControllerSpec{
-						ClusterIssuer: tt.clusterIssuer,
-					},
-				},
-			}
-			issuer, err := newIngress(app, framework)
-			if tt.expectedError != nil {
-				require.EqualError(t, err, tt.expectedError.Error())
-			} else {
-				require.Equal(t, tt.expected, issuer)
-			}
 		})
 	}
 }

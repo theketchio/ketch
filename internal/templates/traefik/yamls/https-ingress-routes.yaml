@@ -1,0 +1,40 @@
+{{- if .Values.app.isAccessible }}
+{{- if .Values.app.ingress.https }}
+{{- range $i, $https := .Values.app.ingress.https }}
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ $https.uniqueName }}
+  annotations:
+    {{- if $.Values.ingressController.className }}
+    kubernetes.io/ingress.class: {{ $.Values.ingressController.className | quote }}
+    {{- end }}
+    {{- if $.Values.ingressController.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ $.Values.ingressController.clusterIssuer | quote }}
+    {{- end }}
+  labels:
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host("{{ $https.cname }}")
+    kind: Rule
+    services:
+    {{- range $_, $deployment := $.Values.app.deployments }}
+    {{- range $_, $process := $deployment.processes }}
+    {{- if $process.routable }}
+    {{- if gt $deployment.routingSettings.weight 0.0}}
+    - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+      port: {{ $process.publicServicePort }}
+      weight: {{$deployment.routingSettings.weight}}
+     {{- end }}
+     {{- end }}
+     {{- end }}
+     {{- end }}
+  tls:
+    secretName: {{ $https.secretName }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

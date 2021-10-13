@@ -340,10 +340,10 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: "dashboard-cname-7698da46d42bea3603f2"
+  name: "dashboard-cname-theketch-io"
   namespace: istio-system
 spec:
-  secretName: dashboard-cname-7698da46d42bea3603f2
+  secretName: dashboard-cname-theketch-io
   dnsNames:
     - theketch.io
   issuerRef:
@@ -354,10 +354,10 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: "dashboard-cname-1aacb41a573151295624"
+  name: "dashboard-cname-app-theketch-io"
   namespace: istio-system
 spec:
-  secretName: dashboard-cname-1aacb41a573151295624
+  secretName: dashboard-cname-app-theketch-io
   dnsNames:
     - app.theketch.io
   issuerRef:
@@ -417,7 +417,7 @@ spec:
       protocol: HTTPS
     tls:
       mode: SIMPLE
-      credentialName: dashboard-cname-7698da46d42bea3603f2
+      credentialName: dashboard-cname-theketch-io
     hosts:
     - theketch.io
   - port:
@@ -426,7 +426,7 @@ spec:
       protocol: HTTPS
     tls:
       mode: SIMPLE
-      credentialName: dashboard-cname-1aacb41a573151295624
+      credentialName: dashboard-cname-app-theketch-io
     hosts:
     - app.theketch.io
   - port:
@@ -441,7 +441,7 @@ spec:
       protocol: HTTPS
     tls:
       mode: SIMPLE
-      credentialName: dashboard-cname-7698da46d42bea3603f2
+      credentialName: dashboard-cname-theketch-io
     hosts:
     - theketch.io
   - port:
@@ -450,7 +450,7 @@ spec:
       protocol: HTTPS
     tls:
       mode: SIMPLE
-      credentialName: dashboard-cname-1aacb41a573151295624
+      credentialName: dashboard-cname-app-theketch-io
     hosts:
     - app.theketch.io
 ---

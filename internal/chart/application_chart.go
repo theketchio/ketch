@@ -4,7 +4,6 @@ package chart
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,7 +12,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/chartutil"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
@@ -32,25 +30,6 @@ type ApplicationChart struct {
 type values struct {
 	App               *app                           `json:"app"`
 	IngressController *ketchv1.IngressControllerSpec `json:"ingressController"`
-}
-
-// httpsEndpoint holds cname and its corresponding secret name with SSL certificates.
-type httpsEndpoint struct {
-	Cname string `json:"cname"`
-
-	// SecretName is a name of a Kubernetes Secret to store SSL certificate for the cname.
-	SecretName string `json:"secretName"`
-}
-
-// Ingress contains information about entrypoints of an application.
-// Both istio and traefik templates use "ingress" to render Kubernetes Ingress objects.
-type ingress struct {
-
-	// Https is a list of http entrypoints.
-	Http []string `json:"http"`
-
-	// Https is a list of https entrypoints.
-	Https []httpsEndpoint `json:"https"`
 }
 
 // gatewayService contains values for populating the gateway_service.yaml
@@ -331,37 +310,4 @@ func isAppAccessible(a *app) bool {
 		}
 	}
 	return false
-}
-
-func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) {
-	var http []string
-	var https []string
-
-	for _, cname := range app.Spec.Ingress.Cnames {
-		if cname.Secure {
-			if len(framework.Spec.IngressController.ClusterIssuer) == 0 {
-				return nil, errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified")
-			}
-			https = append(https, cname.Name)
-		} else {
-			http = append(http, cname.Name)
-		}
-	}
-
-	var httpsEndpoints []httpsEndpoint
-	for _, cname := range https {
-		hash := sha256.New()
-		hash.Write([]byte(fmt.Sprintf("cname-%s", cname)))
-		bs := hash.Sum(nil)
-		secretName := fmt.Sprintf("%s-cname-%x", app.Name, bs[:10])
-		httpsEndpoints = append(httpsEndpoints, httpsEndpoint{Cname: cname, SecretName: secretName})
-	}
-	defaultCname := app.DefaultCname(&framework)
-	if defaultCname != nil {
-		http = append(http, *defaultCname)
-	}
-	return &ingress{
-		Http:  http,
-		Https: httpsEndpoints,
-	}, nil
 }
