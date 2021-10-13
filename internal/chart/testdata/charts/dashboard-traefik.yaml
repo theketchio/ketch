@@ -336,7 +336,7 @@ spec:
       imagePullSecrets:
             - name: default-image-pull-secret
 ---
-# Source: dashboard/templates/ingressroute.yaml
+# Source: dashboard/templates/http-ingress-route.yaml
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:

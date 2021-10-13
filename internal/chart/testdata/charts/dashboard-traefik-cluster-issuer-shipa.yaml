@@ -340,9 +340,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: "dashboard-cname-7698da46d42bea3603f2"
+  name: "dashboard-cname-theketch-io"
 spec:
-  secretName: "dashboard-cname-7698da46d42bea3603f2"
+  secretName: "dashboard-cname-theketch-io"
   dnsNames:
     - theketch.io
   issuerRef:
@@ -353,16 +353,16 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: "dashboard-cname-1aacb41a573151295624"
+  name: "dashboard-cname-app-theketch-io"
 spec:
-  secretName: "dashboard-cname-1aacb41a573151295624"
+  secretName: "dashboard-cname-app-theketch-io"
   dnsNames:
     - app.theketch.io
   issuerRef:
     name: letsencrypt-production
     kind: ClusterIssuer
 ---
-# Source: dashboard/templates/ingressroute.yaml
+# Source: dashboard/templates/http-ingress-route.yaml
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
@@ -386,11 +386,11 @@ spec:
       port: 9091
       weight: 70
 ---
-# Source: dashboard/templates/ingressroute.yaml
+# Source: dashboard/templates/https-ingress-routes.yaml
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
-  name: dashboard-https-ingressroute
+  name: dashboard-https-theketch-io
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     cert-manager.io/cluster-issuer: "letsencrypt-production"
@@ -409,6 +409,23 @@ spec:
     - name: dashboard-web-4
       port: 9091
       weight: 70
+  tls:
+    secretName: dashboard-cname-theketch-io
+---
+# Source: dashboard/templates/https-ingress-routes.yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dashboard-https-app-theketch-io
+  annotations:
+    kubernetes.io/ingress.class: "ingress-class"
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+  labels:
+    shipa.io/app-name: "dashboard"
+spec:
+  entryPoints:
+    - websecure
+  routes:
   - match: Host("app.theketch.io")
     kind: Rule
     services:
@@ -419,5 +436,4 @@ spec:
       port: 9091
       weight: 70
   tls:
-    secretName: dashboard-cname-7698da46d42bea3603f2
-    secretName: dashboard-cname-1aacb41a573151295624
+    secretName: dashboard-cname-app-theketch-io

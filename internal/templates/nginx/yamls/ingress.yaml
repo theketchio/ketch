@@ -65,8 +65,8 @@ metadata:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
   rules:
-  {{- range $_, $cname := $.Values.app.ingress.https }}
-  - host: {{ $cname }}
+  {{- range $_, $https := $.Values.app.ingress.https }}
+  - host: {{ $https.cname }}
     http:
       paths:
       {{- range $_, $process := $deployment.processes }}

@@ -394,13 +394,13 @@ metadata:
     theketch.io/app-name: "dashboard"
 spec:
   rules:
-  - host: map[cname:theketch.io secretName:dashboard-cname-7698da46d42bea3603f2]
+  - host: theketch.io
     http:
       paths:
       - backend:
           serviceName: dashboard-web-3
           servicePort: 9090
-  - host: map[cname:app.theketch.io secretName:dashboard-cname-1aacb41a573151295624]
+  - host: app.theketch.io
     http:
       paths:
       - backend:
@@ -421,13 +421,13 @@ metadata:
     theketch.io/app-name: "dashboard"
 spec:
   rules:
-  - host: map[cname:theketch.io secretName:dashboard-cname-7698da46d42bea3603f2]
+  - host: theketch.io
     http:
       paths:
       - backend:
           serviceName: dashboard-web-4
           servicePort: 9091
-  - host: map[cname:app.theketch.io secretName:dashboard-cname-1aacb41a573151295624]
+  - host: app.theketch.io
     http:
       paths:
       - backend:
@@ -438,9 +438,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: "dashboard-cname-7698da46d42bea3603f2"
+  name: "dashboard-cname-theketch-io"
 spec:
-  secretName: "dashboard-cname-7698da46d42bea3603f2"
+  secretName: "dashboard-cname-theketch-io"
   dnsNames:
     - theketch.io
   issuerRef:
@@ -451,9 +451,9 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: "dashboard-cname-1aacb41a573151295624"
+  name: "dashboard-cname-app-theketch-io"
 spec:
-  secretName: "dashboard-cname-1aacb41a573151295624"
+  secretName: "dashboard-cname-app-theketch-io"
   dnsNames:
     - app.theketch.io
   issuerRef:
