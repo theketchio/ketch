@@ -1413,3 +1413,22 @@ func TestCanaryTargetChangeEventFromString(t *testing.T) {
 		},
 	)
 }
+
+func TestAppReconcileOutcome_String(t *testing.T) {
+	event := AppReconcileOutcome{
+		AppName:         "app1",
+		DeploymentCount: 5,
+	}
+	require.Equal(t, "app app1 5 reconcile success", event.String())
+	require.Equal(t, "app app1 5 reconcile fail: [failed to do something]", event.String(fmt.Errorf("failed to do something")))
+}
+
+func TestParseAppReconcileOutcome(t *testing.T) {
+	msg := "app app1 5 reconcile success"
+	outcome, err := ParseAppReconcileOutcome(msg)
+	require.Nil(t, err)
+	require.Equal(t, AppReconcileOutcome{
+		AppName:         "app1",
+		DeploymentCount: 5,
+	}, *outcome)
+}

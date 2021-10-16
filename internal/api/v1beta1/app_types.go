@@ -815,3 +815,31 @@ func CanaryTargetChangeEventFromString(msg string) (*CanaryTargetChangeEvent, er
 
 	return &event, nil
 }
+
+const (
+	AppReconcileOutcomeReason = "AppReconcileOutcome"
+)
+
+// AppReconcileOutcome handle information about app reconcile
+type AppReconcileOutcome struct {
+	AppName         string
+	DeploymentCount int
+}
+
+// String is a Stringer interface implementation
+func (r *AppReconcileOutcome) String(err ...error) string {
+	if err != nil {
+		return fmt.Sprintf(`app %s %d reconcile fail: %v`, r.AppName, r.DeploymentCount, err)
+	}
+	return fmt.Sprintf(`app %s %d reconcile success`, r.AppName, r.DeploymentCount)
+}
+
+// ParseAppReconcileOutcome makes AppReconcileOutcome from the incoming event reason string
+func ParseAppReconcileOutcome(in string) (*AppReconcileOutcome, error) {
+	rm := AppReconcileOutcome{}
+	_, err := fmt.Sscanf(in, `app %s %d reconcile`, &rm.AppName, &rm.DeploymentCount)
+	if err != nil {
+		return nil, fmt.Errorf(`unable to parse reconcile reason: %v`, err)
+	}
+	return &rm, nil
+}
