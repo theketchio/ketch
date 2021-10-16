@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"testing/quick"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -1251,15 +1250,166 @@ func TestValidateMetadataItem(t *testing.T) {
 }
 
 func TestGetUpdatedUnits(t *testing.T) {
-	comm := func(weight uint8, target uint16) bool {
-		p1u, p2u := getUpdatedUnits(weight, target)
-		if (p1u + p2u) != int(target) {
-			return false
-		}
-		return true
-	}
+	tests := []struct {
+		name   string
+		weight uint8
+		target uint16
 
-	if err := quick.Check(comm, nil); err != nil {
-		t.Error(err)
+		expectedSource int
+		expectedDest   int
+	}{
+		{
+			name:   "small weight, big target",
+			weight: 1,
+			target: 10,
+
+			expectedSource: 1,
+			expectedDest:   10,
+		},
+		{
+			name:   "big weight, small target",
+			weight: 75,
+			target: 1,
+
+			expectedSource: 1,
+			expectedDest:   1,
+		},
+		{
+			name:   "big weight, small target",
+			weight: 50,
+			target: 1,
+
+			expectedSource: 1,
+			expectedDest:   1,
+		},
+		{
+			name:   "equal distribution",
+			weight: 50,
+			target: 2,
+
+			expectedSource: 1,
+			expectedDest:   1,
+		},
+		{
+			name:   "more in second",
+			weight: 50,
+			target: 3,
+
+			expectedSource: 1,
+			expectedDest:   2,
+		},
+		{
+			name:   "odd number",
+			weight: 33,
+			target: 10,
+
+			expectedSource: 3,
+			expectedDest:   7,
+		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			source, dest := getUpdatedUnits(tt.weight, tt.target)
+			if source != tt.expectedSource || dest != tt.expectedDest {
+				t.Errorf("FAIL: got source: %d, want source: %d, got dest: %d, want dest: %d", source, tt.expectedSource, dest, tt.expectedDest)
+			}
+		})
+	}
+}
+
+func TestCanaryEvent_Message(t *testing.T) {
+	event := newCanaryEvent(&App{
+		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
+		Spec: AppSpec{
+			Canary: CanarySpec{CurrentStep: 10},
+			Deployments: []AppDeploymentSpec{
+				{Version: 1, RoutingSettings: RoutingSettings{Weight: 30}},
+				{Version: 2, RoutingSettings: RoutingSettings{Weight: 70}},
+			},
+		}},
+		CanaryStarted, CanaryStartedDesc,
+	)
+
+	require.Equal(t, "CanaryStarted - Canary for app app1 | version 2 - started", event.Message())
+}
+
+func TestCanaryEventFromMessage(t *testing.T) {
+	message := "CanaryStarted - Canary for app app1 | version 2 - started"
+	event, err := CanaryEventFromMessage(message)
+	require.Nil(t, err)
+	require.Equal(t, CanaryEvent{
+		AppName:           "app1",
+		DeploymentVersion: 2,
+		Name:              "CanaryStarted",
+		Description:       "started",
+	}, *event)
+}
+
+func TestCanaryNextStepEvent_Message(t *testing.T) {
+	event := newCanaryNextStepEvent(&App{
+		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
+		Spec: AppSpec{
+			Canary: CanarySpec{CurrentStep: 10},
+			Deployments: []AppDeploymentSpec{
+				{Version: 1, RoutingSettings: RoutingSettings{Weight: 30}},
+				{Version: 2, RoutingSettings: RoutingSettings{Weight: 70}},
+			},
+		}},
+	)
+
+	require.Equal(t, "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source weight: 30 | Dest weight: 70", event.Message())
+}
+
+func TestCanaryNextStepEventFromString(t *testing.T) {
+	message := "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source weight: 30 | Dest weight: 70"
+	event, err := CanaryNextStepEventFromString(message)
+	require.Nil(t, err)
+	require.Equal(t, *event,
+		CanaryNextStepEvent{
+			Event: CanaryEvent{
+				AppName:           "app1",
+				DeploymentVersion: 2,
+				Name:              "CanaryNextStep",
+				Description:       "weight",
+			},
+			Step:         10,
+			WeightSource: 30,
+			WeightDest:   70,
+		},
+	)
+}
+
+func TestCanaryTargetChangeEvent_Message(t *testing.T) {
+	event := newCanaryTargetChangeEvent(&App{
+		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
+		Spec: AppSpec{
+			Canary: CanarySpec{CurrentStep: 10},
+			Deployments: []AppDeploymentSpec{
+				{Version: 1, RoutingSettings: RoutingSettings{Weight: 30}},
+				{Version: 2, RoutingSettings: RoutingSettings{Weight: 70}},
+			},
+		}},
+		"p1", 2, 5,
+	)
+
+	require.Equal(t, "CanaryStepTarget - Canary for app app1 | version 2 - units change: Process: p1 | Source units: 2 | Dest units: 5", event.Message())
+}
+
+func TestCanaryTargetChangeEventFromString(t *testing.T) {
+	message := "CanaryStepTarget - Canary for app app1 | version 2 - units change: Process: p1 | Source units: 2 | Dest units: 5"
+	event, err := CanaryTargetChangeEventFromString(message)
+	require.Nil(t, err)
+	require.Equal(t, *event,
+		CanaryTargetChangeEvent{
+			Event: CanaryEvent{
+				AppName:           "app1",
+				DeploymentVersion: 2,
+				Name:              "CanaryStepTarget",
+				Description:       "units",
+			},
+			ProcessName:             "p1",
+			SourceProcessUnits:      2,
+			DestinationProcessUnits: 5,
+		},
+	)
 }
