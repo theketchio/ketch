@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -33,15 +34,6 @@ import (
 const (
 	ShipaCloudDomain     = "shipa.cloud"
 	DefaultNumberOfUnits = 1
-)
-
-const (
-	CanaryNotActiveEvent   = "CanaryNotActiveEvent"
-	CanaryNoDeployments    = "CanaryNoDeployments"
-	CanaryNoScheduledSteps = "CanaryNoScheduledSteps"
-	CanaryStep             = "CanaryStep"
-	CanaryStepTarget       = "CanaryStepTarget"
-	CanaryFinished         = "CanaryFinished"
 )
 
 // Env represents an environment variable present in an application.
@@ -517,6 +509,11 @@ func getUpdatedUnits(weight uint8, targetUnits uint16) (int, int) {
 	unitSplit := (float64(weight) / 100) * float64(targetUnits)
 	// we want an integer so take the floor of the float and subtract that total from the target
 	destUnits := targetUnits - uint16(math.Floor(unitSplit))
+
+	// edge case, we need to have at least 1 source unit
+	if targetUnits == destUnits {
+		return 1, int(destUnits)
+	}
 	// subtract destination's units from target to find source's new units
 	sourceUnits := targetUnits - destUnits
 	return int(sourceUnits), int(destUnits)
@@ -525,34 +522,35 @@ func getUpdatedUnits(weight uint8, targetUnits uint16) (int, int) {
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
 func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder) error {
-
 	if !app.Spec.Canary.Active {
-		recorder.Eventf(app, v1.EventTypeNormal, CanaryNotActiveEvent, "Canary for %s - not active", app.Name)
+		failEvent := newCanaryEvent(app, CanaryNotActiveEvent, CanaryNotActiveEventDesc)
+		recorder.AnnotatedEventf(app, failEvent.Annotations, v1.EventTypeNormal, failEvent.Name, failEvent.Message())
 		return nil
 	}
 
 	if len(app.Spec.Deployments) <= 1 {
-		recorder.Eventf(app, v1.EventTypeWarning, CanaryNoDeployments, "Canary for %s - error no deployments", app.Name)
+		failEvent := newCanaryEvent(app, CanaryNoDeployments, CanaryNoDeploymentsDesc)
+		recorder.AnnotatedEventf(app, failEvent.Annotations, v1.EventTypeWarning, failEvent.Name, failEvent.Message())
 		return errors.New("no canary deployment found")
 	}
 
 	if app.Spec.Canary.NextScheduledTime == nil {
-		recorder.Eventf(app, v1.EventTypeWarning, CanaryNoScheduledSteps, "Canary for %s - error no scheduled steps", app.Name)
+		failEvent := newCanaryEvent(app, CanaryNoScheduledSteps, CanaryNoScheduledStepsDesc)
+		recorder.AnnotatedEventf(app, failEvent.Annotations, v1.EventTypeWarning, failEvent.Name, failEvent.Message())
 		return errors.New("canary is active but the next step is not scheduled")
 	}
 
 	if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
-
+		if app.Spec.Canary.CurrentStep == 1 {
+			event := newCanaryEvent(app, CanaryStarted, CanaryStartedDesc)
+			recorder.AnnotatedEventf(app, event.Annotations, v1.EventTypeNormal, event.Name, event.Message())
+		}
 		// update traffic weight distributions across deployments
 		app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
 		app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
-		app.Spec.Canary.CurrentStep++
-		recorder.Eventf(app, v1.EventTypeNormal, CanaryStep,
-			fmt.Sprintf("Canary for %s - next step: %d, weight1: %d, weight2: %d",
-				app.Name,
-				app.Spec.Canary.CurrentStep,
-				app.Spec.Deployments[0].RoutingSettings.Weight,
-				app.Spec.Deployments[1].RoutingSettings.Weight))
+
+		eventStep := newCanaryNextStepEvent(app)
+		recorder.AnnotatedEventf(app, eventStep.Annotations, v1.EventTypeNormal, eventStep.Name, eventStep.Message())
 
 		if app.Spec.Canary.Target != nil {
 			// scale units based on weight and process target
@@ -566,12 +564,8 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 					logger.Info("the process: %s in not present in the updated deployment\n", processName)
 				}
 
-				recorder.Eventf(app, v1.EventTypeNormal, CanaryStepTarget,
-					fmt.Sprintf("Canary for %s - set units for process: %s, units p1: %d, units p2: %d",
-						app.Name,
-						processName,
-						p1Units,
-						p2Units))
+				eventTarget := newCanaryTargetChangeEvent(app, processName, p1Units, p2Units)
+				recorder.AnnotatedEventf(app, eventTarget.Annotations, v1.EventTypeNormal, eventTarget.Name, eventTarget.Message())
 			}
 
 			// if a process in the updated deployment isn't found in target create 1 unit
@@ -605,14 +599,12 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 			app.Spec.Canary.CurrentStep = app.Spec.Canary.Steps
 			app.Spec.Canary.NextScheduledTime = nil
 
-			recorder.Eventf(app, v1.EventTypeNormal, CanaryFinished,
-				fmt.Sprintf("Canary for %s - finished after: %d",
-					app.Name,
-					app.Spec.Canary.CurrentStep))
+			eventFinished := newCanaryEvent(app, CanaryFinished, CanaryFinishedDesc)
+			recorder.Event(app, v1.EventTypeNormal, eventFinished.Name, eventFinished.Message())
 
-			// remove the primary deployment
 			app.Spec.Deployments = []AppDeploymentSpec{app.Spec.Deployments[1]}
 		}
+		app.Spec.Canary.CurrentStep++
 	}
 
 	return nil
@@ -664,4 +656,137 @@ func (t Target) IsDeployment() bool {
 // IsService returns true if the target is a Service.
 func (t Target) IsService() bool {
 	return t.Kind == "Service" && t.APIVersion == "v1"
+}
+
+const (
+	CanaryNotActiveEvent     = "CanaryNotActive"
+	CanaryNotActiveEventDesc = "error - canary triggered, but not active"
+
+	CanaryNoDeployments     = "CanaryNoDeployments"
+	CanaryNoDeploymentsDesc = "error - canary needs more than 1 deployment to run"
+
+	CanaryNoScheduledSteps     = "CanaryNoScheduledSteps"
+	CanaryNoScheduledStepsDesc = "error - canary triggered, but no scheduled steps"
+
+	CanaryStarted      = "CanaryStarted"
+	CanaryStartedDesc  = "started"
+	CanaryFinished     = "CanaryFinished"
+	CanaryFinishedDesc = "finished"
+
+	CanaryNextStep       = "CanaryNextStep"
+	CanaryNextStepDesc   = "weight change"
+	CanaryStepTarget     = "CanaryStepTarget"
+	CanaryStepTargetDesc = "units change"
+
+	CanaryAnnotationAppName            = "canary.shipa.io/app-name"
+	CanaryAnnotationDevelopmentVersion = "canary.shipa.io/deployment-version"
+	CanaryAnnotationEventName          = "canary.shipa.io/event-name"
+	CanaryAnnotationDescription        = "canary.shipa.io/description"
+	CanaryAnnotationStep               = "canary.shipa.io/step"
+	CanaryAnnotationVersionSource      = "canary.shipa.io/version-source"
+	CanaryAnnotationVersionDest        = "canary.shipa.io/version-dest"
+	CanaryAnnotationWeightSource       = "canary.shipa.io/weight-source"
+	CanaryAnnotationWeightDest         = "canary.shipa.io/weight-dest"
+	CanaryAnnotationProcessName        = "canary.shipa.io/process-name"
+	CanaryAnnotationProcessUnitsSource = "canary.shipa.io/source-process-units"
+	CanaryAnnotationProcessUnitsDest   = "canary.shipa.io/dest-process-units"
+)
+
+type CanaryEvent struct {
+	// AppName represents event for certain app
+	AppName string
+	// DeploymentVersion represents for which deployment event is associated with
+	DeploymentVersion int
+
+	// Name represents canary event name. It is translated into Reason column of kubernetes event
+	// values: CanaryStarted, CanaryFinished
+	// errored values: CanaryNotActiveEvent, CanaryNoDeployments, CanaryNoScheduledSteps
+	Name string
+	// Description states what is the outcome of this event
+	Description string
+	// Annotations contain details on the Canary deployment
+	Annotations map[string]string
+}
+
+func newCanaryEvent(app *App, event string, desc string) CanaryEvent {
+	var version DeploymentVersion
+	if len(app.Spec.Deployments) > 0 {
+		version = app.Spec.Deployments[len(app.Spec.Deployments)-1].Version
+	}
+
+	return CanaryEvent{
+		AppName:           app.Name,
+		DeploymentVersion: int(version),
+		Name:              event,
+		Description:       desc,
+		Annotations: map[string]string{
+			CanaryAnnotationAppName:            app.Name,
+			CanaryAnnotationDevelopmentVersion: version.String(),
+			CanaryAnnotationEventName:          event,
+			CanaryAnnotationDescription:        desc,
+		},
+	}
+}
+
+// Message is message for k8s event
+func (c CanaryEvent) Message() string {
+	return fmt.Sprintf("%s - Canary for app %s | version %d - %s", c.Name, c.AppName, c.DeploymentVersion, c.Description)
+}
+
+func newCanaryNextStepEvent(app *App) CanaryEvent {
+	additionalAnnotations := map[string]string{
+		CanaryAnnotationStep:          strconv.Itoa(app.Spec.Canary.CurrentStep),
+		CanaryAnnotationVersionSource: app.Spec.Deployments[0].Version.String(),
+		CanaryAnnotationVersionDest:   app.Spec.Deployments[1].Version.String(),
+		CanaryAnnotationWeightSource:  strconv.Itoa(int(app.Spec.Deployments[0].RoutingSettings.Weight)),
+		CanaryAnnotationWeightDest:    strconv.Itoa(int(app.Spec.Deployments[1].RoutingSettings.Weight)),
+	}
+	event := newCanaryEvent(app, CanaryNextStep, CanaryNextStepDesc)
+	for key, value := range additionalAnnotations {
+		event.Annotations[key] = value
+	}
+	return event
+}
+
+func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destUnits int) CanaryEvent {
+	additionalAnnotations := map[string]string{
+		CanaryAnnotationVersionSource:      app.Spec.Deployments[0].Version.String(),
+		CanaryAnnotationVersionDest:        app.Spec.Deployments[1].Version.String(),
+		CanaryAnnotationProcessName:        processName,
+		CanaryAnnotationProcessUnitsSource: strconv.Itoa(sourceUnits),
+		CanaryAnnotationProcessUnitsDest:   strconv.Itoa(destUnits),
+	}
+	event := newCanaryEvent(app, CanaryStepTarget, CanaryStepTargetDesc)
+	for key, value := range additionalAnnotations {
+		event.Annotations[key] = value
+	}
+	return event
+}
+
+const (
+	AppReconcileOutcomeReason = "AppReconcileOutcome"
+)
+
+// AppReconcileOutcome handle information about app reconcile
+type AppReconcileOutcome struct {
+	AppName         string
+	DeploymentCount int
+}
+
+// String is a Stringer interface implementation
+func (r *AppReconcileOutcome) String(err ...error) string {
+	if err != nil {
+		return fmt.Sprintf(`app %s %d reconcile fail: %v`, r.AppName, r.DeploymentCount, err)
+	}
+	return fmt.Sprintf(`app %s %d reconcile success`, r.AppName, r.DeploymentCount)
+}
+
+// ParseAppReconcileOutcome makes AppReconcileOutcome from the incoming event reason string
+func ParseAppReconcileOutcome(in string) (*AppReconcileOutcome, error) {
+	rm := AppReconcileOutcome{}
+	_, err := fmt.Sscanf(in, `app %s %d reconcile`, &rm.AppName, &rm.DeploymentCount)
+	if err != nil {
+		return nil, fmt.Errorf(`unable to parse reconcile reason: %v`, err)
+	}
+	return &rm, nil
 }

@@ -39,6 +39,11 @@ manager: generate fmt vet
 ketch: generate fmt vet
 	go build -o bin/ketch ./cmd/ketch/
 
+# install ketch binary
+.PHONY: ketch-install
+ketch-install: generate fmt vet
+	go install ./cmd/ketch/
+
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run: generate fmt vet manifests

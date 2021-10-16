@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/controllers"
 	"github.com/shipa-corp/ketch/internal/errors"
 	"github.com/shipa-corp/ketch/internal/utils"
 )
@@ -36,7 +35,7 @@ func WaitForDeployment(ctx context.Context, svc *Services, app *ketchv1.App, tim
 				return errors.New("wait for deployment channel closed")
 			}
 			if evt, ok := msg.Object.(*corev1.Event); ok {
-				reason, err := controllers.ParseAppReconcileMessage(evt.Reason)
+				reason, err := ketchv1.ParseAppReconcileOutcome(evt.Reason)
 				if err != nil {
 					return err
 				}
@@ -57,7 +56,7 @@ func WaitForDeployment(ctx context.Context, svc *Services, app *ketchv1.App, tim
 }
 
 func watchAppReconcileEvent(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
-	reason := controllers.AppReconcileReason{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+	reason := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 	selector := fields.Set(map[string]string{
 		"involvedObject.apiVersion": utils.V1betaPrefix,
 		"involvedObject.kind":       "App",
