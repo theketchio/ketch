@@ -15,6 +15,7 @@ setup() {
   fi
   INGRESS_TRAEFIK=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   INGRESS_NGINX=$(kubectl get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  INGRESS_ISTIO=$(kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   FRAMEWORK="myframework"
   APP_IMAGE="gcr.io/shipa-ci/sample-go-app:latest"
   APP_NAME="sample-app"
@@ -38,6 +39,12 @@ teardown() {
 
 @test "framework add" {
   result=$($KETCH framework add "$FRAMEWORK" --ingress-service-endpoint "$INGRESS_TRAEFIK" --ingress-type "traefik")
+  echo "RECEIVED:" $result
+  [[ $result =~ "Successfully added!" ]]
+}
+
+@test "framework add istio" {
+  result=$($KETCH framework add "$FRAMEWORK-istio" --ingress-service-endpoint "$INGRESS_ISTIO" --ingress-type "istio")
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully added!" ]]
 }
@@ -122,6 +129,11 @@ EOF
 
 @test "app deploy" {
   run $KETCH app deploy "$APP_NAME" --framework "$FRAMEWORK" -i "$APP_IMAGE"
+  [[ $status -eq 0 ]]
+}
+
+@test "app deploy istio" {
+  run $KETCH app deploy "$APP_NAME-istio" --framework "$FRAMEWORK-istio" -i "$APP_IMAGE"
   [[ $status -eq 0 ]]
 }
 
@@ -267,6 +279,18 @@ EOF
   [[ $result =~ "Successfully removed!" ]]
 }
 
+@test "app-istio remove" {
+  result=$($KETCH app remove "$APP_NAME-istio")
+  echo "RECEIVED:" $result
+  [[ $result =~ "Successfully removed!" ]]
+}
+
+@test "app-nginx remove" {
+  result=$($KETCH app remove "$APP_NAME-nginx")
+  echo "RECEIVED:" $result
+  [[ $result =~ "Successfully removed!" ]]
+}
+
 @test "app-2 remove" {
   result=$($KETCH app remove "$APP_NAME-2")
   echo "RECEIVED:" $result
@@ -275,6 +299,18 @@ EOF
 
 @test "framework remove" {
   result=$(echo "ketch-$FRAMEWORK" | $KETCH framework remove "$FRAMEWORK")
+  echo "RECEIVED:" $result
+  [[ $result =~ "Framework successfully removed!" ]]
+}
+
+@test "framework-istio remove" {
+  result=$(echo "ketch-$FRAMEWORK-istio" | $KETCH framework remove "$FRAMEWORK-istio")
+  echo "RECEIVED:" $result
+  [[ $result =~ "Framework successfully removed!" ]]
+}
+
+@test "framework-nginx remove" {
+  result=$(echo "ketch-$FRAMEWORK-nginx" | $KETCH framework remove "$FRAMEWORK-nginx")
   echo "RECEIVED:" $result
   [[ $result =~ "Framework successfully removed!" ]]
 }

@@ -37,6 +37,9 @@ helm repo add traefik https://helm.traefik.io/traefik
 helm repo update
 helm install traefik traefik/traefik
 
+# istio
+ISTIO_VERSION=1.11.0 && curl -L -k https://istio.io/downloadIstio |ISTIO_VERSION=1.11.0 sh - && cd istio-$ISTIO_VERSION && ./bin/istioctl install --set profile=demo -y
+
 # nginx
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
