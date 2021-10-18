@@ -340,10 +340,9 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-0-http-ingress
+  name: dashboard-http-ingress-3
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
@@ -362,10 +361,9 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-1-http-ingress
+  name: dashboard-http-ingress-4
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "70"
   labels:
@@ -386,65 +384,107 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-0-https-ingress
+  name: dashboard-https-ingress-3
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
+  tls:
+    - hosts:
+        - theketch.io
+      secretName: dashboard-cname-theketch-io
+    - hosts:
+        - app.theketch.io
+      secretName: dashboard-cname-app-theketch-io
+    - hosts:
+        - darkweb.theketch.io
+      secretName: darkweb-ssl
   rules:
   - host: theketch.io
     http:
       paths:
-      - backend:
-          serviceName: dashboard-web-3
-          servicePort: 9090
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dashboard-web-3
+              port:
+                number: 9090
   - host: app.theketch.io
     http:
       paths:
-      - backend:
-          serviceName: dashboard-web-3
-          servicePort: 9090
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dashboard-web-3
+              port:
+                number: 9090
   - host: darkweb.theketch.io
     http:
       paths:
-      - backend:
-          serviceName: dashboard-web-3
-          servicePort: 9090
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dashboard-web-3
+              port:
+                number: 9090
 ---
 # Source: dashboard/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-1-https-ingress
+  name: dashboard-https-ingress-4
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "70"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
+  tls:
+    - hosts:
+        - theketch.io
+      secretName: dashboard-cname-theketch-io
+    - hosts:
+        - app.theketch.io
+      secretName: dashboard-cname-app-theketch-io
+    - hosts:
+        - darkweb.theketch.io
+      secretName: darkweb-ssl
   rules:
   - host: theketch.io
     http:
       paths:
-      - backend:
-          serviceName: dashboard-web-4
-          servicePort: 9091
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dashboard-web-4
+              port:
+                number: 9091
   - host: app.theketch.io
     http:
       paths:
-      - backend:
-          serviceName: dashboard-web-4
-          servicePort: 9091
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dashboard-web-4
+              port:
+                number: 9091
   - host: darkweb.theketch.io
     http:
       paths:
-      - backend:
-          serviceName: dashboard-web-4
-          servicePort: 9091
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dashboard-web-4
+              port:
+                number: 9091
 ---
 # Source: dashboard/templates/certificate.yaml
 apiVersion: cert-manager.io/v1
@@ -456,7 +496,7 @@ spec:
   dnsNames:
     - theketch.io
   issuerRef:
-    name: letsencrypt-production
+    name: "letsencrypt-production"
     kind: ClusterIssuer
 ---
 # Source: dashboard/templates/certificate.yaml
@@ -469,5 +509,5 @@ spec:
   dnsNames:
     - app.theketch.io
   issuerRef:
-    name: letsencrypt-production
+    name: "letsencrypt-production"
     kind: ClusterIssuer

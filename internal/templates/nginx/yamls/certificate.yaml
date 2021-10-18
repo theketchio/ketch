@@ -9,7 +9,7 @@ spec:
   dnsNames:
     - {{ $https.cname }}
   issuerRef:
-    name: {{ $.Values.ingressController.clusterIssuer }}
+    name: {{ $.Values.ingressController.clusterIssuer | quote }}
     kind: ClusterIssuer
 ---
 {{ end }}
