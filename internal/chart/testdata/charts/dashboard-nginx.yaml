@@ -340,9 +340,11 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-0-http-ingress
+  name: dashboard-http-ingress-3
   annotations:
     kubernetes.io/ingress.class: "gke"
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "30"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
@@ -388,7 +390,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-1-http-ingress
+  name: dashboard-http-ingress-4
   annotations:
     kubernetes.io/ingress.class: "gke"
     nginx.ingress.kubernetes.io/canary: "true"
