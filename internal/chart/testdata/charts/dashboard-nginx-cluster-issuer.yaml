@@ -343,6 +343,8 @@ metadata:
   name: dashboard-http-ingress-3
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "30"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
@@ -387,6 +389,8 @@ metadata:
   name: dashboard-https-ingress-3
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "30"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
