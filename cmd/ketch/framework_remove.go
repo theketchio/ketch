@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 )
@@ -48,6 +49,9 @@ func frameworkRemove(ctx context.Context, cfg config, options frameworkRemoveOpt
 		return fmt.Errorf("failed to get framework: %w", err)
 	}
 
+	if err := pruneRemovedAppsFromStatus(ctx, cfg, framework); err != nil {
+		return fmt.Errorf("failed to update framework's apps: %w", err)
+	}
 	if userWantsToRemoveNamespace(framework.Spec.NamespaceName, out) {
 		if err := checkNamespaceAdditionalFrameworks(ctx, cfg, &framework); err != nil {
 			printNsRemovalErr(out, err)
@@ -126,4 +130,24 @@ func removeNamespace(ctx context.Context, cfg config, framework *ketchv1.Framewo
 	}
 
 	return nil
+}
+
+// pruneRemovedAppsFromStatus lists apps and removes any apps that are not present on the system from a framework's status.
+func pruneRemovedAppsFromStatus(ctx context.Context, cfg config, framework ketchv1.Framework) error {
+	var apps ketchv1.AppList
+	if err := cfg.Client().List(ctx, &apps); err != nil {
+		return fmt.Errorf("failed to list framework apps: %w", err)
+	}
+	var updatedApps []string
+	for _, frameworkApp := range framework.Status.Apps {
+		for _, app := range apps.Items {
+			if app.Name == frameworkApp {
+				updatedApps = append(updatedApps, frameworkApp)
+			}
+		}
+	}
+	patchedFramework := framework
+	patchedFramework.Status.Apps = updatedApps
+	patch := client.MergeFrom(&framework)
+	return cfg.Client().Status().Patch(ctx, &patchedFramework, patch)
 }
