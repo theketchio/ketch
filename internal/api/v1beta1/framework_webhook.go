@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -109,8 +110,12 @@ func (r *Framework) ValidateUpdate(old runtime.Object) error {
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Framework) ValidateDelete() error {
 	frameworklog.Info("validate delete", "name", r.Name)
-	if len(r.Status.Apps) > 0 {
-		return ErrDeleteFrameworkWithRunningApps
+	if len(r.Status.Apps) == 0 {
+		return nil
 	}
-	return nil
+	// This pause gives the kubernetes control loop a couple chances to retry deleting the framework
+	// before returning the error. When deleting a framework+app programmatically (e.g. terraform without proper dependency or
+	// 'kubectl delete -f ...'), the framework.Status.Apps may not be updated in time.
+	time.Sleep(time.Second * 2)
+	return ErrDeleteFrameworkWithRunningApps
 }
