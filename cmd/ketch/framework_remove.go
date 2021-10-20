@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
@@ -49,9 +50,12 @@ func frameworkRemove(ctx context.Context, cfg config, options frameworkRemoveOpt
 		return fmt.Errorf("failed to get framework: %w", err)
 	}
 
-	if err := pruneRemovedAppsFromStatus(ctx, cfg, framework); err != nil {
-		return fmt.Errorf("failed to update framework's apps: %w", err)
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return pruneRemovedAppsFromStatus(ctx, cfg, framework)
+	}); err != nil {
+		return fmt.Errorf("failed to prune framework's apps: %w", err)
 	}
+
 	if userWantsToRemoveNamespace(framework.Spec.NamespaceName, out) {
 		if err := checkNamespaceAdditionalFrameworks(ctx, cfg, &framework); err != nil {
 			printNsRemovalErr(out, err)
