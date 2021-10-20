@@ -1436,3 +1436,73 @@ func TestParseAppReconcileOutcome(t *testing.T) {
 		DeploymentCount: 5,
 	}, *outcome)
 }
+
+func TestParseAppReconcileOutcome_Multiple(t *testing.T) {
+	tests := []struct {
+		msg             string
+		expectedApp     string
+		expectedVersion int
+		expectedErr     string
+		expectedString  string
+	}{
+		{
+			msg: "app test 1 reconcile success",
+
+			expectedApp:     "test",
+			expectedVersion: 1,
+			expectedString:  "app test 1 reconcile success",
+			expectedErr:     "",
+		},
+		{
+			msg: "app test34s 1 reconcile success",
+
+			expectedApp:     "test34s",
+			expectedVersion: 1,
+			expectedString:  "app test34s 1 reconcile success",
+			expectedErr:     "",
+		},
+		{
+			msg: "app test34s 2 reconcile success",
+
+			expectedApp:     "test34s",
+			expectedVersion: 2,
+			expectedString:  "app test34s 2 reconcile success",
+			expectedErr:     "",
+		},
+		{
+			msg:         "sdfsdf",
+			expectedErr: "unable to parse reconcile reason: input does not match format",
+		},
+		{
+			msg:         "",
+			expectedErr: "unable to parse reconcile reason: unexpected EOF",
+		},
+		{
+			msg: "app test 1asdfadfasfasdf reconcile 34rt w",
+
+			expectedApp:     "test",
+			expectedVersion: 1,
+			expectedString:  "app test 1 reconcile asdfadfasfasdf 34rt w",
+			expectedErr:     "unable to parse reconcile reason: expected space in input to match format",
+		},
+		{
+			msg: "app test 1 reconcile asdfadfasfasdf 34rt w",
+
+			expectedApp:     "test",
+			expectedVersion: 1,
+			expectedString:  "app test 1 reconcile success",
+			expectedErr:     "",
+		},
+	}
+
+	for _, test := range tests {
+		got, err := ParseAppReconcileOutcome(test.msg)
+		if err != nil {
+			require.Equal(t, test.expectedErr, err.Error())
+		} else {
+			require.Equal(t, test.expectedApp, got.AppName)
+			require.Equal(t, test.expectedVersion, got.DeploymentCount)
+			require.Equal(t, test.expectedString, got.String())
+		}
+	}
+}
