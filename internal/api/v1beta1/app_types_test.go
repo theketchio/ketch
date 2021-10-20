@@ -1021,7 +1021,7 @@ func TestApp_DoCanary(t *testing.T) {
 						StepWeight:        33,
 						StepTimeInteval:   10 * time.Minute,
 						NextScheduledTime: timeRef(10, 30),
-						CurrentStep:       2,
+						CurrentStep:       3,
 						Active:            true,
 					},
 					Deployments: []AppDeploymentSpec{
@@ -1036,7 +1036,7 @@ func TestApp_DoCanary(t *testing.T) {
 						Steps:           3,
 						StepWeight:      33,
 						StepTimeInteval: 10 * time.Minute,
-						CurrentStep:     3,
+						CurrentStep:     4,
 						Active:          false,
 					},
 					Deployments: []AppDeploymentSpec{
@@ -1357,11 +1357,11 @@ func TestCanaryNextStepEvent_Message(t *testing.T) {
 		}},
 	)
 
-	require.Equal(t, "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source weight: 30 | Dest weight: 70", event.Message())
+	require.Equal(t, "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source version: 1 | Dest version: 2 | Source weight: 30 | Dest weight: 70", event.Message())
 }
 
 func TestCanaryNextStepEventFromString(t *testing.T) {
-	message := "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source weight: 30 | Dest weight: 70"
+	message := "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source version: 1 | Dest version: 2 | Source weight: 30 | Dest weight: 70"
 	event, err := CanaryNextStepEventFromString(message)
 	require.Nil(t, err)
 	require.Equal(t, *event,
@@ -1372,9 +1372,11 @@ func TestCanaryNextStepEventFromString(t *testing.T) {
 				Name:              "CanaryNextStep",
 				Description:       "weight",
 			},
-			Step:         10,
-			WeightSource: 30,
-			WeightDest:   70,
+			Step:          10,
+			VersionSource: 1,
+			VersionDest:   2,
+			WeightSource:  30,
+			WeightDest:    70,
 		},
 	)
 }
@@ -1392,11 +1394,11 @@ func TestCanaryTargetChangeEvent_Message(t *testing.T) {
 		"p1", 2, 5,
 	)
 
-	require.Equal(t, "CanaryStepTarget - Canary for app app1 | version 2 - units change: Process: p1 | Source units: 2 | Dest units: 5", event.Message())
+	require.Equal(t, "CanaryStepTarget - Canary for app app1 | version 2 - units change: Source version: 1 | Dest version: 2 | Process: p1 | Source units: 2 | Dest units: 5", event.Message())
 }
 
 func TestCanaryTargetChangeEventFromString(t *testing.T) {
-	message := "CanaryStepTarget - Canary for app app1 | version 2 - units change: Process: p1 | Source units: 2 | Dest units: 5"
+	message := "CanaryStepTarget - Canary for app app1 | version 2 - units change: Source version: 1 | Dest version: 2 | Process: p1 | Source units: 2 | Dest units: 5"
 	event, err := CanaryTargetChangeEventFromString(message)
 	require.Nil(t, err)
 	require.Equal(t, *event,
@@ -1407,6 +1409,8 @@ func TestCanaryTargetChangeEventFromString(t *testing.T) {
 				Name:              "CanaryStepTarget",
 				Description:       "units",
 			},
+			VersionSource:           1,
+			VersionDest:             2,
 			ProcessName:             "p1",
 			SourceProcessUnits:      2,
 			DestinationProcessUnits: 5,

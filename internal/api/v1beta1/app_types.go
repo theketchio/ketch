@@ -523,32 +523,34 @@ func getUpdatedUnits(weight uint8, targetUnits uint16) (int, int) {
 // based on the canary parameters provided by the users. Use it in app controller.
 func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder) error {
 	if !app.Spec.Canary.Active {
-		event := newCanaryEvent(app, CanaryNotActiveEvent, CanaryNotActiveEventDesc)
-		recorder.Event(app, v1.EventTypeNormal, event.Name, event.Message())
+		failEvent := newCanaryEvent(app, CanaryNotActiveEvent, CanaryNotActiveEventDesc)
+		recorder.Event(app, v1.EventTypeNormal, failEvent.Name, failEvent.Message())
 		return nil
 	}
 
 	if len(app.Spec.Deployments) <= 1 {
-		event := newCanaryEvent(app, CanaryNoDeployments, CanaryNoDeploymentsDesc)
-		recorder.Event(app, v1.EventTypeWarning, event.Name, event.Message())
+		failEvent := newCanaryEvent(app, CanaryNoDeployments, CanaryNoDeploymentsDesc)
+		recorder.Event(app, v1.EventTypeWarning, failEvent.Name, failEvent.Message())
 		return errors.New("no canary deployment found")
 	}
 
 	if app.Spec.Canary.NextScheduledTime == nil {
-		event := newCanaryEvent(app, CanaryNoScheduledSteps, CanaryNoScheduledStepsDesc)
-		recorder.Eventf(app, v1.EventTypeWarning, event.Name, event.Message())
+		failEvent := newCanaryEvent(app, CanaryNoScheduledSteps, CanaryNoScheduledStepsDesc)
+		recorder.Event(app, v1.EventTypeWarning, failEvent.Name, failEvent.Message())
 		return errors.New("canary is active but the next step is not scheduled")
 	}
 
 	if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
-
+		if app.Spec.Canary.CurrentStep == 1 {
+			event := newCanaryEvent(app, CanaryStarted, CanaryStartedDesc)
+			recorder.Eventf(app, v1.EventTypeNormal, event.Name, event.Message())
+		}
 		// update traffic weight distributions across deployments
 		app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
 		app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
-		app.Spec.Canary.CurrentStep++
 
-		event := newCanaryNextStepEvent(app)
-		recorder.Eventf(app, v1.EventTypeNormal, event.Event.Name, event.Message())
+		eventStep := newCanaryNextStepEvent(app)
+		recorder.Eventf(app, v1.EventTypeNormal, eventStep.Event.Name, eventStep.Message())
 
 		if app.Spec.Canary.Target != nil {
 			// scale units based on weight and process target
@@ -562,8 +564,8 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 					logger.Info("the process: %s in not present in the updated deployment\n", processName)
 				}
 
-				event := newCanaryTargetChangeEvent(app, processName, p1Units, p2Units)
-				recorder.Eventf(app, v1.EventTypeNormal, event.Event.Name, event.Message())
+				eventTarget := newCanaryTargetChangeEvent(app, processName, p1Units, p2Units)
+				recorder.Event(app, v1.EventTypeNormal, eventTarget.Event.Name, eventTarget.Message())
 			}
 
 			// if a process in the updated deployment isn't found in target create 1 unit
@@ -597,11 +599,12 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 			app.Spec.Canary.CurrentStep = app.Spec.Canary.Steps
 			app.Spec.Canary.NextScheduledTime = nil
 
-			event := newCanaryEvent(app, CanaryFinished, CanaryFinishedDesc)
-			recorder.Eventf(app, v1.EventTypeNormal, event.Name, event.Message())
+			eventFinished := newCanaryEvent(app, CanaryFinished, CanaryFinishedDesc)
+			recorder.Event(app, v1.EventTypeNormal, eventFinished.Name, eventFinished.Message())
 
 			app.Spec.Deployments = []AppDeploymentSpec{app.Spec.Deployments[1]}
 		}
+		app.Spec.Canary.CurrentStep++
 	}
 
 	return nil
@@ -725,23 +728,27 @@ func CanaryEventFromMessage(msg string) (*CanaryEvent, error) {
 type CanaryNextStepEvent struct {
 	Event CanaryEvent
 
-	Step         int
-	WeightSource uint8
-	WeightDest   uint8
+	Step          int
+	VersionSource int
+	VersionDest   int
+	WeightSource  uint8
+	WeightDest    uint8
 }
 
 func newCanaryNextStepEvent(app *App) CanaryNextStepEvent {
 	return CanaryNextStepEvent{
 		Event: newCanaryEvent(app, CanaryNextStep, CanaryNextStepDesc),
 
-		Step:         app.Spec.Canary.CurrentStep,
-		WeightSource: app.Spec.Deployments[0].RoutingSettings.Weight,
-		WeightDest:   app.Spec.Deployments[1].RoutingSettings.Weight,
+		Step:          app.Spec.Canary.CurrentStep,
+		VersionSource: int(app.Spec.Deployments[0].Version),
+		VersionDest:   int(app.Spec.Deployments[1].Version),
+		WeightSource:  app.Spec.Deployments[0].RoutingSettings.Weight,
+		WeightDest:    app.Spec.Deployments[1].RoutingSettings.Weight,
 	}
 }
 
 func (c CanaryNextStepEvent) Message() string {
-	return fmt.Sprintf("%s: Step: %d | Source weight: %d | Dest weight: %d", c.Event.Message(), c.Step, c.WeightSource, c.WeightDest)
+	return fmt.Sprintf("%s: Step: %d | Source version: %d | Dest version: %d | Source weight: %d | Dest weight: %d", c.Event.Message(), c.Step, c.VersionSource, c.VersionDest, c.WeightSource, c.WeightDest)
 }
 
 // CanaryNextStepEventFromString creates CanaryNextStepEvent from given message
@@ -761,7 +768,7 @@ func CanaryNextStepEventFromString(msg string) (*CanaryNextStepEvent, error) {
 		Event: *canaryEvent,
 	}
 
-	_, err = fmt.Sscanf(split[1], " Step: %d | Source weight: %d | Dest weight: %d", &event.Step, &event.WeightSource, &event.WeightDest)
+	_, err = fmt.Sscanf(split[1], " Step: %d | Source version: %d | Dest version: %d | Source weight: %d | Dest weight: %d", &event.Step, &event.VersionSource, &event.VersionDest, &event.WeightSource, &event.WeightDest)
 	if err != nil {
 		return nil, fmt.Errorf(`unable to parse CanaryEvent: %s, err: %v`, msg, err)
 	}
@@ -772,6 +779,8 @@ func CanaryNextStepEventFromString(msg string) (*CanaryNextStepEvent, error) {
 type CanaryTargetChangeEvent struct {
 	Event CanaryEvent
 
+	VersionSource           int
+	VersionDest             int
 	ProcessName             string
 	SourceProcessUnits      int
 	DestinationProcessUnits int
@@ -781,6 +790,8 @@ func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destU
 	return CanaryTargetChangeEvent{
 		Event: newCanaryEvent(app, CanaryStepTarget, CanaryStepTargetDesc),
 
+		VersionSource:           int(app.Spec.Deployments[0].Version),
+		VersionDest:             int(app.Spec.Deployments[1].Version),
 		ProcessName:             processName,
 		SourceProcessUnits:      sourceUnits,
 		DestinationProcessUnits: destUnits,
@@ -788,7 +799,7 @@ func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destU
 }
 
 func (c CanaryTargetChangeEvent) Message() string {
-	return fmt.Sprintf("%s: Process: %s | Source units: %d | Dest units: %d", c.Event.Message(), c.ProcessName, c.SourceProcessUnits, c.DestinationProcessUnits)
+	return fmt.Sprintf("%s: Source version: %d | Dest version: %d | Process: %s | Source units: %d | Dest units: %d", c.Event.Message(), c.VersionSource, c.VersionDest, c.ProcessName, c.SourceProcessUnits, c.DestinationProcessUnits)
 }
 
 // CanaryTargetChangeEventFromString creates CanaryTargetChangeEvent from given message
@@ -808,7 +819,7 @@ func CanaryTargetChangeEventFromString(msg string) (*CanaryTargetChangeEvent, er
 		Event: *canaryEvent,
 	}
 
-	_, err = fmt.Sscanf(split[1], " Process: %s | Source units: %d | Dest units: %d", &event.ProcessName, &event.SourceProcessUnits, &event.DestinationProcessUnits)
+	_, err = fmt.Sscanf(split[1], " Source version: %d | Dest version: %d | Process: %s | Source units: %d | Dest units: %d", &event.VersionSource, &event.VersionDest, &event.ProcessName, &event.SourceProcessUnits, &event.DestinationProcessUnits)
 	if err != nil {
 		return nil, fmt.Errorf(`unable to parse CanaryEvent: %s, err: %v`, msg, err)
 	}

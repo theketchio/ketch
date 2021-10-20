@@ -35,7 +35,7 @@ func WaitForDeployment(ctx context.Context, svc *Services, app *ketchv1.App, tim
 				return errors.New("wait for deployment channel closed")
 			}
 			if evt, ok := msg.Object.(*corev1.Event); ok {
-				reason, err := ketchv1.ParseAppReconcileMessage(evt.Reason)
+				reason, err := ketchv1.ParseAppReconcileOutcome(evt.Reason)
 				if err != nil {
 					return err
 				}
