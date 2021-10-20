@@ -237,7 +237,7 @@ func TestParseReconcileReason(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got, err := ParseAppReconcileMessage(test.msg)
+		got, err := ketchv1.ParseAppReconcileOutcome(test.msg)
 		if len(test.expectedErr) > 0 {
 			assert.Equal(t, test.expectedErr, err.Error())
 		} else {
