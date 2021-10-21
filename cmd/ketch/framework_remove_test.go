@@ -22,6 +22,27 @@ func TestFrameworkRemove(t *testing.T) {
 		Spec: ketchv1.FrameworkSpec{
 			NamespaceName: "test-namespace",
 		},
+		Status: ketchv1.FrameworkStatus{
+			Apps: []string{"test-app"},
+		},
+	}
+	testFrameworkWithDeadApp := &ketchv1.Framework{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-framework",
+		},
+		Spec: ketchv1.FrameworkSpec{
+			NamespaceName: "test-namespace",
+		},
+		Status: ketchv1.FrameworkStatus{
+			Apps: []string{"nonexistent-app"},
+		},
+	}
+	testApp := &ketchv1.App{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-app",
+		},
 	}
 
 	tests := []struct {
@@ -34,10 +55,18 @@ func TestFrameworkRemove(t *testing.T) {
 		{
 			name: "remove framework and associated namespace",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{testFramework},
+				CtrlClientObjects: []runtime.Object{testFramework, testApp},
 			},
 			options:   frameworkRemoveOptions{Name: testFramework.Name},
 			framework: testFramework,
+		},
+		{
+			name: "prune apps from framework status, remove framework and associated namespace",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects: []runtime.Object{testFrameworkWithDeadApp, testApp},
+			},
+			options:   frameworkRemoveOptions{Name: testFrameworkWithDeadApp.Name},
+			framework: testFrameworkWithDeadApp,
 		},
 	}
 
@@ -57,7 +86,6 @@ func TestFrameworkRemove(t *testing.T) {
 				t.Errorf("failed to list test framework: %s", err.Error())
 				return
 			}
-
 			assert.Equal(t, 0, len(frameworks.Items))
 		})
 	}
