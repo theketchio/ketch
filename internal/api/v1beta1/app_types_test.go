@@ -1360,6 +1360,7 @@ func TestCanaryNextStepEvent_Message(t *testing.T) {
 	require.Equal(t, "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source version: 1 | Dest version: 2 | Source weight: 30 | Dest weight: 70", event.Message())
 }
 
+/*
 func TestCanaryNextStepEventFromString(t *testing.T) {
 	message := "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source version: 1 | Dest version: 2 | Source weight: 30 | Dest weight: 70"
 	event, err := CanaryNextStepEventFromString(message)
@@ -1379,7 +1380,7 @@ func TestCanaryNextStepEventFromString(t *testing.T) {
 			WeightDest:    70,
 		},
 	)
-}
+}*/
 
 func TestCanaryTargetChangeEvent_Message(t *testing.T) {
 	event := newCanaryTargetChangeEvent(&App{
@@ -1397,6 +1398,7 @@ func TestCanaryTargetChangeEvent_Message(t *testing.T) {
 	require.Equal(t, "CanaryStepTarget - Canary for app app1 | version 2 - units change: Source version: 1 | Dest version: 2 | Process: p1 | Source units: 2 | Dest units: 5", event.Message())
 }
 
+/*
 func TestCanaryTargetChangeEventFromString(t *testing.T) {
 	message := "CanaryStepTarget - Canary for app app1 | version 2 - units change: Source version: 1 | Dest version: 2 | Process: p1 | Source units: 2 | Dest units: 5"
 	event, err := CanaryTargetChangeEventFromString(message)
@@ -1416,7 +1418,7 @@ func TestCanaryTargetChangeEventFromString(t *testing.T) {
 			DestinationProcessUnits: 5,
 		},
 	)
-}
+}*/
 
 func TestAppReconcileOutcome_String(t *testing.T) {
 	event := AppReconcileOutcome{

@@ -21,7 +21,8 @@ import (
 	"fmt"
 	"math"
 	"regexp"
-	"strings"
+	"strconv"
+	//"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -524,33 +525,33 @@ func getUpdatedUnits(weight uint8, targetUnits uint16) (int, int) {
 func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder) error {
 	if !app.Spec.Canary.Active {
 		failEvent := newCanaryEvent(app, CanaryNotActiveEvent, CanaryNotActiveEventDesc)
-		recorder.Event(app, v1.EventTypeNormal, failEvent.Name, failEvent.Message())
+		recorder.AnnotatedEventf(app, failEvent.Annotations, v1.EventTypeNormal, failEvent.Name, failEvent.Message())
 		return nil
 	}
 
 	if len(app.Spec.Deployments) <= 1 {
 		failEvent := newCanaryEvent(app, CanaryNoDeployments, CanaryNoDeploymentsDesc)
-		recorder.Event(app, v1.EventTypeWarning, failEvent.Name, failEvent.Message())
+		recorder.AnnotatedEventf(app, failEvent.Annotations, v1.EventTypeWarning, failEvent.Name, failEvent.Message())
 		return errors.New("no canary deployment found")
 	}
 
 	if app.Spec.Canary.NextScheduledTime == nil {
 		failEvent := newCanaryEvent(app, CanaryNoScheduledSteps, CanaryNoScheduledStepsDesc)
-		recorder.Event(app, v1.EventTypeWarning, failEvent.Name, failEvent.Message())
+		recorder.AnnotatedEventf(app, failEvent.Annotations, v1.EventTypeWarning, failEvent.Name, failEvent.Message())
 		return errors.New("canary is active but the next step is not scheduled")
 	}
 
 	if app.Spec.Canary.NextScheduledTime.Equal(&now) || app.Spec.Canary.NextScheduledTime.Before(&now) {
 		if app.Spec.Canary.CurrentStep == 1 {
 			event := newCanaryEvent(app, CanaryStarted, CanaryStartedDesc)
-			recorder.Eventf(app, v1.EventTypeNormal, event.Name, event.Message())
+			recorder.AnnotatedEventf(app, event.Annotations, v1.EventTypeNormal, event.Name, event.Message())
 		}
 		// update traffic weight distributions across deployments
 		app.Spec.Deployments[0].RoutingSettings.Weight = app.Spec.Deployments[0].RoutingSettings.Weight - app.Spec.Canary.StepWeight
 		app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
 
 		eventStep := newCanaryNextStepEvent(app)
-		recorder.Eventf(app, v1.EventTypeNormal, eventStep.Event.Name, eventStep.Message())
+		recorder.AnnotatedEventf(app, eventStep.Annotations, v1.EventTypeNormal, eventStep.Name, eventStep.Message())
 
 		if app.Spec.Canary.Target != nil {
 			// scale units based on weight and process target
@@ -565,7 +566,7 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 				}
 
 				eventTarget := newCanaryTargetChangeEvent(app, processName, p1Units, p2Units)
-				recorder.Event(app, v1.EventTypeNormal, eventTarget.Event.Name, eventTarget.Message())
+				recorder.AnnotatedEventf(app, eventTarget.Annotations, v1.EventTypeNormal, eventTarget.Name, eventTarget.Message())
 			}
 
 			// if a process in the updated deployment isn't found in target create 1 unit
@@ -682,7 +683,7 @@ const (
 type CanaryEvent struct {
 	// AppName represents event for certain app
 	AppName string
-	// DeploymentVersion represents for which deployment event is accosted with
+	// DeploymentVersion represents for which deployment event is associated with
 	DeploymentVersion int
 
 	// Name represents canary event name. It is translated into Reason column of kubernetes event
@@ -691,6 +692,8 @@ type CanaryEvent struct {
 	Name string
 	// Description states what is the outcome of this event
 	Description string
+	// Annotations contain details on the Canary deployment
+	Annotations map[string]string
 }
 
 func newCanaryEvent(app *App, event string, desc string) CanaryEvent {
@@ -704,6 +707,12 @@ func newCanaryEvent(app *App, event string, desc string) CanaryEvent {
 		DeploymentVersion: int(version),
 		Name:              event,
 		Description:       desc,
+		Annotations: map[string]string{
+			"canary.shipa.io/app-name":           app.Name,
+			"canary.shipa.io/deployment-version": version.String(),
+			"canary.shipa.io/event-name":         event,
+			"canary.shipa.io/description":        desc,
+		},
 	}
 }
 
@@ -725,7 +734,7 @@ func CanaryEventFromMessage(msg string) (*CanaryEvent, error) {
 	return &event, nil
 }
 
-type CanaryNextStepEvent struct {
+/*type CanaryNextStepEvent struct {
 	Event CanaryEvent
 
 	Step          int
@@ -733,24 +742,48 @@ type CanaryNextStepEvent struct {
 	VersionDest   int
 	WeightSource  uint8
 	WeightDest    uint8
-}
+	Annotations   map[string]string
+}*/
 
-func newCanaryNextStepEvent(app *App) CanaryNextStepEvent {
-	return CanaryNextStepEvent{
+func newCanaryNextStepEvent(app *App) CanaryEvent {
+	additionalAnnotations := map[string]string{
+		"canary.shipa.io/step":           strconv.Itoa(app.Spec.Canary.CurrentStep),
+		"canary.shipa.io/version-source": app.Spec.Deployments[0].Version.String(),
+		"canary.shipa.io/version-dest":   app.Spec.Deployments[1].Version.String(),
+		"canary.shipa.io/weight-source":  strconv.Itoa(int(app.Spec.Deployments[0].RoutingSettings.Weight)),
+		"canary.shipa.io/weight-dest":    strconv.Itoa(int(app.Spec.Deployments[1].RoutingSettings.Weight)),
+	}
+	event := newCanaryEvent(app, CanaryNextStep, CanaryNextStepDesc)
+	// there should not be any overwriting here, but can add checking later
+	for key, value := range additionalAnnotations {
+		event.Annotations[key] = value
+	}
+	return event
+	/*return CanaryNextStepEvent{
 		Event: newCanaryEvent(app, CanaryNextStep, CanaryNextStepDesc),
 
+		// These other fields may no longer be needed with annotations
 		Step:          app.Spec.Canary.CurrentStep,
 		VersionSource: int(app.Spec.Deployments[0].Version),
 		VersionDest:   int(app.Spec.Deployments[1].Version),
 		WeightSource:  app.Spec.Deployments[0].RoutingSettings.Weight,
 		WeightDest:    app.Spec.Deployments[1].RoutingSettings.Weight,
-	}
+		Annotations: map[string]string{
+			"canary.shipa.io/step": strconv.Itoa(app.Spec.Canary.CurrentStep),
+			"canary.shipa.io/version-source": app.Spec.Deployments[0].Version.String(),
+			"canary.shipa.io/version-dest": app.Spec.Deployments[1].Version.String(),
+			"canary.shipa.io/weight-source": strconv.Itoa(int(app.Spec.Deployments[0].RoutingSettings.Weight)),
+			"canary.shipa.io/weight-dest": strconv.Itoa(int(app.Spec.Deployments[1].RoutingSettings.Weight)),
+		},
+	}*/
 }
 
-func (c CanaryNextStepEvent) Message() string {
+/*func (c CanaryNextStepEvent) Message() string {
 	return fmt.Sprintf("%s: Step: %d | Source version: %d | Dest version: %d | Source weight: %d | Dest weight: %d", c.Event.Message(), c.Step, c.VersionSource, c.VersionDest, c.WeightSource, c.WeightDest)
 }
 
+
+// Are these even needed in ketch? They only seem like they would be needed on Shipa side
 // CanaryNextStepEventFromString creates CanaryNextStepEvent from given message
 // NOTE as description can contain spaces, it won't be perfectly populated for some events
 func CanaryNextStepEventFromString(msg string) (*CanaryNextStepEvent, error) {
@@ -774,8 +807,8 @@ func CanaryNextStepEventFromString(msg string) (*CanaryNextStepEvent, error) {
 	}
 
 	return &event, nil
-}
-
+}*/
+/*
 type CanaryTargetChangeEvent struct {
 	Event CanaryEvent
 
@@ -784,20 +817,43 @@ type CanaryTargetChangeEvent struct {
 	ProcessName             string
 	SourceProcessUnits      int
 	DestinationProcessUnits int
-}
+	Annotations				map[string]string
+}*/
 
-func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destUnits int) CanaryTargetChangeEvent {
-	return CanaryTargetChangeEvent{
+func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destUnits int) CanaryEvent {
+	additionalAnnotations := map[string]string{
+		"canary.shipa.io/version-source":       app.Spec.Deployments[0].Version.String(),
+		"canary.shipa.io/version-dest":         app.Spec.Deployments[1].Version.String(),
+		"canary.shipa.io/process-name":         processName,
+		"canary.shipa.io/source-process-units": strconv.Itoa(sourceUnits),
+		"canary.shipa.io/dest-process-units":   strconv.Itoa(destUnits),
+	}
+	event := newCanaryEvent(app, CanaryStepTarget, CanaryStepTargetDesc)
+	for key, value := range additionalAnnotations {
+		event.Annotations[key] = value
+	}
+
+	return event
+	/*return CanaryTargetChangeEvent{
 		Event: newCanaryEvent(app, CanaryStepTarget, CanaryStepTargetDesc),
 
+		// These other fields may no longer be needed with annotations
 		VersionSource:           int(app.Spec.Deployments[0].Version),
 		VersionDest:             int(app.Spec.Deployments[1].Version),
 		ProcessName:             processName,
 		SourceProcessUnits:      sourceUnits,
 		DestinationProcessUnits: destUnits,
-	}
+		Annotations:			 map[string]string{
+			"canary.shipa.io/version-source": app.Spec.Deployments[0].Version.String(),
+			"canary.shipa.io/version-dest": app.Spec.Deployments[1].Version.String(),
+			"canary.shipa.io/process-name": processName,
+			"canary.shipa.io/source-process-units": strconv.Itoa(sourceUnits),
+			"canary.shipa.io/dest-process-units": strconv.Itoa(destUnits),
+		},
+	}*/
 }
 
+/*
 func (c CanaryTargetChangeEvent) Message() string {
 	return fmt.Sprintf("%s: Source version: %d | Dest version: %d | Process: %s | Source units: %d | Dest units: %d", c.Event.Message(), c.VersionSource, c.VersionDest, c.ProcessName, c.SourceProcessUnits, c.DestinationProcessUnits)
 }
@@ -825,7 +881,7 @@ func CanaryTargetChangeEventFromString(msg string) (*CanaryTargetChangeEvent, er
 	}
 
 	return &event, nil
-}
+}*/
 
 const (
 	AppReconcileOutcomeReason = "AppReconcileOutcome"
