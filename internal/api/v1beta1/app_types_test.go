@@ -1318,6 +1318,12 @@ func TestGetUpdatedUnits(t *testing.T) {
 }
 
 func TestCanaryEvent_Message(t *testing.T) {
+	expectedAnnotations := map[string]string{
+		"canary.shipa.io/app-name":           "app1",
+		"canary.shipa.io/deployment-version": "2",
+		"canary.shipa.io/description":        "started",
+		"canary.shipa.io/event-name":         "CanaryStarted",
+	}
 	event := newCanaryEvent(&App{
 		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
 		Spec: AppSpec{
@@ -1329,23 +1335,21 @@ func TestCanaryEvent_Message(t *testing.T) {
 		}},
 		CanaryStarted, CanaryStartedDesc,
 	)
-
-	require.Equal(t, "CanaryStarted - Canary for app app1 | version 2 - started", event.Message())
-}
-
-func TestCanaryEventFromMessage(t *testing.T) {
-	message := "CanaryStarted - Canary for app app1 | version 2 - started"
-	event, err := CanaryEventFromMessage(message)
-	require.Nil(t, err)
-	require.Equal(t, CanaryEvent{
-		AppName:           "app1",
-		DeploymentVersion: 2,
-		Name:              "CanaryStarted",
-		Description:       "started",
-	}, *event)
+	require.Equal(t, expectedAnnotations, event.Annotations)
 }
 
 func TestCanaryNextStepEvent_Message(t *testing.T) {
+	expectedAnnotations := map[string]string{
+		"canary.shipa.io/app-name":           "app1",
+		"canary.shipa.io/deployment-version": "2",
+		"canary.shipa.io/description":        "weight change",
+		"canary.shipa.io/event-name":         "CanaryNextStep",
+		"canary.shipa.io/step":               "10",
+		"canary.shipa.io/version-dest":       "2",
+		"canary.shipa.io/version-source":     "1",
+		"canary.shipa.io/weight-dest":        "70",
+		"canary.shipa.io/weight-source":      "30",
+	}
 	event := newCanaryNextStepEvent(&App{
 		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
 		Spec: AppSpec{
@@ -1356,33 +1360,21 @@ func TestCanaryNextStepEvent_Message(t *testing.T) {
 			},
 		}},
 	)
-
-	require.Equal(t, "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source version: 1 | Dest version: 2 | Source weight: 30 | Dest weight: 70", event.Message())
+	require.Equal(t, expectedAnnotations, event.Annotations)
 }
 
-/*
-func TestCanaryNextStepEventFromString(t *testing.T) {
-	message := "CanaryNextStep - Canary for app app1 | version 2 - weight change: Step: 10 | Source version: 1 | Dest version: 2 | Source weight: 30 | Dest weight: 70"
-	event, err := CanaryNextStepEventFromString(message)
-	require.Nil(t, err)
-	require.Equal(t, *event,
-		CanaryNextStepEvent{
-			Event: CanaryEvent{
-				AppName:           "app1",
-				DeploymentVersion: 2,
-				Name:              "CanaryNextStep",
-				Description:       "weight",
-			},
-			Step:          10,
-			VersionSource: 1,
-			VersionDest:   2,
-			WeightSource:  30,
-			WeightDest:    70,
-		},
-	)
-}*/
-
-func TestCanaryTargetChangeEvent_Message(t *testing.T) {
+func TestCanaryTargetChangeEvent_Annotations(t *testing.T) {
+	expectedAnnotations := map[string]string{
+		"canary.shipa.io/app-name":             "app1",
+		"canary.shipa.io/deployment-version":   "2",
+		"canary.shipa.io/description":          "units change",
+		"canary.shipa.io/dest-process-units":   "5",
+		"canary.shipa.io/event-name":           "CanaryStepTarget",
+		"canary.shipa.io/process-name":         "p1",
+		"canary.shipa.io/source-process-units": "2",
+		"canary.shipa.io/version-dest":         "2",
+		"canary.shipa.io/version-source":       "1",
+	}
 	event := newCanaryTargetChangeEvent(&App{
 		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
 		Spec: AppSpec{
@@ -1394,31 +1386,8 @@ func TestCanaryTargetChangeEvent_Message(t *testing.T) {
 		}},
 		"p1", 2, 5,
 	)
-
-	require.Equal(t, "CanaryStepTarget - Canary for app app1 | version 2 - units change: Source version: 1 | Dest version: 2 | Process: p1 | Source units: 2 | Dest units: 5", event.Message())
+	require.Equal(t, expectedAnnotations, event.Annotations)
 }
-
-/*
-func TestCanaryTargetChangeEventFromString(t *testing.T) {
-	message := "CanaryStepTarget - Canary for app app1 | version 2 - units change: Source version: 1 | Dest version: 2 | Process: p1 | Source units: 2 | Dest units: 5"
-	event, err := CanaryTargetChangeEventFromString(message)
-	require.Nil(t, err)
-	require.Equal(t, *event,
-		CanaryTargetChangeEvent{
-			Event: CanaryEvent{
-				AppName:           "app1",
-				DeploymentVersion: 2,
-				Name:              "CanaryStepTarget",
-				Description:       "units",
-			},
-			VersionSource:           1,
-			VersionDest:             2,
-			ProcessName:             "p1",
-			SourceProcessUnits:      2,
-			DestinationProcessUnits: 5,
-		},
-	)
-}*/
 
 func TestAppReconcileOutcome_String(t *testing.T) {
 	event := AppReconcileOutcome{

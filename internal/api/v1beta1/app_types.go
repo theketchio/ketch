@@ -721,30 +721,6 @@ func (c CanaryEvent) Message() string {
 	return fmt.Sprintf("%s - Canary for app %s | version %d - %s", c.Name, c.AppName, c.DeploymentVersion, c.Description)
 }
 
-// CanaryEventFromMessage creates CanaryEvent from given message
-// NOTE as description can contain spaces, it won't be perfectly populated for some events
-func CanaryEventFromMessage(msg string) (*CanaryEvent, error) {
-	event := CanaryEvent{}
-
-	_, err := fmt.Sscanf(msg, "%s - Canary for app %s | version %d - %s", &event.Name, &event.AppName, &event.DeploymentVersion, &event.Description)
-	if err != nil {
-		return nil, fmt.Errorf(`unable to parse CanaryEvent: %s, err: %v`, msg, err)
-	}
-
-	return &event, nil
-}
-
-/*type CanaryNextStepEvent struct {
-	Event CanaryEvent
-
-	Step          int
-	VersionSource int
-	VersionDest   int
-	WeightSource  uint8
-	WeightDest    uint8
-	Annotations   map[string]string
-}*/
-
 func newCanaryNextStepEvent(app *App) CanaryEvent {
 	additionalAnnotations := map[string]string{
 		"canary.shipa.io/step":           strconv.Itoa(app.Spec.Canary.CurrentStep),
@@ -759,66 +735,7 @@ func newCanaryNextStepEvent(app *App) CanaryEvent {
 		event.Annotations[key] = value
 	}
 	return event
-	/*return CanaryNextStepEvent{
-		Event: newCanaryEvent(app, CanaryNextStep, CanaryNextStepDesc),
-
-		// These other fields may no longer be needed with annotations
-		Step:          app.Spec.Canary.CurrentStep,
-		VersionSource: int(app.Spec.Deployments[0].Version),
-		VersionDest:   int(app.Spec.Deployments[1].Version),
-		WeightSource:  app.Spec.Deployments[0].RoutingSettings.Weight,
-		WeightDest:    app.Spec.Deployments[1].RoutingSettings.Weight,
-		Annotations: map[string]string{
-			"canary.shipa.io/step": strconv.Itoa(app.Spec.Canary.CurrentStep),
-			"canary.shipa.io/version-source": app.Spec.Deployments[0].Version.String(),
-			"canary.shipa.io/version-dest": app.Spec.Deployments[1].Version.String(),
-			"canary.shipa.io/weight-source": strconv.Itoa(int(app.Spec.Deployments[0].RoutingSettings.Weight)),
-			"canary.shipa.io/weight-dest": strconv.Itoa(int(app.Spec.Deployments[1].RoutingSettings.Weight)),
-		},
-	}*/
 }
-
-/*func (c CanaryNextStepEvent) Message() string {
-	return fmt.Sprintf("%s: Step: %d | Source version: %d | Dest version: %d | Source weight: %d | Dest weight: %d", c.Event.Message(), c.Step, c.VersionSource, c.VersionDest, c.WeightSource, c.WeightDest)
-}
-
-
-// Are these even needed in ketch? They only seem like they would be needed on Shipa side
-// CanaryNextStepEventFromString creates CanaryNextStepEvent from given message
-// NOTE as description can contain spaces, it won't be perfectly populated for some events
-func CanaryNextStepEventFromString(msg string) (*CanaryNextStepEvent, error) {
-	split := strings.SplitAfterN(msg, ":", 2)
-	if len(split) < 2 {
-		return nil, errors.New("invalid message format")
-	}
-
-	canaryEvent, err := CanaryEventFromMessage(split[0])
-	if err != nil {
-		return nil, err
-	}
-
-	event := CanaryNextStepEvent{
-		Event: *canaryEvent,
-	}
-
-	_, err = fmt.Sscanf(split[1], " Step: %d | Source version: %d | Dest version: %d | Source weight: %d | Dest weight: %d", &event.Step, &event.VersionSource, &event.VersionDest, &event.WeightSource, &event.WeightDest)
-	if err != nil {
-		return nil, fmt.Errorf(`unable to parse CanaryEvent: %s, err: %v`, msg, err)
-	}
-
-	return &event, nil
-}*/
-/*
-type CanaryTargetChangeEvent struct {
-	Event CanaryEvent
-
-	VersionSource           int
-	VersionDest             int
-	ProcessName             string
-	SourceProcessUnits      int
-	DestinationProcessUnits int
-	Annotations				map[string]string
-}*/
 
 func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destUnits int) CanaryEvent {
 	additionalAnnotations := map[string]string{
@@ -829,59 +746,13 @@ func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destU
 		"canary.shipa.io/dest-process-units":   strconv.Itoa(destUnits),
 	}
 	event := newCanaryEvent(app, CanaryStepTarget, CanaryStepTargetDesc)
+	// there should not be any overwriting here, but can add checking later
 	for key, value := range additionalAnnotations {
 		event.Annotations[key] = value
 	}
 
 	return event
-	/*return CanaryTargetChangeEvent{
-		Event: newCanaryEvent(app, CanaryStepTarget, CanaryStepTargetDesc),
-
-		// These other fields may no longer be needed with annotations
-		VersionSource:           int(app.Spec.Deployments[0].Version),
-		VersionDest:             int(app.Spec.Deployments[1].Version),
-		ProcessName:             processName,
-		SourceProcessUnits:      sourceUnits,
-		DestinationProcessUnits: destUnits,
-		Annotations:			 map[string]string{
-			"canary.shipa.io/version-source": app.Spec.Deployments[0].Version.String(),
-			"canary.shipa.io/version-dest": app.Spec.Deployments[1].Version.String(),
-			"canary.shipa.io/process-name": processName,
-			"canary.shipa.io/source-process-units": strconv.Itoa(sourceUnits),
-			"canary.shipa.io/dest-process-units": strconv.Itoa(destUnits),
-		},
-	}*/
 }
-
-/*
-func (c CanaryTargetChangeEvent) Message() string {
-	return fmt.Sprintf("%s: Source version: %d | Dest version: %d | Process: %s | Source units: %d | Dest units: %d", c.Event.Message(), c.VersionSource, c.VersionDest, c.ProcessName, c.SourceProcessUnits, c.DestinationProcessUnits)
-}
-
-// CanaryTargetChangeEventFromString creates CanaryTargetChangeEvent from given message
-// NOTE as description can contain spaces, it won't be perfectly populated for some events
-func CanaryTargetChangeEventFromString(msg string) (*CanaryTargetChangeEvent, error) {
-	split := strings.SplitN(msg, ":", 2)
-	if len(split) < 2 {
-		return nil, errors.New("invalid message format")
-	}
-
-	canaryEvent, err := CanaryEventFromMessage(split[0])
-	if err != nil {
-		return nil, err
-	}
-
-	event := CanaryTargetChangeEvent{
-		Event: *canaryEvent,
-	}
-
-	_, err = fmt.Sscanf(split[1], " Source version: %d | Dest version: %d | Process: %s | Source units: %d | Dest units: %d", &event.VersionSource, &event.VersionDest, &event.ProcessName, &event.SourceProcessUnits, &event.DestinationProcessUnits)
-	if err != nil {
-		return nil, fmt.Errorf(`unable to parse CanaryEvent: %s, err: %v`, msg, err)
-	}
-
-	return &event, nil
-}*/
 
 const (
 	AppReconcileOutcomeReason = "AppReconcileOutcome"
