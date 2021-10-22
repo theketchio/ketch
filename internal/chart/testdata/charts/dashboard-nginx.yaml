@@ -345,6 +345,9 @@ metadata:
     kubernetes.io/ingress.class: "gke"
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "30"
+    theketch.io/metadata-item-kind: Ingress
+    theketch.io/metadata-item-apiVersion: networking.k8s.io/v1
+    theketch.io/ingress-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
@@ -395,6 +398,9 @@ metadata:
     kubernetes.io/ingress.class: "gke"
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "70"
+    theketch.io/metadata-item-kind: Ingress
+    theketch.io/metadata-item-apiVersion: networking.k8s.io/v1
+    theketch.io/ingress-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
 spec:

@@ -12,6 +12,8 @@ metadata:
     {{- end }}
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
+    {{- $data := dict "kind" "Ingress" "apiVersion" "networking.k8s.io/v1" "metadataItems" $.Values.app.metadataAnnotations }}
+    {{- include "ketch.renderMetadata" $data | nindent 4 }}
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
