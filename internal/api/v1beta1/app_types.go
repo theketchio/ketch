@@ -22,7 +22,6 @@ import (
 	"math"
 	"regexp"
 	"strconv"
-	//"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -551,7 +550,6 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 		app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
 
 		eventStep := newCanaryNextStepEvent(app)
-		fmt.Printf("current step %d, next step annotations: %+v\n", app.Spec.Canary.CurrentStep, eventStep.Annotations)
 		recorder.AnnotatedEventf(app, eventStep.Annotations, v1.EventTypeNormal, eventStep.Name, eventStep.Message())
 
 		if app.Spec.Canary.Target != nil {
@@ -568,7 +566,6 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 
 				eventTarget := newCanaryTargetChangeEvent(app, processName, p1Units, p2Units)
 				recorder.AnnotatedEventf(app, eventTarget.Annotations, v1.EventTypeNormal, eventTarget.Name, eventTarget.Message())
-				fmt.Printf("current step %d, target annotations: %+v\n", app.Spec.Canary.CurrentStep, eventTarget.Annotations)
 			}
 
 			// if a process in the updated deployment isn't found in target create 1 unit
@@ -579,7 +576,6 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 			}
 			// for previous deployment, any processes not in target will be terminated by the end of the canary deployment
 		}
-		fmt.Println()
 
 		// update next scheduled time
 		*app.Spec.Canary.NextScheduledTime = metav1.NewTime(app.Spec.Canary.NextScheduledTime.Add(app.Spec.Canary.StepTimeInteval))
@@ -746,7 +742,6 @@ func newCanaryNextStepEvent(app *App) CanaryEvent {
 		CanaryAnnotationWeightDest:    strconv.Itoa(int(app.Spec.Deployments[1].RoutingSettings.Weight)),
 	}
 	event := newCanaryEvent(app, CanaryNextStep, CanaryNextStepDesc)
-	// there should not be any overwriting here, but can add checking later
 	for key, value := range additionalAnnotations {
 		event.Annotations[key] = value
 	}
@@ -762,11 +757,9 @@ func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destU
 		CanaryAnnotationProcessUnitsDest:   strconv.Itoa(destUnits),
 	}
 	event := newCanaryEvent(app, CanaryStepTarget, CanaryStepTargetDesc)
-	// there should not be any overwriting here, but can add checking later
 	for key, value := range additionalAnnotations {
 		event.Annotations[key] = value
 	}
-
 	return event
 }
 
