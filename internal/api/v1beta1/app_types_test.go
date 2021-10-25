@@ -1319,10 +1319,10 @@ func TestGetUpdatedUnits(t *testing.T) {
 
 func TestCanaryEvent_Message(t *testing.T) {
 	expectedAnnotations := map[string]string{
-		"canary.shipa.io/app-name":           "app1",
-		"canary.shipa.io/deployment-version": "2",
-		"canary.shipa.io/description":        "started",
-		"canary.shipa.io/event-name":         "CanaryStarted",
+		CanaryAnnotationAppName:            "app1",
+		CanaryAnnotationDevelopmentVersion: "2",
+		CanaryAnnotationDescription:        "started",
+		CanaryAnnotationEventName:          "CanaryStarted",
 	}
 	event := newCanaryEvent(&App{
 		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
@@ -1340,15 +1340,15 @@ func TestCanaryEvent_Message(t *testing.T) {
 
 func TestCanaryNextStepEvent_Message(t *testing.T) {
 	expectedAnnotations := map[string]string{
-		"canary.shipa.io/app-name":           "app1",
-		"canary.shipa.io/deployment-version": "2",
-		"canary.shipa.io/description":        "weight change",
-		"canary.shipa.io/event-name":         "CanaryNextStep",
-		"canary.shipa.io/step":               "10",
-		"canary.shipa.io/version-dest":       "2",
-		"canary.shipa.io/version-source":     "1",
-		"canary.shipa.io/weight-dest":        "70",
-		"canary.shipa.io/weight-source":      "30",
+		CanaryAnnotationAppName:            "app1",
+		CanaryAnnotationDevelopmentVersion: "2",
+		CanaryAnnotationDescription:        "weight change",
+		CanaryAnnotationEventName:          "CanaryNextStep",
+		CanaryAnnotationStep:               "10",
+		CanaryAnnotationVersionDest:        "2",
+		CanaryAnnotationVersionSource:      "1",
+		CanaryAnnotationWeightDest:         "70",
+		CanaryAnnotationWeightSource:       "30",
 	}
 	event := newCanaryNextStepEvent(&App{
 		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
@@ -1365,15 +1365,15 @@ func TestCanaryNextStepEvent_Message(t *testing.T) {
 
 func TestCanaryTargetChangeEvent_Annotations(t *testing.T) {
 	expectedAnnotations := map[string]string{
-		"canary.shipa.io/app-name":             "app1",
-		"canary.shipa.io/deployment-version":   "2",
-		"canary.shipa.io/description":          "units change",
-		"canary.shipa.io/dest-process-units":   "5",
-		"canary.shipa.io/event-name":           "CanaryStepTarget",
-		"canary.shipa.io/process-name":         "p1",
-		"canary.shipa.io/source-process-units": "2",
-		"canary.shipa.io/version-dest":         "2",
-		"canary.shipa.io/version-source":       "1",
+		CanaryAnnotationAppName:            "app1",
+		CanaryAnnotationDevelopmentVersion: "2",
+		CanaryAnnotationDescription:        "units change",
+		CanaryAnnotationProcessUnitsDest:   "5",
+		CanaryAnnotationEventName:          "CanaryStepTarget",
+		CanaryAnnotationProcessName:        "p1",
+		CanaryAnnotationProcessUnitsSource: "2",
+		CanaryAnnotationVersionDest:        "2",
+		CanaryAnnotationVersionSource:      "1",
 	}
 	event := newCanaryTargetChangeEvent(&App{
 		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
