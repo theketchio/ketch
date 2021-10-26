@@ -64,5 +64,5 @@ func watchAppReconcileEvent(ctx context.Context, kubeClient kubernetes.Interface
 		"reason":                    reason.String(),
 	}).AsSelector()
 	return kubeClient.CoreV1().
-		Events(app.Namespace).Watch(ctx, metav1.ListOptions{FieldSelector: selector.String()})
+		Events(app.Namespace).Watch(ctx, metav1.ListOptions{FieldSelector: selector.String(), ResourceVersion: app.ResourceVersion})
 }
