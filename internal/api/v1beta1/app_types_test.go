@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"testing/quick"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -1022,7 +1021,7 @@ func TestApp_DoCanary(t *testing.T) {
 						StepWeight:        33,
 						StepTimeInteval:   10 * time.Minute,
 						NextScheduledTime: timeRef(10, 30),
-						CurrentStep:       2,
+						CurrentStep:       3,
 						Active:            true,
 					},
 					Deployments: []AppDeploymentSpec{
@@ -1037,7 +1036,7 @@ func TestApp_DoCanary(t *testing.T) {
 						Steps:           3,
 						StepWeight:      33,
 						StepTimeInteval: 10 * time.Minute,
-						CurrentStep:     3,
+						CurrentStep:     4,
 						Active:          false,
 					},
 					Deployments: []AppDeploymentSpec{
@@ -1251,15 +1250,230 @@ func TestValidateMetadataItem(t *testing.T) {
 }
 
 func TestGetUpdatedUnits(t *testing.T) {
-	comm := func(weight uint8, target uint16) bool {
-		p1u, p2u := getUpdatedUnits(weight, target)
-		if (p1u + p2u) != int(target) {
-			return false
-		}
-		return true
+	tests := []struct {
+		name   string
+		weight uint8
+		target uint16
+
+		expectedSource int
+		expectedDest   int
+	}{
+		{
+			name:   "small weight, big target",
+			weight: 1,
+			target: 10,
+
+			expectedSource: 1,
+			expectedDest:   10,
+		},
+		{
+			name:   "big weight, small target",
+			weight: 75,
+			target: 1,
+
+			expectedSource: 1,
+			expectedDest:   1,
+		},
+		{
+			name:   "big weight, small target",
+			weight: 50,
+			target: 1,
+
+			expectedSource: 1,
+			expectedDest:   1,
+		},
+		{
+			name:   "equal distribution",
+			weight: 50,
+			target: 2,
+
+			expectedSource: 1,
+			expectedDest:   1,
+		},
+		{
+			name:   "more in second",
+			weight: 50,
+			target: 3,
+
+			expectedSource: 1,
+			expectedDest:   2,
+		},
+		{
+			name:   "odd number",
+			weight: 33,
+			target: 10,
+
+			expectedSource: 3,
+			expectedDest:   7,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			source, dest := getUpdatedUnits(tt.weight, tt.target)
+			if source != tt.expectedSource || dest != tt.expectedDest {
+				t.Errorf("FAIL: got source: %d, want source: %d, got dest: %d, want dest: %d", source, tt.expectedSource, dest, tt.expectedDest)
+			}
+		})
+	}
+}
+
+func TestCanaryEvent_Message(t *testing.T) {
+	expectedAnnotations := map[string]string{
+		CanaryAnnotationAppName:            "app1",
+		CanaryAnnotationDevelopmentVersion: "2",
+		CanaryAnnotationDescription:        "started",
+		CanaryAnnotationEventName:          "CanaryStarted",
+	}
+	event := newCanaryEvent(&App{
+		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
+		Spec: AppSpec{
+			Canary: CanarySpec{CurrentStep: 10},
+			Deployments: []AppDeploymentSpec{
+				{Version: 1, RoutingSettings: RoutingSettings{Weight: 30}},
+				{Version: 2, RoutingSettings: RoutingSettings{Weight: 70}},
+			},
+		}},
+		CanaryStarted, CanaryStartedDesc,
+	)
+	require.Equal(t, expectedAnnotations, event.Annotations)
+}
+
+func TestCanaryNextStepEvent_Message(t *testing.T) {
+	expectedAnnotations := map[string]string{
+		CanaryAnnotationAppName:            "app1",
+		CanaryAnnotationDevelopmentVersion: "2",
+		CanaryAnnotationDescription:        "weight change",
+		CanaryAnnotationEventName:          "CanaryNextStep",
+		CanaryAnnotationStep:               "10",
+		CanaryAnnotationVersionDest:        "2",
+		CanaryAnnotationVersionSource:      "1",
+		CanaryAnnotationWeightDest:         "70",
+		CanaryAnnotationWeightSource:       "30",
+	}
+	event := newCanaryNextStepEvent(&App{
+		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
+		Spec: AppSpec{
+			Canary: CanarySpec{CurrentStep: 10},
+			Deployments: []AppDeploymentSpec{
+				{Version: 1, RoutingSettings: RoutingSettings{Weight: 30}},
+				{Version: 2, RoutingSettings: RoutingSettings{Weight: 70}},
+			},
+		}},
+	)
+	require.Equal(t, expectedAnnotations, event.Annotations)
+}
+
+func TestCanaryTargetChangeEvent_Annotations(t *testing.T) {
+	expectedAnnotations := map[string]string{
+		CanaryAnnotationAppName:            "app1",
+		CanaryAnnotationDevelopmentVersion: "2",
+		CanaryAnnotationDescription:        "units change",
+		CanaryAnnotationProcessUnitsDest:   "5",
+		CanaryAnnotationEventName:          "CanaryStepTarget",
+		CanaryAnnotationProcessName:        "p1",
+		CanaryAnnotationProcessUnitsSource: "2",
+		CanaryAnnotationVersionDest:        "2",
+		CanaryAnnotationVersionSource:      "1",
+	}
+	event := newCanaryTargetChangeEvent(&App{
+		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
+		Spec: AppSpec{
+			Canary: CanarySpec{CurrentStep: 10},
+			Deployments: []AppDeploymentSpec{
+				{Version: 1, RoutingSettings: RoutingSettings{Weight: 30}},
+				{Version: 2, RoutingSettings: RoutingSettings{Weight: 70}},
+			},
+		}},
+		"p1", 2, 5,
+	)
+	require.Equal(t, expectedAnnotations, event.Annotations)
+}
+
+func TestAppReconcileOutcome_String(t *testing.T) {
+	event := AppReconcileOutcome{
+		AppName:         "app1",
+		DeploymentCount: 5,
+	}
+	require.Equal(t, "app app1 5 reconcile success", event.String())
+	require.Equal(t, "app app1 5 reconcile fail: [failed to do something]", event.String(fmt.Errorf("failed to do something")))
+}
+
+func TestParseAppReconcileOutcome(t *testing.T) {
+	msg := "app app1 5 reconcile success"
+	outcome, err := ParseAppReconcileOutcome(msg)
+	require.Nil(t, err)
+	require.Equal(t, AppReconcileOutcome{
+		AppName:         "app1",
+		DeploymentCount: 5,
+	}, *outcome)
+}
+
+func TestParseAppReconcileOutcome_Multiple(t *testing.T) {
+	tests := []struct {
+		msg             string
+		expectedApp     string
+		expectedVersion int
+		expectedErr     string
+		expectedString  string
+	}{
+		{
+			msg: "app test 1 reconcile success",
+
+			expectedApp:     "test",
+			expectedVersion: 1,
+			expectedString:  "app test 1 reconcile success",
+			expectedErr:     "",
+		},
+		{
+			msg: "app test34s 1 reconcile success",
+
+			expectedApp:     "test34s",
+			expectedVersion: 1,
+			expectedString:  "app test34s 1 reconcile success",
+			expectedErr:     "",
+		},
+		{
+			msg: "app test34s 2 reconcile success",
+
+			expectedApp:     "test34s",
+			expectedVersion: 2,
+			expectedString:  "app test34s 2 reconcile success",
+			expectedErr:     "",
+		},
+		{
+			msg:         "sdfsdf",
+			expectedErr: "unable to parse reconcile reason: input does not match format",
+		},
+		{
+			msg:         "",
+			expectedErr: "unable to parse reconcile reason: unexpected EOF",
+		},
+		{
+			msg: "app test 1asdfadfasfasdf reconcile 34rt w",
+
+			expectedApp:     "test",
+			expectedVersion: 1,
+			expectedString:  "app test 1 reconcile asdfadfasfasdf 34rt w",
+			expectedErr:     "unable to parse reconcile reason: expected space in input to match format",
+		},
+		{
+			msg: "app test 1 reconcile asdfadfasfasdf 34rt w",
+
+			expectedApp:     "test",
+			expectedVersion: 1,
+			expectedString:  "app test 1 reconcile success",
+			expectedErr:     "",
+		},
 	}
 
-	if err := quick.Check(comm, nil); err != nil {
-		t.Error(err)
+	for _, test := range tests {
+		got, err := ParseAppReconcileOutcome(test.msg)
+		if err != nil {
+			require.Equal(t, test.expectedErr, err.Error())
+		} else {
+			require.Equal(t, test.expectedApp, got.AppName)
+			require.Equal(t, test.expectedVersion, got.DeploymentCount)
+			require.Equal(t, test.expectedString, got.String())
+		}
 	}
 }
