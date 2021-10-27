@@ -107,6 +107,7 @@ func main() {
 			return chart.NewHelmClient(namespace)
 		},
 		Now:      time.Now,
+		Group:    group,
 		Recorder: mgr.GetEventRecorderFor("App"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "App")

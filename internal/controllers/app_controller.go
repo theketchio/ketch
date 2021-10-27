@@ -49,6 +49,8 @@ type AppReconciler struct {
 	HelmFactoryFn  helmFactoryFn
 	Now            timeNowFn
 	Recorder       record.EventRecorder
+	// Group stands for k8s group of Ketch App CRD.
+	Group string
 }
 
 // timeNowFn knows how to get the current time.
@@ -224,7 +226,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 
 		// retry until all pods for canary deployment comes to running state.
-		if err := checkPodStatus(r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
+		if err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
 
 			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
 				return reconcileResult{
@@ -280,7 +282,7 @@ func timeoutExpired(t *metav1.Time, now time.Time) bool {
 }
 
 // checkPodStatus checks whether all pods for a deployment are running or not.
-func checkPodStatus(c client.Client, appName string, depVersion ketchv1.DeploymentVersion) error {
+func checkPodStatus(group string, c client.Client, appName string, depVersion ketchv1.DeploymentVersion) error {
 	if c == nil {
 		return errors.New("client must be non-nil")
 	}
@@ -289,13 +291,13 @@ func checkPodStatus(c client.Client, appName string, depVersion ketchv1.Deployme
 		return errors.New("invalid app specifications")
 	}
 
-	// podList contains list of Pods matching the specifed labels below
+	// podList contains list of Pods matching the specified labels below
 	podList := &v1.PodList{}
 	listOpts := []client.ListOption{
 		// The specified labels below matches with the required deployment pods of the app.
 		client.MatchingLabels(map[string]string{
-			"theketch.io/app-name":               appName,
-			"theketch.io/app-deployment-version": fmt.Sprintf("%d", depVersion)}),
+			group + "/app-name":               appName,
+			group + "/app-deployment-version": depVersion.String()}),
 	}
 
 	if err := c.List(context.Background(), podList, listOpts...); err != nil {
