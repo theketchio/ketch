@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -11,19 +12,18 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlFake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/templates"
 	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
-
-func stringRef(s string) *string {
-	return &s
-}
 
 type templateReader struct {
 	templatesErrors map[string]error
@@ -191,4 +191,61 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 		})
 	}
 	assert.Equal(t, []string{"app-running"}, helmMock.deleteChartCalled)
+}
+
+func Test_checkPodStatus(t *testing.T) {
+	createPod := func(group, appName, version string, status v1.PodStatus) *v1.Pod {
+		return &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("%v-%v", appName, version),
+				Namespace: "default",
+				Labels: map[string]string{
+					group + "/app-name":               appName,
+					group + "/app-deployment-version": version,
+				},
+			},
+			Status: status,
+		}
+	}
+	tests := []struct {
+		name       string
+		pods       []runtime.Object
+		appName    string
+		depVersion ketchv1.DeploymentVersion
+		group      string
+		wantErr    string
+	}{
+		{
+			name:       "pod in Pending state",
+			appName:    "my-app",
+			depVersion: 5,
+			group:      "theketch.io",
+			pods: []runtime.Object{
+				createPod("theketch.io", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
+			},
+			wantErr: `all pods are not running`,
+		},
+		{
+			name:       "pod in Pending state but group doesn't match",
+			appName:    "my-app",
+			depVersion: 5,
+			group:      "ketch.io",
+			pods: []runtime.Object{
+				createPod("theketch.io", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
+			},
+			wantErr: ``,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := ctrlFake.NewClientBuilder().WithScheme(clientgoscheme.Scheme).WithRuntimeObjects(tt.pods...).Build()
+			err := checkPodStatus(tt.group, cli, tt.appName, tt.depVersion)
+			if len(tt.wantErr) > 0 {
+				require.NotNil(t, err)
+				require.Equal(t, tt.wantErr, err.Error())
+				return
+			}
+			require.Nil(t, err)
+		})
+	}
 }
