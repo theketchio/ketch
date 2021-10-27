@@ -600,7 +600,7 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 			app.Spec.Canary.NextScheduledTime = nil
 
 			eventFinished := newCanaryEvent(app, CanaryFinished, CanaryFinishedDesc)
-			recorder.Event(app, v1.EventTypeNormal, eventFinished.Name, eventFinished.Message())
+			recorder.AnnotatedEventf(app, eventFinished.Annotations, v1.EventTypeNormal, eventFinished.Name, eventFinished.Message())
 
 			app.Spec.Deployments = []AppDeploymentSpec{app.Spec.Deployments[1]}
 		}
