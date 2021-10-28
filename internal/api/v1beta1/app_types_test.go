@@ -1360,7 +1360,7 @@ func TestCanaryNextStepEvent_Message(t *testing.T) {
 			},
 		}},
 	)
-	require.Equal(t, expectedAnnotations, event.Annotations)
+	require.Equal(t, expectedAnnotations, event.Event.Annotations)
 }
 
 func TestCanaryTargetChangeEvent_Annotations(t *testing.T) {
@@ -1386,7 +1386,7 @@ func TestCanaryTargetChangeEvent_Annotations(t *testing.T) {
 		}},
 		"p1", 2, 5,
 	)
-	require.Equal(t, expectedAnnotations, event.Annotations)
+	require.Equal(t, expectedAnnotations, event.Event.Annotations)
 }
 
 func TestAppReconcileOutcome_String(t *testing.T) {

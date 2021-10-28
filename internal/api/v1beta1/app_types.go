@@ -550,7 +550,7 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 		app.Spec.Deployments[1].RoutingSettings.Weight = app.Spec.Deployments[1].RoutingSettings.Weight + app.Spec.Canary.StepWeight
 
 		eventStep := newCanaryNextStepEvent(app)
-		recorder.AnnotatedEventf(app, eventStep.Annotations, v1.EventTypeNormal, eventStep.Name, eventStep.Message())
+		recorder.AnnotatedEventf(app, eventStep.Event.Annotations, v1.EventTypeNormal, eventStep.Event.Name, eventStep.Message())
 
 		if app.Spec.Canary.Target != nil {
 			// scale units based on weight and process target
@@ -565,7 +565,7 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 				}
 
 				eventTarget := newCanaryTargetChangeEvent(app, processName, p1Units, p2Units)
-				recorder.AnnotatedEventf(app, eventTarget.Annotations, v1.EventTypeNormal, eventTarget.Name, eventTarget.Message())
+				recorder.AnnotatedEventf(app, eventTarget.Event.Annotations, v1.EventTypeNormal, eventTarget.Event.Name, eventTarget.Message())
 			}
 
 			// if a process in the updated deployment isn't found in target create 1 unit
@@ -733,7 +733,47 @@ func (c CanaryEvent) Message() string {
 	return fmt.Sprintf("%s - Canary for app %s | version %d - %s", c.Name, c.AppName, c.DeploymentVersion, c.Description)
 }
 
-func newCanaryNextStepEvent(app *App) CanaryEvent {
+// CanaryEventFromAnnotations creates CanaryEvent from given message
+func CanaryEventFromAnnotations(annotations map[string]string) (*CanaryEvent, error) {
+	event := CanaryEvent{}
+	if value, found := annotations[CanaryAnnotationAppName]; found {
+		event.AppName = value
+	}
+	if value, found := annotations[CanaryAnnotationEventName]; found {
+		event.Name = value
+	}
+	if value, found := annotations[CanaryAnnotationDescription]; found {
+		event.Description = value
+	}
+	if value, found := annotations[CanaryAnnotationDevelopmentVersion]; found {
+		version, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.DeploymentVersion = version
+	}
+
+	return &event, nil
+}
+
+type CanaryNextStepEvent struct {
+	Event CanaryEvent
+
+	Step          int
+	VersionSource int
+	VersionDest   int
+	WeightSource  uint8
+	WeightDest    uint8
+}
+
+func newCanaryNextStepEvent(app *App) CanaryNextStepEvent {
+	event := CanaryNextStepEvent{
+		Step:          app.Spec.Canary.CurrentStep,
+		VersionSource: int(app.Spec.Deployments[0].Version),
+		VersionDest:   int(app.Spec.Deployments[1].Version),
+		WeightSource:  app.Spec.Deployments[0].RoutingSettings.Weight,
+		WeightDest:    app.Spec.Deployments[1].RoutingSettings.Weight,
+	}
 	additionalAnnotations := map[string]string{
 		CanaryAnnotationStep:          strconv.Itoa(app.Spec.Canary.CurrentStep),
 		CanaryAnnotationVersionSource: app.Spec.Deployments[0].Version.String(),
@@ -741,14 +781,84 @@ func newCanaryNextStepEvent(app *App) CanaryEvent {
 		CanaryAnnotationWeightSource:  strconv.Itoa(int(app.Spec.Deployments[0].RoutingSettings.Weight)),
 		CanaryAnnotationWeightDest:    strconv.Itoa(int(app.Spec.Deployments[1].RoutingSettings.Weight)),
 	}
-	event := newCanaryEvent(app, CanaryNextStep, CanaryNextStepDesc)
+	base := newCanaryEvent(app, CanaryNextStep, CanaryNextStepDesc)
 	for key, value := range additionalAnnotations {
-		event.Annotations[key] = value
+		base.Annotations[key] = value
 	}
+	event.Event = base
 	return event
 }
 
-func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destUnits int) CanaryEvent {
+func (c CanaryNextStepEvent) Message() string {
+	return fmt.Sprintf("%s: Step: %d | Source version: %d | Dest version: %d | Source weight: %d | Dest weight: %d", c.Event.Message(), c.Step, c.VersionSource, c.VersionDest, c.WeightSource, c.WeightDest)
+}
+
+// CanaryNextStepEventFromAnnotations creates CanaryNextStepEvent from given annotations
+func CanaryNextStepEventFromAnnotations(annotations map[string]string) (*CanaryNextStepEvent, error) {
+	event := CanaryNextStepEvent{}
+	base, err := CanaryEventFromAnnotations(annotations)
+	if err != nil {
+		return nil, err
+	}
+	event.Event = *base
+
+	if value, found := annotations[CanaryAnnotationStep]; found {
+		step, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.Step = step
+	}
+	if value, found := annotations[CanaryAnnotationVersionSource]; found {
+		version, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.VersionSource = version
+	}
+	if value, found := annotations[CanaryAnnotationVersionDest]; found {
+		version, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.VersionDest = version
+	}
+	if value, found := annotations[CanaryAnnotationWeightSource]; found {
+		weight, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.WeightSource = uint8(weight)
+	}
+	if value, found := annotations[CanaryAnnotationWeightDest]; found {
+		weight, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.WeightDest = uint8(weight)
+	}
+
+	return &event, nil
+}
+
+type CanaryTargetChangeEvent struct {
+	Event CanaryEvent
+
+	VersionSource           int
+	VersionDest             int
+	ProcessName             string
+	SourceProcessUnits      int
+	DestinationProcessUnits int
+}
+
+func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destUnits int) CanaryTargetChangeEvent {
+	event := CanaryTargetChangeEvent{
+		VersionSource:           int(app.Spec.Deployments[0].Version),
+		VersionDest:             int(app.Spec.Deployments[1].Version),
+		ProcessName:             processName,
+		SourceProcessUnits:      sourceUnits,
+		DestinationProcessUnits: destUnits,
+	}
 	additionalAnnotations := map[string]string{
 		CanaryAnnotationVersionSource:      app.Spec.Deployments[0].Version.String(),
 		CanaryAnnotationVersionDest:        app.Spec.Deployments[1].Version.String(),
@@ -756,11 +866,60 @@ func newCanaryTargetChangeEvent(app *App, processName string, sourceUnits, destU
 		CanaryAnnotationProcessUnitsSource: strconv.Itoa(sourceUnits),
 		CanaryAnnotationProcessUnitsDest:   strconv.Itoa(destUnits),
 	}
-	event := newCanaryEvent(app, CanaryStepTarget, CanaryStepTargetDesc)
+	base := newCanaryEvent(app, CanaryStepTarget, CanaryStepTargetDesc)
 	for key, value := range additionalAnnotations {
-		event.Annotations[key] = value
+		base.Annotations[key] = value
 	}
+	event.Event = base
 	return event
+}
+
+func (c CanaryTargetChangeEvent) Message() string {
+	return fmt.Sprintf("%s: Source version: %d | Dest version: %d | Process: %s | Source units: %d | Dest units: %d", c.Event.Message(), c.VersionSource, c.VersionDest, c.ProcessName, c.SourceProcessUnits, c.DestinationProcessUnits)
+}
+
+// CanaryTargetChangeEventFromAnnotations creates CanaryTargetChangeEvent from given annotations
+func CanaryTargetChangeEventFromAnnotations(annotations map[string]string) (*CanaryTargetChangeEvent, error) {
+	event := CanaryTargetChangeEvent{}
+	base, err := CanaryEventFromAnnotations(annotations)
+	if err != nil {
+		return nil, err
+	}
+	event.Event = *base
+
+	if value, found := annotations[CanaryAnnotationProcessName]; found {
+		event.ProcessName = value
+	}
+	if value, found := annotations[CanaryAnnotationVersionSource]; found {
+		version, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.VersionSource = version
+	}
+	if value, found := annotations[CanaryAnnotationVersionDest]; found {
+		version, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.VersionDest = version
+	}
+	if value, found := annotations[CanaryAnnotationProcessUnitsSource]; found {
+		weight, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.SourceProcessUnits = weight
+	}
+	if value, found := annotations[CanaryAnnotationProcessUnitsDest]; found {
+		weight, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse CanaryEvent, err: %v`, err)
+		}
+		event.DestinationProcessUnits = weight
+	}
+
+	return &event, nil
 }
 
 const (
