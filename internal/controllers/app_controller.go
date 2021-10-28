@@ -30,7 +30,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -329,9 +328,11 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 		return err
 	}
 
-	opts := listOptsForPodEvent(app)
-	opts.Watch = true
-	opts.ResourceVersion = app.ResourceVersion
+	opts := metav1.ListOptions{
+		FieldSelector:   "involvedObject.kind=Pod",
+		Watch:           true,
+		ResourceVersion: app.ResourceVersion,
+	}
 	watch, err := cli.CoreV1().Events(namespace).Watch(ctx, opts)
 	if err != nil {
 		return err
@@ -463,16 +464,6 @@ func stringifyEvent(watchEvent watch.Event) string {
 	return message
 }
 
-// listOptsForPodEvent returns ListOptions required to get pods
-func listOptsForPodEvent(app *ketchv1.App) metav1.ListOptions {
-	selector := map[string]string{
-		"involvedObject.kind": "Pod",
-	}
-	return metav1.ListOptions{
-		FieldSelector: labels.SelectorFromSet(labels.Set(selector)).String(),
-	}
-}
-
 // isDeploymentEvent returns true if the watchEvnet is an Event type and matches the deployment.Name
 func isDeploymentEvent(msg watch.Event, dep *appsv1.Deployment) bool {
 	evt, ok := msg.Object.(*v1.Event)
@@ -481,7 +472,10 @@ func isDeploymentEvent(msg watch.Event, dep *appsv1.Deployment) bool {
 
 // createDeployTimeoutError gets pods that are not status == ready aggregates and returns the pod phase errors
 func createDeployTimeoutError(ctx context.Context, cli *kubernetes.Clientset, app *ketchv1.App, timeout time.Duration, namespace, label string) error {
-	pods, err := cli.CoreV1().Pods(app.GetNamespace()).List(ctx, listOptsForPodEvent(app))
+	opts := metav1.ListOptions{
+		FieldSelector: "involvedObject.kind=Pod",
+	}
+	pods, err := cli.CoreV1().Pods(app.GetNamespace()).List(ctx, opts)
 	if err != nil {
 		return err
 	}

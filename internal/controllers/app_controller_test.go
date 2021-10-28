@@ -9,9 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/release"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -244,5 +246,97 @@ func TestParseReconcileReason(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, test.expectedString, got.String())
 		}
+	}
+}
+
+func TestStringifyEvent(t *testing.T) {
+	tests := []struct {
+		obj      watch.Event
+		expected string
+	}{
+		{
+			obj: watch.Event{
+				Object: &v1.Event{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-event",
+					},
+					InvolvedObject: v1.ObjectReference{
+						Name: "test name",
+					},
+					Message: "test message",
+				}},
+			expected: "test name - test message []",
+		},
+		{
+			obj: watch.Event{
+				Object: &v1.Event{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-event",
+					},
+					InvolvedObject: v1.ObjectReference{
+						Name:      "test name",
+						FieldPath: "test/fieldpath",
+					},
+					Message: "test message",
+					Source: v1.EventSource{
+						Host:      "testhost",
+						Component: "testcomponent",
+					},
+				},
+			},
+			expected: "test name - test/fieldpath - test message [testcomponent, testhost]",
+		},
+		{
+			obj: watch.Event{
+				Object: &v1.Pod{},
+			},
+			expected: "",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.expected, func(t *testing.T) {
+			stringifyEvent(tc.obj)
+		})
+	}
+}
+
+func TestIsDeploymentEvent(t *testing.T) {
+	tests := []struct {
+		msg      watch.Event
+		expected bool
+	}{
+		{
+			msg: watch.Event{
+				Object: &v1.Event{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test",
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			msg: watch.Event{
+				Object: &v1.Event{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "bad-name",
+					},
+				},
+			},
+			expected: false,
+		},
+	}
+
+	dep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			res := isDeploymentEvent(tc.msg, dep)
+			require.Equal(t, tc.expected, res)
+		})
 	}
 }
