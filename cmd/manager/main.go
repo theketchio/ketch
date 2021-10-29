@@ -18,12 +18,17 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -98,17 +103,33 @@ func main() {
 		os.Exit(1)
 	}
 
+	logg := ctrl.Log.WithName("controllers").WithName("App")
+
+	clientSet, err := kubernetes.NewForConfig(ctrl.GetConfigOrDie())
+	if err != nil {
+		setupLog.Error(err, "unable to initialize clientset")
+		os.Exit(1)
+	}
+	eventBroadcaster := record.NewBroadcasterWithCorrelatorOptions(record.CorrelatorOptions{
+		BurstSize: 10,
+		QPS:       1,
+	})
+	eventBroadcaster.StartLogging(func(format string, args ...interface{}) { logg.Info(fmt.Sprintf(format, args...)) })
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: clientSet.CoreV1().Events("")})
+
 	if err = (&controllers.AppReconciler{
 		TemplateReader: storage,
 		Client:         mgr.GetClient(),
-		Log:            ctrl.Log.WithName("controllers").WithName("App"),
+		Log:            logg,
 		Scheme:         mgr.GetScheme(),
 		HelmFactoryFn: func(namespace string) (controllers.Helm, error) {
 			return chart.NewHelmClient(namespace)
 		},
-		Now:      time.Now,
-		Group:    group,
-		Recorder: mgr.GetEventRecorderFor("App"),
+		Now:   time.Now,
+		Group: group,
+		Recorder: eventBroadcaster.NewRecorder(clientgoscheme.Scheme, v1.EventSource{
+			Component: "ketch-controller",
+		}),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "App")
 		os.Exit(1)
@@ -122,7 +143,9 @@ func main() {
 		HelmFactoryFn: func(namespace string) (controllers.Helm, error) {
 			return chart.NewHelmClient(namespace)
 		},
-		Recorder: mgr.GetEventRecorderFor("Job"),
+		Recorder: eventBroadcaster.NewRecorder(clientgoscheme.Scheme, v1.EventSource{
+			Component: "ketch-controller",
+		}),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Job")
 		os.Exit(1)
