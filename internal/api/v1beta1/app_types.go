@@ -229,6 +229,9 @@ type AppSpec struct {
 
 	// Annotations is a list of annotations that will be applied to Services/Deployments/Gateways.
 	Annotations []MetadataItem `json:"annotations,omitempty"`
+
+	// ServiceAccountName specifies a service account name to be used for this application.
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 }
 
 // MetadataItem represent a request to add label/annotations to processes

@@ -182,6 +182,11 @@ func TestNewApplicationChart(t *testing.T) {
 		},
 	}
 
+	setServiceAccount := func(app *ketchv1.App) *ketchv1.App {
+		out := *app
+		out.Spec.ServiceAccountName = "custom-service-account"
+		return &out
+	}
 	// convertSecureEndpoints returns a copy of app with Cnames made not secure
 	convertSecureEndpoints := func(app *ketchv1.App) *ketchv1.App {
 		out := *app
@@ -218,7 +223,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithTemplates(templates.NginxDefaultTemplates),
 				WithExposedPorts(exportedPorts),
 			},
-			application:       convertSecureEndpoints(dashboard),
+			application:       setServiceAccount(convertSecureEndpoints(dashboard)),
 			framework:         frameworkWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-nginx",
 		},
