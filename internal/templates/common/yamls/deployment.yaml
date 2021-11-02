@@ -39,6 +39,9 @@ spec:
         {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
         {{ $.Values.app.group }}/is-isolated-run: "false"
     spec:
+      {{- if $.Values.app.serviceAccountName }}
+      serviceAccountName: {{ $.Values.app.serviceAccountName }}
+      {{- end }}
       containers:
         - name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
           command: {{ $process.cmd | toJson }}

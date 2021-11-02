@@ -147,6 +147,7 @@ spec:
         theketch.io/app-deployment-version: "3"
         theketch.io/is-isolated-run: "false"
     spec:
+      serviceAccountName: custom-service-account
       containers:
         - name: dashboard-web-3
           command: ["python"]
@@ -217,6 +218,7 @@ spec:
         theketch.io/app-deployment-version: "3"
         theketch.io/is-isolated-run: "false"
     spec:
+      serviceAccountName: custom-service-account
       containers:
         - name: dashboard-worker-3
           command: ["celery"]
@@ -268,6 +270,7 @@ spec:
         theketch.io/app-deployment-version: "4"
         theketch.io/is-isolated-run: "false"
     spec:
+      serviceAccountName: custom-service-account
       containers:
         - name: dashboard-web-4
           command: ["python"]
@@ -318,6 +321,7 @@ spec:
         theketch.io/app-deployment-version: "4"
         theketch.io/is-isolated-run: "false"
     spec:
+      serviceAccountName: custom-service-account
       containers:
         - name: dashboard-worker-4
           command: ["celery"]
