@@ -5,7 +5,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $.Values.app.name }}-{{ $i }}-https-ingress
+  name: {{ $.Values.app.name }}-{{ $i }}-http-ingress
   annotations:
     {{- if $.Values.ingressController.className }}
     kubernetes.io/ingress.class: {{ $.Values.ingressController.className | quote }}
@@ -53,6 +53,8 @@ metadata:
     {{- if $.Values.ingressController.className }}
     kubernetes.io/ingress.class: {{ $.Values.ingressController.className | quote }}
     {{- end }}
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     {{- if gt $i 0 }}
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
