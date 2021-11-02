@@ -36,6 +36,14 @@ spec:
       credentialName: {{ $https.secretName }}
     hosts:
     - {{ $https.cname }}
+  - port:
+      name: http-to-https-{{ $deployment.version }}-{{ $https.cname }}
+      number: 80
+      protocol: HTTP
+    hosts:
+    - {{ $https.cname }}
+    tls:
+      httpsRedirect: true
         {{- end }}
       {{- end }}
       {{- end }}
