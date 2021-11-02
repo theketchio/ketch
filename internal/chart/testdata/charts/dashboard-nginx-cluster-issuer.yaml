@@ -340,11 +340,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-http-ingress-3
+  name: dashboard-0-https-ingress
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
-    nginx.ingress.kubernetes.io/canary: "true"
-    nginx.ingress.kubernetes.io/canary-weight: "30"
+    theketch.io/metadata-item-kind: Ingress
+    theketch.io/metadata-item-apiVersion: networking.k8s.io/v1
+    theketch.io/ingress-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
@@ -363,11 +364,14 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-http-ingress-4
+  name: dashboard-1-https-ingress
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "70"
+    theketch.io/metadata-item-kind: Ingress
+    theketch.io/metadata-item-apiVersion: networking.k8s.io/v1
+    theketch.io/ingress-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
@@ -386,11 +390,9 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-https-ingress-3
+  name: dashboard-0-https-ingress
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
-    nginx.ingress.kubernetes.io/canary: "true"
-    nginx.ingress.kubernetes.io/canary-weight: "30"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
@@ -440,7 +442,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-https-ingress-4
+  name: dashboard-1-https-ingress
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     nginx.ingress.kubernetes.io/canary: "true"

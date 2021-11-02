@@ -5,13 +5,17 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $.Values.app.name }}-http-ingress-{{ $deployment.version }}
+  name: {{ $.Values.app.name }}-{{ $i }}-https-ingress
   annotations:
     {{- if $.Values.ingressController.className }}
     kubernetes.io/ingress.class: {{ $.Values.ingressController.className | quote }}
     {{- end }}
+    {{- if gt $i 0 }}
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
+    {{- end }}
+    {{- $data := dict "kind" "Ingress" "apiVersion" "networking.k8s.io/v1" "metadataItems" $.Values.app.metadataAnnotations }}
+    {{- include "ketch.renderMetadata" $data | nindent 4 }}
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
@@ -44,13 +48,15 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $.Values.app.name }}-https-ingress-{{ $deployment.version }}
+  name: {{ $.Values.app.name }}-{{ $i }}-https-ingress
   annotations:
     {{- if $.Values.ingressController.className }}
     kubernetes.io/ingress.class: {{ $.Values.ingressController.className | quote }}
     {{- end }}
+    {{- if gt $i 0 }}
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
+    {{- end }}
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:

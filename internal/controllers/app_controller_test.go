@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,20 +13,22 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlFake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
 	"github.com/shipa-corp/ketch/internal/chart"
 	"github.com/shipa-corp/ketch/internal/templates"
 	"github.com/shipa-corp/ketch/internal/utils/conversions"
 )
-
-func stringRef(s string) *string {
-	return &s
-}
 
 type templateReader struct {
 	templatesErrors map[string]error
@@ -195,57 +198,121 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 	assert.Equal(t, []string{"app-running"}, helmMock.deleteChartCalled)
 }
 
-func TestParseReconcileReason(t *testing.T) {
-	tests := []struct {
-		msg            string
-		expectedErr    string
-		expectedString string
-	}{
-		{
-			"app test 1 reconcile",
-			"",
-			"app test 1 reconcile",
+func TestWatchDeployEvents(t *testing.T) {
+	process := &ketchv1.ProcessSpec{}
+
+	app := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default-app",
 		},
-		{
-			"app test34s 1 reconcile",
-			"",
-			"app test34s 1 reconcile",
+		Spec: ketchv1.AppSpec{
+			Deployments: []ketchv1.AppDeploymentSpec{
+				{
+					Image:     "gcr.io/test",
+					Version:   1,
+					Processes: []ketchv1.ProcessSpec{*process},
+				},
+			},
+			Framework: "test",
 		},
-		{
-			"app test-3 1 reconcile",
-			"",
-			"app test-3 1 reconcile",
-		},
-		{
-			"sdfsdf",
-			"unable to parse reconcile reason: input does not match format",
-			"",
-		},
-		{
-			"",
-			"unable to parse reconcile reason: unexpected EOF",
-			"",
-		},
-		{
-			"app test 1 reconcile asdfadfasfasdf 34rt w",
-			"",
-			"app test 1 reconcile",
-		},
-		{
-			"app zdf dsf reconcile ",
-			"unable to parse reconcile reason: expected integer",
-			"",
+	}
+	namespace := "ketch-test"
+
+	dep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
 		},
 	}
 
-	for _, test := range tests {
-		got, err := ParseAppReconcileMessage(test.msg)
-		if len(test.expectedErr) > 0 {
-			assert.Equal(t, test.expectedErr, err.Error())
-		} else {
-			assert.Nil(t, err)
-			assert.Equal(t, test.expectedString, got.String())
+	recorder := record.NewFakeRecorder(1024)
+	watcher := watch.NewFake()
+	config, err := GetRESTConfig()
+	require.Nil(t, err)
+	cli, err := kubernetes.NewForConfig(config)
+	require.Nil(t, err)
+	r := AppReconciler{}
+	ctx := context.Background()
+
+	var events []string
+	go func() {
+		for ev := range recorder.Events {
+			events = append(events, ev)
 		}
+	}()
+
+	err = r.watchFunc(ctx, app, namespace, dep, process, recorder, watcher, cli)
+	require.Nil(t, err)
+
+	expectedEvents := []string{
+		"Normal AppReconcileStarted Updating units []",
+		"Normal AppReconcileUpdate 0 of 0 new units created",
+	}
+
+EXPECTED:
+	for _, expected := range expectedEvents {
+		for _, ev := range events {
+			if ev == expected {
+				continue EXPECTED
+			}
+		}
+		t.Errorf("expected event %s, but it was not found", expected)
+	}
+}
+
+func Test_checkPodStatus(t *testing.T) {
+	createPod := func(group, appName, version string, status v1.PodStatus) *v1.Pod {
+		return &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("%v-%v", appName, version),
+				Namespace: "default",
+				Labels: map[string]string{
+					group + "/app-name":               appName,
+					group + "/app-deployment-version": version,
+				},
+			},
+			Status: status,
+		}
+	}
+	tests := []struct {
+		name       string
+		pods       []runtime.Object
+		appName    string
+		depVersion ketchv1.DeploymentVersion
+		group      string
+		wantErr    string
+	}{
+		{
+			name:       "pod in Pending state",
+			appName:    "my-app",
+			depVersion: 5,
+			group:      "theketch.io",
+			pods: []runtime.Object{
+				createPod("theketch.io", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
+			},
+			wantErr: `all pods are not running`,
+		},
+		{
+			name:       "pod in Pending state but group doesn't match",
+			appName:    "my-app",
+			depVersion: 5,
+			group:      "ketch.io",
+			pods: []runtime.Object{
+				createPod("theketch.io", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
+			},
+			wantErr: ``,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := ctrlFake.NewClientBuilder().WithScheme(clientgoscheme.Scheme).WithRuntimeObjects(tt.pods...).Build()
+			err := checkPodStatus(tt.group, cli, tt.appName, tt.depVersion)
+			if len(tt.wantErr) > 0 {
+				require.NotNil(t, err)
+				require.Equal(t, tt.wantErr, err.Error())
+				return
+			}
+			require.Nil(t, err)
+		})
 	}
 }
 

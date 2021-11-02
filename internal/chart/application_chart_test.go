@@ -171,6 +171,13 @@ func TestNewApplicationChart(t *testing.T) {
 						Kind:       "Gateway",
 					},
 				},
+				{
+					Apply: map[string]string{"theketch.io/ingress-annotation": "test-ingress"},
+					Target: ketchv1.Target{
+						APIVersion: "networking.k8s.io/v1",
+						Kind:       "Ingress",
+					},
+				},
 			},
 		},
 	}

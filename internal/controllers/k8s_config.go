@@ -8,9 +8,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// getRESTConfig returns a rest.Config. It uses the presence of KUBERNETES_SERVICE_HOST
+// GetRESTConfig returns a rest.Config. It uses the presence of KUBERNETES_SERVICE_HOST
 // to determine whether to use an InClusterConfig or the user's config.
-func getRESTConfig() (*rest.Config, error) {
+func GetRESTConfig() (*rest.Config, error) {
 	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
 		return externalConfig()
 	}
