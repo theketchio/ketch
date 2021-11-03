@@ -74,8 +74,8 @@ const (
 	replicaDepRevision            = "deployment.kubernetes.io/revision"
 	DeploymentProgressing         = "Progressing"
 	deadlineExeceededProgressCond = "ProgressDeadlineExceeded"
-	DefaultPodRunningTimeout      = 10 * time.Minute                 // TODO should this be configurable?
-	maxWaitTimeDuration           = time.Duration(120) * time.Second // TODO should this be configurable?
+	DefaultPodRunningTimeout      = 10 * time.Minute
+	maxWaitTimeDuration           = time.Duration(120) * time.Second
 	maxConcurrentReconciles       = 10
 
 	appReconcileStarted  = "AppReconcileStarted"
@@ -342,14 +342,7 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 	}
 	defer watcher.Stop()
 
-	return r.watchFunc(ctx, app, namespace, dep, process, recorder, watcher, cli)
-}
-
-func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespace string, dep *appsv1.Deployment, process *ketchv1.ProcessSpec, recorder record.EventRecorder, watcher watch.Interface, cli *kubernetes.Clientset) error {
-	var err error
-	watchCh := watcher.ResultChan()
-	recorder.Eventf(app, v1.EventTypeNormal, appReconcileStarted, "Updating units [%s]", process.Name)
-
+	// wait for Deployment Generation
 	timeout := time.After(DefaultPodRunningTimeout)
 	for dep.Status.ObservedGeneration < dep.Generation {
 		dep, err = cli.AppsV1().Deployments(namespace).Get(ctx, dep.Name, metav1.GetOptions{})
@@ -367,6 +360,14 @@ func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespa
 		}
 	}
 
+	return r.watchFunc(ctx, app, namespace, dep, process, recorder, watcher, cli, timeout)
+}
+
+func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespace string, dep *appsv1.Deployment, process *ketchv1.ProcessSpec, recorder record.EventRecorder, watcher watch.Interface, cli kubernetes.Interface, timeout <-chan time.Time) error {
+	var err error
+	watchCh := watcher.ResultChan()
+	recorder.Eventf(app, v1.EventTypeNormal, appReconcileStarted, "Updating units [%s]", process.Name)
+
 	var specReplicas int32
 	if dep.Spec.Replicas != nil {
 		specReplicas = *dep.Spec.Replicas
@@ -376,6 +377,29 @@ func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespa
 	oldPendingTermination := int32(-1)
 	now := time.Now()
 	var healthcheckTimeout <-chan time.Time
+
+	go func() {
+		select {
+		case <-time.After(100 * time.Millisecond):
+		case msg, isOpen := <-watchCh:
+			if !isOpen {
+				return
+			}
+			if isDeploymentEvent(msg, dep) {
+				recorder.Eventf(app, v1.EventTypeNormal, appReconcileUpdate, "%s", stringifyEvent(msg))
+			}
+		case <-healthcheckTimeout:
+			err = createDeployTimeoutError(ctx, cli, app, time.Since(now), namespace, "healthcheck")
+			recorder.Eventf(app, v1.EventTypeWarning, appReconcileError, "error waiting for healthcheck: %s", err.Error())
+			return
+		case <-timeout:
+			err = createDeployTimeoutError(ctx, cli, app, time.Since(now), namespace, "full rollout")
+			recorder.Eventf(app, v1.EventTypeWarning, appReconcileError, "deployment timeout: %s", err.Error())
+			return
+		case <-ctx.Done():
+			return
+		}
+	}()
 
 	for {
 		for i := range dep.Status.Conditions {
@@ -415,27 +439,6 @@ func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespa
 			break
 		}
 
-		select {
-		case <-time.After(100 * time.Millisecond):
-		case msg, isOpen := <-watchCh:
-			if !isOpen {
-				break
-			}
-			if isDeploymentEvent(msg, dep) {
-				recorder.Eventf(app, v1.EventTypeNormal, appReconcileUpdate, "%s", stringifyEvent(msg))
-			}
-		case <-healthcheckTimeout:
-			err = createDeployTimeoutError(ctx, cli, app, time.Since(now), namespace, "healthcheck")
-			recorder.Eventf(app, v1.EventTypeWarning, appReconcileError, "error waiting for healthcheck: %s", err.Error())
-			return err
-		case <-timeout:
-			err = createDeployTimeoutError(ctx, cli, app, time.Since(now), namespace, "full rollout")
-			recorder.Eventf(app, v1.EventTypeWarning, appReconcileError, "deployment timeout: %s", err.Error())
-			return err
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-
 		dep, err = cli.AppsV1().Deployments(namespace).Get(context.TODO(), dep.Name, metav1.GetOptions{})
 		if err != nil {
 			recorder.Eventf(app, v1.EventTypeWarning, appReconcileError, "error getting deployments: %s", err.Error())
@@ -444,7 +447,7 @@ func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespa
 	}
 
 	outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: int(dep.Status.ReadyReplicas)}
-	recorder.Event(app, v1.EventTypeNormal, appReconcileUpdate, outcome.String())
+	recorder.Event(app, v1.EventTypeNormal, appReconcileComplete, outcome.String())
 	return nil
 }
 
@@ -478,7 +481,7 @@ func isDeploymentEvent(msg watch.Event, dep *appsv1.Deployment) bool {
 }
 
 // createDeployTimeoutError gets pods that are not status == ready aggregates and returns the pod phase errors
-func createDeployTimeoutError(ctx context.Context, cli *kubernetes.Clientset, app *ketchv1.App, timeout time.Duration, namespace, label string) error {
+func createDeployTimeoutError(ctx context.Context, cli kubernetes.Interface, app *ketchv1.App, timeout time.Duration, namespace, label string) error {
 	opts := metav1.ListOptions{
 		FieldSelector: "involvedObject.kind=Pod",
 	}
@@ -509,7 +512,7 @@ podsLoop:
 }
 
 // newInvalidPodPhaseError returns an error formatted with pod.Status.Phase details and the latest event message
-func newInvalidPodPhaseError(ctx context.Context, cli *kubernetes.Clientset, pod *v1.Pod, namespace string) error {
+func newInvalidPodPhaseError(ctx context.Context, cli kubernetes.Interface, pod *v1.Pod, namespace string) error {
 	phaseWithMsg := fmt.Sprintf("%q", pod.Status.Phase)
 	if pod.Status.Message != "" {
 		phaseWithMsg = fmt.Sprintf("%s(%q)", phaseWithMsg, pod.Status.Message)

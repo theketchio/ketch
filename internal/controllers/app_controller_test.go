@@ -16,10 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 
+	clientFake "k8s.io/client-go/kubernetes/fake"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlFake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -203,7 +203,7 @@ func TestWatchDeployEvents(t *testing.T) {
 
 	app := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "default-app",
+			Name: "test",
 		},
 		Spec: ketchv1.AppSpec{
 			Deployments: []ketchv1.AppDeploymentSpec{
@@ -217,19 +217,45 @@ func TestWatchDeployEvents(t *testing.T) {
 		},
 	}
 	namespace := "ketch-test"
+	replicas := int32(1)
 
-	dep := &appsv1.Deployment{
+	// depStart is the Deployment in it's initial state
+	depStart := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
+			Name:      "test",
+			Namespace: "ketch-test",
+		},
+		Status: appsv1.DeploymentStatus{
+			UpdatedReplicas:     1,
+			UnavailableReplicas: 1,
+			Replicas:            1,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+		},
+	}
+
+	// depFetch is the Deployment as returned via Get() in the function's loop
+	depFetch := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "ketch-test",
+		},
+		Status: appsv1.DeploymentStatus{
+			UpdatedReplicas:     1,
+			UnavailableReplicas: 0,
+			Replicas:            1,
+			ReadyReplicas:       1,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
 		},
 	}
 
 	recorder := record.NewFakeRecorder(1024)
 	watcher := watch.NewFake()
-	config, err := GetRESTConfig()
-	require.Nil(t, err)
-	cli, err := kubernetes.NewForConfig(config)
-	require.Nil(t, err)
+	cli := clientFake.NewSimpleClientset(depFetch)
+	timeout := time.After(DefaultPodRunningTimeout)
 	r := AppReconciler{}
 	ctx := context.Background()
 
@@ -240,12 +266,17 @@ func TestWatchDeployEvents(t *testing.T) {
 		}
 	}()
 
-	err = r.watchFunc(ctx, app, namespace, dep, process, recorder, watcher, cli)
+	err := r.watchFunc(ctx, app, namespace, depStart, process, recorder, watcher, cli, timeout)
 	require.Nil(t, err)
+
+	time.Sleep(time.Millisecond * 100)
 
 	expectedEvents := []string{
 		"Normal AppReconcileStarted Updating units []",
-		"Normal AppReconcileUpdate 0 of 0 new units created",
+		"Normal AppReconcileUpdate 1 of 1 new units created",
+		"Normal AppReconcileUpdate 0 of 1 new units ready",
+		"Normal AppReconcileUpdate 1 of 1 new units ready",
+		"Normal AppReconcileComplete app test 1 reconcile success",
 	}
 
 EXPECTED:
