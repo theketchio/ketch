@@ -446,8 +446,8 @@ func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespa
 		}
 	}
 
-	outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: int(dep.Status.ReadyReplicas)}
-	recorder.Event(app, v1.EventTypeNormal, appReconcileComplete, outcome.String())
+	// outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: int(dep.Status.ReadyReplicas)}
+	// recorder.Event(app, v1.EventTypeNormal, appReconcileComplete, outcome.String())
 	return nil
 }
 
