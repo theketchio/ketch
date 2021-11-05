@@ -1,11 +1,16 @@
 package chart
 
 import (
+	"bytes"
+	"fmt"
 	"log"
 	"os"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/postrender"
+	"sigs.k8s.io/kustomize/api/krusty"
+
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -51,9 +56,21 @@ func getActionConfig(namespace string) (*action.Configuration, error) {
 	return actionConfig, nil
 }
 
-// Option to perform additional configuration of action.Install before running a chart installation.
+// InstallOption to perform additional configuration of action.Install before running a chart installation.
 type InstallOption func(install *action.Install)
 
+
+type postRender struct {
+}
+
+func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *bytes.Buffer, err error) {
+	kustomizer := krusty.MakeKustomizer(&krusty.Options{})
+	kustomizer.Run()
+	fmt.Printf("%v\n", renderedManifests.String())
+	return renderedManifests, nil
+}
+
+var _ postrender.PostRenderer = &postRender{}
 // UpdateChart checks if the app chart is already installed and performs "helm install" or "helm update" operation.
 func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...InstallOption) (*release.Release, error) {
 	appName := tv.GetName()
@@ -76,6 +93,7 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 		clientInstall := action.NewInstall(c.cfg)
 		clientInstall.ReleaseName = appName
 		clientInstall.Namespace = c.namespace
+		clientInstall.PostRenderer = &postRender{}
 		for _, opt := range opts {
 			opt(clientInstall)
 		}
@@ -86,6 +104,7 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	}
 	updateClient := action.NewUpgrade(c.cfg)
 	updateClient.Namespace = c.namespace
+	updateClient.PostRenderer = &postRender{}
 	return updateClient.Run(appName, chrt, vals)
 }
 
