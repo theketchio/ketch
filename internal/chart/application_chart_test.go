@@ -178,6 +178,13 @@ func TestNewApplicationChart(t *testing.T) {
 						Kind:       "Ingress",
 					},
 				},
+				{
+					Apply: map[string]string{"theketch.io/ingress-route-annotation": "test-ingress"},
+					Target: ketchv1.Target{
+						APIVersion: "traefik.containo.us/v1alpha1",
+						Kind:       "IngressRoute",
+					},
+				},
 			},
 		},
 	}
