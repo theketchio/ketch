@@ -15,9 +15,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/errors"
-	"github.com/shipa-corp/ketch/internal/utils"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/errors"
+	"github.com/theketchio/ketch/internal/utils"
 )
 
 // Command line flags

@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 )
 
 const (

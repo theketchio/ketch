@@ -33,10 +33,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/chart"
-	"github.com/shipa-corp/ketch/internal/controllers"
-	"github.com/shipa-corp/ketch/internal/templates"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/chart"
+	"github.com/theketchio/ketch/internal/controllers"
+	"github.com/theketchio/ketch/internal/templates"
 	// +kubebuilder:scaffold:imports
 )
 

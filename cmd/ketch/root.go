@@ -8,9 +8,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
-	"github.com/shipa-corp/ketch/internal/pack"
-	"github.com/shipa-corp/ketch/internal/templates"
+	"github.com/theketchio/ketch/cmd/ketch/configuration"
+	"github.com/theketchio/ketch/internal/pack"
+	"github.com/theketchio/ketch/internal/templates"
 )
 
 type config interface {

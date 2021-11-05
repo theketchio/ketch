@@ -29,9 +29,9 @@ import (
 	fakerest "k8s.io/client-go/rest/fake"
 	testclient "k8s.io/client-go/testing"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/mocks"
-	"github.com/shipa-corp/ketch/internal/utils"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/mocks"
+	"github.com/theketchio/ketch/internal/utils"
 )
 
 func Test_watchLogs(t *testing.T) {

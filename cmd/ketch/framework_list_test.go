@@ -9,9 +9,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/mocks"
-	"github.com/shipa-corp/ketch/internal/utils/conversions"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/mocks"
+	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 func Test_frameworkList(t *testing.T) {

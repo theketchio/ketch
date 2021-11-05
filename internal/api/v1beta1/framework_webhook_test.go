@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/shipa-corp/ketch/internal/api/v1beta1/mocks"
-	"github.com/shipa-corp/ketch/internal/utils/conversions"
+	"github.com/theketchio/ketch/internal/api/v1beta1/mocks"
+	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 func TestFramework_ValidateDelete(t *testing.T) {

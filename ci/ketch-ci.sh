@@ -70,7 +70,7 @@ if [ -z "$DOCKER_IMAGE" ]; then usage "Image for the app is required"; fi;
 
 # set default ketch tag if not set by user
 if [ -z "$KETCH_TAG" ]; then
-    KETCH_TAG=$(curl -s https://api.github.com/repos/shipa-corp/ketch/releases/latest | grep -Eo '"tag_name":.*[^\\]",' | head -n 1 | sed 's/[," ]//g' | cut -d ':' -f 2)
+    KETCH_TAG=$(curl -s https://api.github.com/repos/theketchio/ketch/releases/latest | grep -Eo '"tag_name":.*[^\\]",' | head -n 1 | sed 's/[," ]//g' | cut -d ':' -f 2)
 fi
 
 # set default ingress type if not set by user
@@ -118,13 +118,13 @@ if [ "$INGRESS_TYPE" = "traefik" ]; then
 fi
 
 # Install ketch binary at /usr/local/bin default location
-curl -s https://raw.githubusercontent.com/shipa-corp/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
+curl -s https://raw.githubusercontent.com/theketchio/ketch/main/install.sh | TAG="${KETCH_TAG}" bash
 
 # Install Ketch controller if not already installed or not in running state
 if [[ -z "$(kubectl get ns | grep ketch-system)" ]] || [[ $(kubectl get pods --field-selector=status.phase=Running -n ketch-system | grep ketch | wc -l | xargs) -eq 0 ]]; then
    echo "ketch controller not found or not in running state!"
    echo "installing ketch controller..."
-   kubectl apply -f https://github.com/shipa-corp/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
+   kubectl apply -f https://github.com/theketchio/ketch/releases/download/"${KETCH_TAG}"/ketch-controller.yaml
 fi
 
 ensure_resource 'ketch-controller-manager' 1

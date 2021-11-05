@@ -7,8 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/output"
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/cmd/ketch/output"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 )
 
 type frameworkExportOptions struct {

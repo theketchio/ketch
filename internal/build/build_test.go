@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/src-d/go-git.v4"
 
-	"github.com/shipa-corp/ketch/internal/errors"
-	"github.com/shipa-corp/ketch/internal/pack"
+	"github.com/theketchio/ketch/internal/errors"
+	"github.com/theketchio/ketch/internal/pack"
 )
 
 type mockBuilder struct {

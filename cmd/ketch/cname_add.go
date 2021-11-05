@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/deploy"
-	"github.com/shipa-corp/ketch/internal/validation"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/deploy"
+	"github.com/theketchio/ketch/internal/validation"
 )
 
 const cnameAddHelp = `

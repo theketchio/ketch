@@ -15,10 +15,10 @@ import (
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/build"
-	"github.com/shipa-corp/ketch/internal/chart"
-	"github.com/shipa-corp/ketch/internal/errors"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/build"
+	"github.com/theketchio/ketch/internal/chart"
+	"github.com/theketchio/ketch/internal/errors"
 )
 
 const (

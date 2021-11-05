@@ -11,9 +11,9 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/errors"
-	"github.com/shipa-corp/ketch/internal/utils"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/errors"
+	"github.com/theketchio/ketch/internal/utils"
 )
 
 type WaitFn func(ctx context.Context, svc *Services, app *ketchv1.App, timeout time.Duration) error

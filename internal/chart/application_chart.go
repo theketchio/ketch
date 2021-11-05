@@ -16,8 +16,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/templates"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/templates"
 )
 
 // ApplicationChart is an internal representation of a helm chart converted from the App CRD

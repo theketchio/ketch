@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-RELEASE_DOWNLOAD_URL="https://github.com/shipa-corp/ketch/releases"
+RELEASE_DOWNLOAD_URL="https://github.com/theketchio/ketch/releases"
 
 : "${INSTALL_DIR:="/usr/local/bin"}"
 
@@ -44,7 +44,7 @@ getPlatform() {
 }
 
 getLatestTag() {
-  TAG=$(curl -s https://api.github.com/repos/shipa-corp/ketch/releases/latest | grep -Eo '"tag_name":.*[^\\]",' | head -n 1 | sed 's/[," ]//g' | cut -d ':' -f 2)
+  TAG=$(curl -s https://api.github.com/repos/theketchio/ketch/releases/latest | grep -Eo '"tag_name":.*[^\\]",' | head -n 1 | sed 's/[," ]//g' | cut -d ':' -f 2)
 }
 
 install() {
