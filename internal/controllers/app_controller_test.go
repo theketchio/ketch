@@ -347,27 +347,29 @@ func Test_checkPodStatus(t *testing.T) {
 	}
 }
 
-func TestStringifyEvent(t *testing.T) {
+func TestAppDeloymentEventFromWatchEvent(t *testing.T) {
+	app := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default-app",
+		},
+		Spec: ketchv1.AppSpec{
+			Deployments: []ketchv1.AppDeploymentSpec{
+				{
+					Version: 2,
+				},
+			},
+		},
+	}
 	tests := []struct {
-		obj      watch.Event
-		expected string
+		obj            watch.Event
+		expected       *AppDeploymentEvent
+		expectedString string
 	}{
 		{
 			obj: watch.Event{
 				Object: &v1.Event{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-event",
-					},
-					InvolvedObject: v1.ObjectReference{
-						Name: "test name",
-					},
+					Reason:  "test reason",
 					Message: "test message",
-				}},
-			expected: "test name - test message []",
-		},
-		{
-			obj: watch.Event{
-				Object: &v1.Event{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-event",
 					},
@@ -375,25 +377,87 @@ func TestStringifyEvent(t *testing.T) {
 						Name:      "test name",
 						FieldPath: "test/fieldpath",
 					},
-					Message: "test message",
 					Source: v1.EventSource{
 						Host:      "testhost",
 						Component: "testcomponent",
 					},
 				},
 			},
-			expected: "test name - test/fieldpath - test message [testcomponent, testhost]",
+			expected: &AppDeploymentEvent{
+				Name:              app.Name,
+				DeploymentVersion: 2,
+				Reason:            "test reason",
+				Description:       "test message",
+				Annotations: map[string]string{
+					DeploymentAnnotationAppName:            app.Name,
+					DeploymentAnnotationDevelopmentVersion: "2",
+					DeploymentAnnotationEventName:          "test reason",
+					DeploymentAnnotationDescription:        "test message",
+				},
+				InvolvedObjectName:      "test name",
+				InvolvedObjectFieldPath: "test/fieldpath",
+				SourceHost:              "testhost",
+				SourceComponent:         "testcomponent",
+			},
+			expectedString: "test name - test/fieldpath - test message [testcomponent, testhost]",
 		},
 		{
 			obj: watch.Event{
 				Object: &v1.Pod{},
 			},
-			expected: "",
+			expectedString: "",
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.expected, func(t *testing.T) {
-			stringifyEvent(tc.obj)
+		t.Run(tc.expectedString, func(t *testing.T) {
+			ev := appDeploymentEventFromWatchEvent(tc.obj, app)
+			if tc.expected != nil {
+				require.Equal(t, tc.expectedString, ev.String())
+			}
+			require.Equal(t, tc.expected, ev)
+		})
+	}
+}
+
+func TestAppDeloymentEvent(t *testing.T) {
+	app := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default-app",
+		},
+		Spec: ketchv1.AppSpec{
+			Deployments: []ketchv1.AppDeploymentSpec{
+				{
+					Version: 2,
+				},
+			},
+		},
+	}
+	tests := []struct {
+		reason   string
+		desc     string
+		expected *AppDeploymentEvent
+	}{
+		{
+			reason: "test reason",
+			desc:   "test message",
+			expected: &AppDeploymentEvent{
+				Name:              app.Name,
+				DeploymentVersion: 2,
+				Reason:            "test reason",
+				Description:       "test message",
+				Annotations: map[string]string{
+					DeploymentAnnotationAppName:            app.Name,
+					DeploymentAnnotationDevelopmentVersion: "2",
+					DeploymentAnnotationEventName:          "test reason",
+					DeploymentAnnotationDescription:        "test message",
+				},
+			},
+		},
+	}
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+			ev := newAppDeploymentEvent(app, tc.reason, tc.desc)
+			require.Equal(t, tc.expected, ev)
 		})
 	}
 }
