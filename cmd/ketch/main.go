@@ -9,8 +9,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
-	"github.com/shipa-corp/ketch/internal/pack"
+	"github.com/theketchio/ketch/cmd/ketch/configuration"
+	"github.com/theketchio/ketch/internal/pack"
 )
 
 var (

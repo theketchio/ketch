@@ -16,9 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/templates"
-	"github.com/shipa-corp/ketch/internal/utils/conversions"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/templates"
+	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 func TestNewApplicationChart(t *testing.T) {

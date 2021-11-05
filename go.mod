@@ -1,4 +1,4 @@
-module github.com/shipa-corp/ketch
+module github.com/theketchio/ketch
 
 go 1.17
 

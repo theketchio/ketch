@@ -17,9 +17,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/utils"
-	"github.com/shipa-corp/ketch/internal/validation"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/utils"
+	"github.com/theketchio/ketch/internal/validation"
 )
 
 const (

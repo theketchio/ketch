@@ -7,9 +7,9 @@ import (
 	"os"
 	"path"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	kerrs "github.com/shipa-corp/ketch/internal/errors"
-	"github.com/shipa-corp/ketch/internal/validation"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	kerrs "github.com/theketchio/ketch/internal/errors"
+	"github.com/theketchio/ketch/internal/validation"
 )
 
 type statusType int

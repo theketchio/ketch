@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
+	"github.com/theketchio/ketch/cmd/ketch/configuration"
 )
 
 const builderCmdHelp = `

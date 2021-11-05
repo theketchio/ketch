@@ -11,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/utils/conversions"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 func TestFrameworkReconciler_Reconcile(t *testing.T) {

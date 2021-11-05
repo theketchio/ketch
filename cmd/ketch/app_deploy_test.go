@@ -18,10 +18,10 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/build"
-	"github.com/shipa-corp/ketch/internal/deploy"
-	"github.com/shipa-corp/ketch/internal/pack"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/build"
+	"github.com/theketchio/ketch/internal/deploy"
+	"github.com/theketchio/ketch/internal/pack"
 )
 
 type getterCreatorMockFn func(m *mockClient, obj runtime.Object) error

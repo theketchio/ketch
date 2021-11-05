@@ -1,5 +1,5 @@
 domain: theketch.io
-repo: github.com/shipa-corp/ketch
+repo: github.com/theketchio/ketch
 resources:
 - group: resources
   kind: App

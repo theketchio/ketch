@@ -34,8 +34,8 @@ import (
 
 	// +kubebuilder:scaffold:imports
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/templates"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/templates"
 )
 
 type testingContext struct {

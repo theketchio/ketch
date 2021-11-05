@@ -3,7 +3,7 @@ package chart
 import (
 	"fmt"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 )
 
 // JobChart is an internal representation of a helm chart converted from the Job CRD
