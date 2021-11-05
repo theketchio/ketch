@@ -11,6 +11,8 @@ metadata:
     {{- if .Values.ingressController.clusterIssuer }}
     cert-manager.io/cluster-issuer: {{ .Values.ingressController.clusterIssuer | quote }}
     {{- end }}
+    {{- $data := dict "kind" "IngressRoute" "apiVersion" "traefik.containo.us/v1alpha1" "metadataItems" $.Values.app.metadataAnnotations }}
+    {{- include "ketch.renderMetadata" $data | nindent 4 }}
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:

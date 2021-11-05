@@ -370,6 +370,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     cert-manager.io/cluster-issuer: "letsencrypt-production"
+    theketch.io/metadata-item-kind: IngressRoute
+    theketch.io/metadata-item-apiVersion: traefik.containo.us/v1alpha1
+    theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
 spec:
@@ -394,6 +397,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     cert-manager.io/cluster-issuer: "letsencrypt-production"
+    theketch.io/metadata-item-kind: IngressRoute
+    theketch.io/metadata-item-apiVersion: traefik.containo.us/v1alpha1
+    theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
 spec:
@@ -420,6 +426,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     cert-manager.io/cluster-issuer: "letsencrypt-production"
+    theketch.io/metadata-item-kind: IngressRoute
+    theketch.io/metadata-item-apiVersion: traefik.containo.us/v1alpha1
+    theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
 spec:
@@ -446,6 +455,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     cert-manager.io/cluster-issuer: "letsencrypt-production"
+    theketch.io/metadata-item-kind: IngressRoute
+    theketch.io/metadata-item-apiVersion: traefik.containo.us/v1alpha1
+    theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
 spec:
@@ -472,6 +484,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     cert-manager.io/cluster-issuer: "letsencrypt-production"
+    theketch.io/metadata-item-kind: IngressRoute
+    theketch.io/metadata-item-apiVersion: traefik.containo.us/v1alpha1
+    theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
 spec:
@@ -498,6 +513,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     cert-manager.io/cluster-issuer: "letsencrypt-production"
+    theketch.io/metadata-item-kind: IngressRoute
+    theketch.io/metadata-item-apiVersion: traefik.containo.us/v1alpha1
+    theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
 spec:
@@ -524,6 +542,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "ingress-class"
     cert-manager.io/cluster-issuer: "letsencrypt-production"
+    theketch.io/metadata-item-kind: IngressRoute
+    theketch.io/metadata-item-apiVersion: traefik.containo.us/v1alpha1
+    theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
 spec:
