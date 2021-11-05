@@ -1,7 +1,7 @@
 ![Ketch](https://i.imgur.com/TVe46Dm.png)
 
 
-[![Build Status](https://travis-ci.com/shipa-corp/ketch.svg?token=qcHta8a4Eyd9eGNDTuSN&branch=main)](https://travis-ci.com/shipa-corp/ketch)
+[![Build Status](https://api.travis-ci.com/theketchio/ketch.svg?token=qcHta8a4Eyd9eGNDTuSN&branch=main)](https://app.travis-ci.com/github/theketchio/ketch)
 [![Slack](https://img.shields.io/badge/chat-on%20slack-6A5DAB)](https://shipa-io.slack.com/archives/C01E4FMEY9K)
 
 Think applications not yamls :)

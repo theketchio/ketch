@@ -147,6 +147,7 @@ spec:
         theketch.io/app-deployment-version: "3"
         theketch.io/is-isolated-run: "false"
     spec:
+      serviceAccountName: custom-service-account
       containers:
         - name: dashboard-web-3
           command: ["python"]
@@ -217,6 +218,7 @@ spec:
         theketch.io/app-deployment-version: "3"
         theketch.io/is-isolated-run: "false"
     spec:
+      serviceAccountName: custom-service-account
       containers:
         - name: dashboard-worker-3
           command: ["celery"]
@@ -268,6 +270,7 @@ spec:
         theketch.io/app-deployment-version: "4"
         theketch.io/is-isolated-run: "false"
     spec:
+      serviceAccountName: custom-service-account
       containers:
         - name: dashboard-web-4
           command: ["python"]
@@ -318,6 +321,7 @@ spec:
         theketch.io/app-deployment-version: "4"
         theketch.io/is-isolated-run: "false"
     spec:
+      serviceAccountName: custom-service-account
       containers:
         - name: dashboard-worker-4
           command: ["celery"]
@@ -340,7 +344,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-0-https-ingress
+  name: dashboard-0-http-ingress
   annotations:
     kubernetes.io/ingress.class: "gke"
     theketch.io/metadata-item-kind: Ingress
@@ -391,7 +395,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dashboard-1-https-ingress
+  name: dashboard-1-http-ingress
   annotations:
     kubernetes.io/ingress.class: "gke"
     nginx.ingress.kubernetes.io/canary: "true"

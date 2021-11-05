@@ -5,8 +5,8 @@ import (
 	"context"
 	"os"
 
-	"github.com/shipa-corp/ketch/internal/errors"
-	"github.com/shipa-corp/ketch/internal/pack"
+	"github.com/theketchio/ketch/internal/errors"
+	"github.com/theketchio/ketch/internal/pack"
 )
 
 type builder interface {

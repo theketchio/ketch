@@ -16,8 +16,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/templates"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/templates"
 )
 
 // ApplicationChart is an internal representation of a helm chart converted from the App CRD
@@ -54,6 +54,9 @@ type app struct {
 	MetadataLabels []ketchv1.MetadataItem
 	// MetadataAnnotations is a list of labels to be added to k8s resources.
 	MetadataAnnotations []ketchv1.MetadataItem `json:"metadataAnnotations"`
+	// ServiceAccountName specifies a service account name to be used for this application.
+	// SA should exist.
+	ServiceAccountName string `json:"serviceAccountName"`
 }
 
 type deployment struct {
@@ -127,6 +130,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			Group:               ketchv1.Group,
 			MetadataLabels:      application.Spec.Labels,
 			MetadataAnnotations: application.Spec.Annotations,
+			ServiceAccountName:  application.Spec.ServiceAccountName,
 		},
 		IngressController: &framework.Spec.IngressController,
 	}

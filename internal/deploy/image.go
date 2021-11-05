@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/shipa-corp/ketch/internal/errors"
+	"github.com/theketchio/ketch/internal/errors"
 )
 
 type ImageConfigRequest struct {

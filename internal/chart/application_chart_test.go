@@ -16,9 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/templates"
-	"github.com/shipa-corp/ketch/internal/utils/conversions"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/templates"
+	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 func TestNewApplicationChart(t *testing.T) {
@@ -178,10 +178,22 @@ func TestNewApplicationChart(t *testing.T) {
 						Kind:       "Ingress",
 					},
 				},
+				{
+					Apply: map[string]string{"theketch.io/ingress-route-annotation": "test-ingress"},
+					Target: ketchv1.Target{
+						APIVersion: "traefik.containo.us/v1alpha1",
+						Kind:       "IngressRoute",
+					},
+				},
 			},
 		},
 	}
 
+	setServiceAccount := func(app *ketchv1.App) *ketchv1.App {
+		out := *app
+		out.Spec.ServiceAccountName = "custom-service-account"
+		return &out
+	}
 	// convertSecureEndpoints returns a copy of app with Cnames made not secure
 	convertSecureEndpoints := func(app *ketchv1.App) *ketchv1.App {
 		out := *app
@@ -218,7 +230,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithTemplates(templates.NginxDefaultTemplates),
 				WithExposedPorts(exportedPorts),
 			},
-			application:       convertSecureEndpoints(dashboard),
+			application:       setServiceAccount(convertSecureEndpoints(dashboard)),
 			framework:         frameworkWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-nginx",
 		},

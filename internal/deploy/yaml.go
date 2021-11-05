@@ -6,10 +6,10 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/errors"
-	"github.com/shipa-corp/ketch/internal/utils"
-	"github.com/shipa-corp/ketch/internal/utils/conversions"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/errors"
+	"github.com/theketchio/ketch/internal/utils"
+	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 // Application represents the fields in an application.yaml file that will be

@@ -2378,6 +2378,10 @@ spec:
                       type: object
                   type: object
                 type: array
+              serviceAccountName:
+                description: ServiceAccountName specifies a service account name to
+                  be used for this application.
+                type: string
               version:
                 type: string
             required:

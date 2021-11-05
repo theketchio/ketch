@@ -14,9 +14,9 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/controllers"
-	"github.com/shipa-corp/ketch/internal/templates"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/controllers"
+	"github.com/theketchio/ketch/internal/templates"
 )
 
 var (

@@ -8,10 +8,10 @@ import (
 	"github.com/spf13/cobra"
 	apiv1 "k8s.io/api/core/v1"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/build"
-	"github.com/shipa-corp/ketch/internal/deploy"
-	"github.com/shipa-corp/ketch/internal/pack"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/build"
+	"github.com/theketchio/ketch/internal/deploy"
+	"github.com/theketchio/ketch/internal/pack"
 )
 
 func newAppCmd(cfg config, out io.Writer, packSvc *pack.Client, configDefaultBuilder string) *cobra.Command {

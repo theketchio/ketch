@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 )
 
 // sslCertificateManager describes who is responsible for getting an SSL certificate.

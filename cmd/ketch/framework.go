@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 
 	"github.com/spf13/cobra"
 )

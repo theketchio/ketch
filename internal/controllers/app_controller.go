@@ -40,9 +40,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	ketchv1 "github.com/shipa-corp/ketch/internal/api/v1beta1"
-	"github.com/shipa-corp/ketch/internal/chart"
-	"github.com/shipa-corp/ketch/internal/templates"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/chart"
+	"github.com/theketchio/ketch/internal/templates"
 )
 
 // AppReconciler reconciles a App object.
@@ -153,7 +153,6 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		// set default timeout
 		result = ctrl.Result{RequeueAfter: reconcileTimeout}
 	}
-
 	return result, err
 }
 
@@ -290,7 +289,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 	}
 
-	if len(app.Spec.Deployments) > 0 {
+	if len(app.Spec.Deployments) > 0 && !app.Spec.Canary.Active {
 		// use latest deployment and watch events for each process
 		latestDeployment := app.Spec.Deployments[len(app.Spec.Deployments)-1]
 		for _, process := range latestDeployment.Processes {
@@ -311,6 +310,14 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 					message: fmt.Sprintf("failed to get deploy events: %v", err),
 				}
 			}
+		}
+		// We useTimeout here to set reconcile.ReququeAfter in the Reconciler
+		// in order to ensure events actually get sent. It seems the lazyRecorder we use
+		// can stop with unhandled messages if the reconciler rapidly requeues.
+		return reconcileResult{
+			framework:  ref,
+			status:     v1.ConditionTrue,
+			useTimeout: true,
 		}
 	}
 
@@ -446,8 +453,8 @@ func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespa
 		}
 	}
 
-	// outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: int(dep.Status.ReadyReplicas)}
-	// recorder.Event(app, v1.EventTypeNormal, appReconcileComplete, outcome.String())
+	outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: int(dep.Status.ReadyReplicas)}
+	recorder.Event(app, v1.EventTypeNormal, appReconcileComplete, outcome.String())
 	return nil
 }
 

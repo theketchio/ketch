@@ -421,6 +421,14 @@ spec:
     hosts:
     - theketch.io
   - port:
+      name: http-to-https-3-theketch.io
+      number: 80
+      protocol: HTTP
+    hosts:
+    - theketch.io
+    tls:
+      httpsRedirect: true
+  - port:
       number: 443
       name: https-3-app.theketch.io
       protocol: HTTPS
@@ -430,6 +438,14 @@ spec:
     hosts:
     - app.theketch.io
   - port:
+      name: http-to-https-3-app.theketch.io
+      number: 80
+      protocol: HTTP
+    hosts:
+    - app.theketch.io
+    tls:
+      httpsRedirect: true
+  - port:
       number: 443
       name: https-3-darkweb.theketch.io
       protocol: HTTPS
@@ -438,6 +454,14 @@ spec:
       credentialName: darkweb-ssl
     hosts:
     - darkweb.theketch.io
+  - port:
+      name: http-to-https-3-darkweb.theketch.io
+      number: 80
+      protocol: HTTP
+    hosts:
+    - darkweb.theketch.io
+    tls:
+      httpsRedirect: true
   - port:
       number: 80
       name: http-4
@@ -454,6 +478,14 @@ spec:
     hosts:
     - theketch.io
   - port:
+      name: http-to-https-4-theketch.io
+      number: 80
+      protocol: HTTP
+    hosts:
+    - theketch.io
+    tls:
+      httpsRedirect: true
+  - port:
       number: 443
       name: https-4-app.theketch.io
       protocol: HTTPS
@@ -463,6 +495,14 @@ spec:
     hosts:
     - app.theketch.io
   - port:
+      name: http-to-https-4-app.theketch.io
+      number: 80
+      protocol: HTTP
+    hosts:
+    - app.theketch.io
+    tls:
+      httpsRedirect: true
+  - port:
       number: 443
       name: https-4-darkweb.theketch.io
       protocol: HTTPS
@@ -471,6 +511,14 @@ spec:
       credentialName: darkweb-ssl
     hosts:
     - darkweb.theketch.io
+  - port:
+      name: http-to-https-4-darkweb.theketch.io
+      number: 80
+      protocol: HTTP
+    hosts:
+    - darkweb.theketch.io
+    tls:
+      httpsRedirect: true
 ---
 # Source: dashboard/templates/virtualService.yaml
 apiVersion: networking.istio.io/v1alpha3

@@ -8,7 +8,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/require"
 
-	"github.com/shipa-corp/ketch/cmd/ketch/configuration"
+	"github.com/theketchio/ketch/cmd/ketch/configuration"
 )
 
 func Test_newBuilderSetCmd(t *testing.T) {
