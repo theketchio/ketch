@@ -1,8 +1,9 @@
 ## Contributing to Ketch
-We welcome contributions to Ketch in the form of pull requests or submitting issues. If you encounter a problem or want
-to suggest an improvement please submit an issue. If you find a bug please tell us about it by submitting an issue or
-pull request.  Please make sure you are testing against the latest version of Ketch when you are submitting a bug. Provide
-as much detail as you can.  Examples of detail would be the operating system you are using, the version of Kubernetes,
+We welcome contributions to Ketch in the form of Pull Requests or submitting Issues. Looking for your first contribution? There 
+are excellent [starter issues](https://github.com/theketchio/ketch/labels/good%20first%20issue) to work on. If you encounter a problem with Ketch or want
+to suggest an improvement please submit an Issue. If you find a bug please tell us about it by submitting an Issue or
+Pull Request.  Please make sure you are testing against the latest version of Ketch when you are submitting a bug. Provide
+[as much detail](https://github.com/theketchio/ketch/blob/main/.github/pull_request_template.md) as you can.  Examples of detail would be the operating system you are using, the version of Kubernetes,
 stack traces, the command(s) that caused the bug and so on.  
 
 ## Developer Guide
@@ -54,3 +55,5 @@ Use the cluster IP address when you create frameworks.
 ```bash
 ketch framework add myframework --ingress-service-endpoint $(kubectl get svc traefik -o jsonpath='{.spec.clusterIP}')
 ```
+## Submission Guidelines
+Ketch follows a lightweight Pull Request process. When submitting a PR, answering a few [basic questions](https://github.com/theketchio/ketch/blob/main/.github/pull_request_template.md) around type of change and steps to test and you are well on your way to a PR approval.   
