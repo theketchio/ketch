@@ -123,7 +123,7 @@ func main() {
 		Log:            logg,
 		Scheme:         mgr.GetScheme(),
 		HelmFactoryFn: func(namespace string) (controllers.Helm, error) {
-			return chart.NewHelmClient(namespace)
+			return chart.NewHelmClient(namespace, mgr.GetClient())
 		},
 		Now:   time.Now,
 		Group: group,
@@ -141,7 +141,7 @@ func main() {
 		Scheme:         mgr.GetScheme(),
 		TemplateReader: storage,
 		HelmFactoryFn: func(namespace string) (controllers.Helm, error) {
-			return chart.NewHelmClient(namespace)
+			return chart.NewHelmClient(namespace, mgr.GetClient())
 		},
 		Recorder: eventBroadcaster.NewRecorder(clientgoscheme.Scheme, v1.EventSource{
 			Component: "ketch-controller",
