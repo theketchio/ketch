@@ -76,9 +76,8 @@ func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *by
 		return nil, err
 	}
 
-	//fs := filesys.MakeFsInMemory()
-	fs := filesys.MakeFsOnDisk()
-	if err := fs.Mkdir("resources"); err != nil {
+	fs := filesys.MakeFsInMemory()
+	if err := fs.Mkdir(p.namespace); err != nil {
 		fmt.Println("error in file system")
 		return nil, err
 	}
@@ -88,7 +87,7 @@ func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *by
 		if cm.Name == "namespace-config" {
 			fmt.Printf("the map: %+v\n", cm)
 			for k, v := range cm.Data {
-				fileName := "resources/" + k
+				fileName := p.namespace + "/" + k
 				fmt.Println("writing: " + fileName)
 				if err := fs.WriteFile(fileName, []byte(v)); err != nil {
 					return nil, err
@@ -96,12 +95,12 @@ func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *by
 			}
 		}
 	}
-	files, err := fs.ReadDir("resources")
+	files, err := fs.ReadDir(p.namespace)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Printf("files: %+v\n", files)
-	result, err := kustomizer.Run(fs, "resources")
+	result, err := kustomizer.Run(fs, p.namespace)
 	if err != nil {
 		fmt.Println("error with run")
 		return nil, err
