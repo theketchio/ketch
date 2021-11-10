@@ -16,6 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/filesys"
 	"sigs.k8s.io/kustomize/api/krusty"
+	kTypes "sigs.k8s.io/kustomize/api/types"
+	"strings"
 )
 
 // HelmClient performs helm install and uninstall operations for provided application helm charts.
@@ -68,52 +70,62 @@ type postRender struct {
 }
 
 func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *bytes.Buffer, err error) {
-	fmt.Println("In the post render!!")
-	kustomizer := krusty.MakeKustomizer(&krusty.Options{})
+
 	var configMapList v1.ConfigMapList
 	if err := p.Client.List(context.Background(), &configMapList); err != nil {
-		fmt.Println("Configmap error")
 		return nil, err
 	}
 
 	fs := filesys.MakeFsInMemory()
 	if err := fs.Mkdir(p.namespace); err != nil {
-		fmt.Println("error in file system")
 		return nil, err
 	}
 
-	fmt.Println("entering for loop")
+	var postrenderFound bool
 	for _, cm := range configMapList.Items {
-		if cm.Name == "namespace-config" {
-			fmt.Printf("the map: %+v\n", cm)
-			for k, v := range cm.Data {
-				fileName := p.namespace + "/" + k
-				fmt.Println("writing: " + fileName)
-				if err := fs.WriteFile(fileName, []byte(v)); err != nil {
-					return nil, err
+		// only apply the postrenders present in the current namespace
+		if cm.Namespace == p.namespace {
+			split := strings.Split(cm.Name, "-")
+			// check if a postrender is available
+			if split[len(split)-1] == "postrender" {
+				postrenderFound = true
+				for k, v := range cm.Data {
+					fileName := p.namespace + "/" + k
+					if err := fs.WriteFile(fileName, []byte(v)); err != nil {
+						return nil, err
+					}
 				}
 			}
 		}
 	}
-	files, err := fs.ReadDir(p.namespace)
-	if err != nil {
+
+	// return original manifests, otherwise begin postrender
+	if !postrenderFound {
+		return renderedManifests, nil
+	}
+
+	if err := fs.WriteFile(p.namespace+"/app.yaml", renderedManifests.Bytes()); err != nil {
 		return nil, err
 	}
-	fmt.Printf("files: %+v\n", files)
+
+	kustomizer := krusty.MakeKustomizer(&krusty.Options{
+		PluginConfig: &kTypes.PluginConfig{
+			HelmConfig: kTypes.HelmConfig{
+				Enabled: true,
+				Command: "helm",
+			},
+		},
+	})
+
 	result, err := kustomizer.Run(fs, p.namespace)
 	if err != nil {
-		fmt.Println("error with run")
 		return nil, err
 	}
 	y, err := result.AsYaml()
 	if err != nil {
-		fmt.Println("error as yaml")
 		return nil, err
 	}
-	fmt.Println(string(y))
-	patchedManifest := bytes.NewBuffer(y)
-	//fmt.Printf("rendered manifests: %v\n", renderedManifests.String())
-	return patchedManifest, nil
+	return bytes.NewBuffer(y), nil
 }
 
 var _ postrender.PostRenderer = &postRender{}

@@ -205,15 +205,6 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 	targetNamespace := framework.Status.Namespace.Name
 	helmClient, err := r.HelmFactoryFn(targetNamespace)
 
-	/*var configMapList v1.ConfigMapList
-	if err := r.List(ctx, &configMapList); err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: "failed to list configs",
-		}
-	}*/
-	//helmClient.configMapList.Items
-
 	if err != nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
