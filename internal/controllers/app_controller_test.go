@@ -266,7 +266,7 @@ func TestWatchDeployEvents(t *testing.T) {
 		}
 	}()
 
-	err := r.watchFunc(ctx, app, namespace, depStart, process, recorder, watcher, cli, timeout)
+	err := r.watchFunc(ctx, app, namespace, depStart, process, recorder, watcher, cli, timeout, func() {})
 	require.Nil(t, err)
 
 	time.Sleep(time.Millisecond * 100)
@@ -361,11 +361,12 @@ func TestAppDeloymentEventFromWatchEvent(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		obj            watch.Event
-		expected       *AppDeploymentEvent
-		expectedString string
+		description string
+		obj         watch.Event
+		expected    *AppDeploymentEvent
 	}{
 		{
+			description: "success",
 			obj: watch.Event{
 				Object: &v1.Event{
 					Reason:  "test reason",
@@ -389,31 +390,27 @@ func TestAppDeloymentEventFromWatchEvent(t *testing.T) {
 				Reason:            "test reason",
 				Description:       "test message",
 				Annotations: map[string]string{
-					DeploymentAnnotationAppName:            app.Name,
-					DeploymentAnnotationDevelopmentVersion: "2",
-					DeploymentAnnotationEventName:          "test reason",
-					DeploymentAnnotationDescription:        "test message",
+					DeploymentAnnotationAppName:                 app.Name,
+					DeploymentAnnotationDevelopmentVersion:      "2",
+					DeploymentAnnotationEventName:               "test reason",
+					DeploymentAnnotationDescription:             "test message",
+					DeploymentAnnotationInvolvedObjectName:      "test name",
+					DeploymentAnnotationInvolvedObjectFieldPath: "test/fieldpath",
+					DeploymentAnnotationSourceHost:              "testhost",
+					DeploymentAnnotationSourceComponent:         "testcomponent",
 				},
-				InvolvedObjectName:      "test name",
-				InvolvedObjectFieldPath: "test/fieldpath",
-				SourceHost:              "testhost",
-				SourceComponent:         "testcomponent",
 			},
-			expectedString: "test name - test/fieldpath - test message [testcomponent, testhost]",
 		},
 		{
+			description: "no event",
 			obj: watch.Event{
 				Object: &v1.Pod{},
 			},
-			expectedString: "",
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.expectedString, func(t *testing.T) {
+		t.Run(tc.description, func(t *testing.T) {
 			ev := appDeploymentEventFromWatchEvent(tc.obj, app)
-			if tc.expected != nil {
-				require.Equal(t, tc.expectedString, ev.String())
-			}
 			require.Equal(t, tc.expected, ev)
 		})
 	}
