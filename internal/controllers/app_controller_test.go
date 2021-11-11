@@ -199,7 +199,9 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 }
 
 func TestWatchDeployEvents(t *testing.T) {
-	process := &ketchv1.ProcessSpec{}
+	process := &ketchv1.ProcessSpec{
+		Name: "test",
+	}
 
 	app := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
@@ -266,13 +268,12 @@ func TestWatchDeployEvents(t *testing.T) {
 		}
 	}()
 
-	err := r.watchFunc(ctx, app, namespace, depStart, process, recorder, watcher, cli, timeout, func() {})
+	err := r.watchFunc(ctx, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
 	require.Nil(t, err)
 
 	time.Sleep(time.Millisecond * 100)
 
 	expectedEvents := []string{
-		"Normal AppReconcileStarted Updating units []",
 		"Normal AppReconcileUpdate 1 of 1 new units created",
 		"Normal AppReconcileUpdate 0 of 1 new units ready",
 		"Normal AppReconcileUpdate 1 of 1 new units ready",
@@ -363,6 +364,7 @@ func TestAppDeloymentEventFromWatchEvent(t *testing.T) {
 	tests := []struct {
 		description string
 		obj         watch.Event
+		processName string
 		expected    *AppDeploymentEvent
 	}{
 		{
@@ -384,16 +386,19 @@ func TestAppDeloymentEventFromWatchEvent(t *testing.T) {
 					},
 				},
 			},
+			processName: "test process",
 			expected: &AppDeploymentEvent{
 				Name:              app.Name,
 				DeploymentVersion: 2,
 				Reason:            "test reason",
 				Description:       "test message",
+				ProcessName:       "test process",
 				Annotations: map[string]string{
 					DeploymentAnnotationAppName:                 app.Name,
 					DeploymentAnnotationDevelopmentVersion:      "2",
 					DeploymentAnnotationEventName:               "test reason",
 					DeploymentAnnotationDescription:             "test message",
+					DeploymentAnnotationProcessName:             "test process",
 					DeploymentAnnotationInvolvedObjectName:      "test name",
 					DeploymentAnnotationInvolvedObjectFieldPath: "test/fieldpath",
 					DeploymentAnnotationSourceHost:              "testhost",
@@ -410,7 +415,7 @@ func TestAppDeloymentEventFromWatchEvent(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.description, func(t *testing.T) {
-			ev := appDeploymentEventFromWatchEvent(tc.obj, app)
+			ev := appDeploymentEventFromWatchEvent(tc.obj, app, tc.processName)
 			require.Equal(t, tc.expected, ev)
 		})
 	}
@@ -430,30 +435,34 @@ func TestAppDeloymentEvent(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		reason   string
-		desc     string
-		expected *AppDeploymentEvent
+		reason      string
+		desc        string
+		processName string
+		expected    *AppDeploymentEvent
 	}{
 		{
-			reason: "test reason",
-			desc:   "test message",
+			reason:      "test reason",
+			desc:        "test message",
+			processName: "test process",
 			expected: &AppDeploymentEvent{
 				Name:              app.Name,
 				DeploymentVersion: 2,
 				Reason:            "test reason",
 				Description:       "test message",
+				ProcessName:       "test process",
 				Annotations: map[string]string{
 					DeploymentAnnotationAppName:            app.Name,
 					DeploymentAnnotationDevelopmentVersion: "2",
 					DeploymentAnnotationEventName:          "test reason",
 					DeploymentAnnotationDescription:        "test message",
+					DeploymentAnnotationProcessName:        "test process",
 				},
 			},
 		},
 	}
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
-			ev := newAppDeploymentEvent(app, tc.reason, tc.desc)
+			ev := newAppDeploymentEvent(app, tc.reason, tc.desc, tc.processName)
 			require.Equal(t, tc.expected, ev)
 		})
 	}
