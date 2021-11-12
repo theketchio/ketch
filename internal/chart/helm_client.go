@@ -1,23 +1,15 @@
 package chart
 
 import (
-	"bytes"
-	"context"
-	"fmt"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/postrender"
 	"helm.sh/helm/v3/pkg/release"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"log"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/kustomize/api/filesys"
-	"sigs.k8s.io/kustomize/api/krusty"
-	kTypes "sigs.k8s.io/kustomize/api/types"
-	"strings"
 )
 
 // HelmClient performs helm install and uninstall operations for provided application helm charts.
@@ -64,70 +56,6 @@ func getActionConfig(namespace string) (*action.Configuration, error) {
 // InstallOption to perform additional configuration of action.Install before running a chart installation.
 type InstallOption func(install *action.Install)
 
-type postRender struct {
-	client.Client
-	namespace string
-}
-
-func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *bytes.Buffer, err error) {
-
-	var configMapList v1.ConfigMapList
-	if err := p.Client.List(context.Background(), &configMapList); err != nil {
-		return nil, err
-	}
-
-	fs := filesys.MakeFsInMemory()
-	if err := fs.Mkdir(p.namespace); err != nil {
-		return nil, err
-	}
-
-	var postrenderFound bool
-	for _, cm := range configMapList.Items {
-		// only apply the postrenders present in the current namespace
-		if cm.Namespace == p.namespace {
-			split := strings.Split(cm.Name, "-")
-			// check if a postrender is available
-			if split[len(split)-1] == "postrender" {
-				postrenderFound = true
-				for k, v := range cm.Data {
-					fileName := p.namespace + "/" + k
-					if err := fs.WriteFile(fileName, []byte(v)); err != nil {
-						return nil, err
-					}
-				}
-			}
-		}
-	}
-
-	// return original manifests, otherwise begin postrender
-	if !postrenderFound {
-		return renderedManifests, nil
-	}
-
-	if err := fs.WriteFile(p.namespace+"/app.yaml", renderedManifests.Bytes()); err != nil {
-		return nil, err
-	}
-
-	kustomizer := krusty.MakeKustomizer(&krusty.Options{
-		PluginConfig: &kTypes.PluginConfig{
-			HelmConfig: kTypes.HelmConfig{
-				Enabled: true,
-				Command: "helm",
-			},
-		},
-	})
-
-	result, err := kustomizer.Run(fs, p.namespace)
-	if err != nil {
-		return nil, err
-	}
-	y, err := result.AsYaml()
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(y), nil
-}
-
 var _ postrender.PostRenderer = &postRender{}
 
 // UpdateChart checks if the app chart is already installed and performs "helm install" or "helm update" operation.
@@ -154,12 +82,11 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 		clientInstall.Namespace = c.namespace
 		clientInstall.PostRenderer = &postRender{
 			namespace: c.namespace,
-			Client:    c.c,
+			cli:       c.c,
 		}
 		for _, opt := range opts {
 			opt(clientInstall)
 		}
-		fmt.Println("new!!!!!!")
 		return clientInstall.Run(chrt, vals)
 	}
 	if err != nil {
@@ -169,9 +96,8 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	updateClient.Namespace = c.namespace
 	updateClient.PostRenderer = &postRender{
 		namespace: c.namespace,
-		Client:    c.c,
+		cli:       c.c,
 	}
-	fmt.Println("updates!!!!!")
 	return updateClient.Run(appName, chrt, vals)
 }
 
