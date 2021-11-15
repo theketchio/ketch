@@ -365,7 +365,7 @@ func TestAppDeloymentEventFromWatchEvent(t *testing.T) {
 		description string
 		obj         watch.Event
 		processName string
-		expected    *AppDeploymentEvent
+		expected    *ketchv1.AppDeploymentEvent
 	}{
 		{
 			description: "success",
@@ -387,22 +387,22 @@ func TestAppDeloymentEventFromWatchEvent(t *testing.T) {
 				},
 			},
 			processName: "test process",
-			expected: &AppDeploymentEvent{
+			expected: &ketchv1.AppDeploymentEvent{
 				Name:              app.Name,
 				DeploymentVersion: 2,
 				Reason:            "test reason",
 				Description:       "test message",
 				ProcessName:       "test process",
 				Annotations: map[string]string{
-					DeploymentAnnotationAppName:                 app.Name,
-					DeploymentAnnotationDevelopmentVersion:      "2",
-					DeploymentAnnotationEventName:               "test reason",
-					DeploymentAnnotationDescription:             "test message",
-					DeploymentAnnotationProcessName:             "test process",
-					DeploymentAnnotationInvolvedObjectName:      "test name",
-					DeploymentAnnotationInvolvedObjectFieldPath: "test/fieldpath",
-					DeploymentAnnotationSourceHost:              "testhost",
-					DeploymentAnnotationSourceComponent:         "testcomponent",
+					ketchv1.DeploymentAnnotationAppName:                 app.Name,
+					ketchv1.DeploymentAnnotationDevelopmentVersion:      "2",
+					ketchv1.DeploymentAnnotationEventName:               "test reason",
+					ketchv1.DeploymentAnnotationDescription:             "test message",
+					ketchv1.DeploymentAnnotationProcessName:             "test process",
+					ketchv1.DeploymentAnnotationInvolvedObjectName:      "test name",
+					ketchv1.DeploymentAnnotationInvolvedObjectFieldPath: "test/fieldpath",
+					ketchv1.DeploymentAnnotationSourceHost:              "testhost",
+					ketchv1.DeploymentAnnotationSourceComponent:         "testcomponent",
 				},
 			},
 		},
@@ -438,24 +438,24 @@ func TestAppDeloymentEvent(t *testing.T) {
 		reason      string
 		desc        string
 		processName string
-		expected    *AppDeploymentEvent
+		expected    *ketchv1.AppDeploymentEvent
 	}{
 		{
 			reason:      "test reason",
 			desc:        "test message",
 			processName: "test process",
-			expected: &AppDeploymentEvent{
+			expected: &ketchv1.AppDeploymentEvent{
 				Name:              app.Name,
 				DeploymentVersion: 2,
 				Reason:            "test reason",
 				Description:       "test message",
 				ProcessName:       "test process",
 				Annotations: map[string]string{
-					DeploymentAnnotationAppName:            app.Name,
-					DeploymentAnnotationDevelopmentVersion: "2",
-					DeploymentAnnotationEventName:          "test reason",
-					DeploymentAnnotationDescription:        "test message",
-					DeploymentAnnotationProcessName:        "test process",
+					ketchv1.DeploymentAnnotationAppName:            app.Name,
+					ketchv1.DeploymentAnnotationDevelopmentVersion: "2",
+					ketchv1.DeploymentAnnotationEventName:          "test reason",
+					ketchv1.DeploymentAnnotationDescription:        "test message",
+					ketchv1.DeploymentAnnotationProcessName:        "test process",
 				},
 			},
 		},

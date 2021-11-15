@@ -72,38 +72,7 @@ type Helm interface {
 	DeleteChart(appName string) error
 }
 
-// AppDeploymentEvent represents fields and annotations for an Event that describes an app deployment.
-type AppDeploymentEvent struct {
-	Name string
-	// DeploymentVersion represents for which deployment event is associated with
-	DeploymentVersion int
-	// Reason is the reason for the event
-	Reason string
-	// Description states what is the outcome of this event
-	Description string
-	// ProcessName is the name of this process for this appsv1.Deployment
-	ProcessName string
-	// Annotations contain details on the deployment
-	Annotations map[string]string
-	// InvolvedObject is the object about which an incoming Event refers
-	InvolvedObjectName      string
-	InvolvedObjectFieldPath string
-	// Source is the source of an incoming event
-	SourceHost      string
-	SourceComponent string
-}
-
 const (
-	DeploymentAnnotationAppName                 = "deployment.shipa.io/app-name"
-	DeploymentAnnotationDevelopmentVersion      = "deployment.shipa.io/deployment-version"
-	DeploymentAnnotationEventName               = "deployment.shipa.io/event-name"
-	DeploymentAnnotationDescription             = "deployment.shipa.io/description"
-	DeploymentAnnotationProcessName             = "deployment.shipa.io/process-name"
-	DeploymentAnnotationInvolvedObjectName      = "deployment.shipa.io/involved-object-name"
-	DeploymentAnnotationInvolvedObjectFieldPath = "deployment.shipa.io/involved-object-field-path"
-	DeploymentAnnotationSourceHost              = "deployment.shipa.io/source-host"
-	DeploymentAnnotationSourceComponent         = "deployment.shipa.io/cource-component"
-
 	replicaDepRevision            = "deployment.kubernetes.io/revision"
 	DeploymentProgressing         = "Progressing"
 	deadlineExeceededProgressCond = "ProgressDeadlineExceeded"
@@ -497,7 +466,7 @@ func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespa
 }
 
 // appDeploymentEventFromWatchEvent converts a watch.Event into an AppDeploymentEvent
-func appDeploymentEventFromWatchEvent(watchEvent watch.Event, app *ketchv1.App, processName string) *AppDeploymentEvent {
+func appDeploymentEventFromWatchEvent(watchEvent watch.Event, app *ketchv1.App, processName string) *ketchv1.AppDeploymentEvent {
 	event, ok := watchEvent.Object.(*v1.Event)
 	if !ok {
 		return nil
@@ -506,44 +475,44 @@ func appDeploymentEventFromWatchEvent(watchEvent watch.Event, app *ketchv1.App, 
 	if len(app.Spec.Deployments) > 0 {
 		version = int(app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 	}
-	return &AppDeploymentEvent{
+	return &ketchv1.AppDeploymentEvent{
 		Name:              app.Name,
 		DeploymentVersion: version,
 		Reason:            event.Reason,
 		Description:       event.Message,
 		ProcessName:       processName,
 		Annotations: map[string]string{
-			DeploymentAnnotationAppName:                 app.Name,
-			DeploymentAnnotationDevelopmentVersion:      strconv.Itoa(version),
-			DeploymentAnnotationEventName:               event.Reason,
-			DeploymentAnnotationDescription:             event.Message,
-			DeploymentAnnotationProcessName:             processName,
-			DeploymentAnnotationInvolvedObjectName:      event.InvolvedObject.Name,
-			DeploymentAnnotationInvolvedObjectFieldPath: event.InvolvedObject.FieldPath,
-			DeploymentAnnotationSourceHost:              event.Source.Host,
-			DeploymentAnnotationSourceComponent:         event.Source.Component,
+			ketchv1.DeploymentAnnotationAppName:                 app.Name,
+			ketchv1.DeploymentAnnotationDevelopmentVersion:      strconv.Itoa(version),
+			ketchv1.DeploymentAnnotationEventName:               event.Reason,
+			ketchv1.DeploymentAnnotationDescription:             event.Message,
+			ketchv1.DeploymentAnnotationProcessName:             processName,
+			ketchv1.DeploymentAnnotationInvolvedObjectName:      event.InvolvedObject.Name,
+			ketchv1.DeploymentAnnotationInvolvedObjectFieldPath: event.InvolvedObject.FieldPath,
+			ketchv1.DeploymentAnnotationSourceHost:              event.Source.Host,
+			ketchv1.DeploymentAnnotationSourceComponent:         event.Source.Component,
 		},
 	}
 }
 
 // newAppDeploymentEvent creates a new AppDeploymentEvent, creating Annotations for use when emitting App Events.
-func newAppDeploymentEvent(app *ketchv1.App, reason, desc, processName string) *AppDeploymentEvent {
+func newAppDeploymentEvent(app *ketchv1.App, reason, desc, processName string) *ketchv1.AppDeploymentEvent {
 	var version int
 	if len(app.Spec.Deployments) > 0 {
 		version = int(app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 	}
-	return &AppDeploymentEvent{
+	return &ketchv1.AppDeploymentEvent{
 		Name:              app.Name,
 		DeploymentVersion: version,
 		Reason:            reason,
 		Description:       desc,
 		ProcessName:       processName,
 		Annotations: map[string]string{
-			DeploymentAnnotationAppName:            app.Name,
-			DeploymentAnnotationDevelopmentVersion: strconv.Itoa(version),
-			DeploymentAnnotationEventName:          reason,
-			DeploymentAnnotationDescription:        desc,
-			DeploymentAnnotationProcessName:        processName,
+			ketchv1.DeploymentAnnotationAppName:            app.Name,
+			ketchv1.DeploymentAnnotationDevelopmentVersion: strconv.Itoa(version),
+			ketchv1.DeploymentAnnotationEventName:          reason,
+			ketchv1.DeploymentAnnotationDescription:        desc,
+			ketchv1.DeploymentAnnotationProcessName:        processName,
 		},
 	}
 }
