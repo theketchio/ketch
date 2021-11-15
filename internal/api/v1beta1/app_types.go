@@ -964,6 +964,11 @@ const (
 	DeploymentAnnotationInvolvedObjectFieldPath = "deployment.shipa.io/involved-object-field-path"
 	DeploymentAnnotationSourceHost              = "deployment.shipa.io/source-host"
 	DeploymentAnnotationSourceComponent         = "deployment.shipa.io/cource-component"
+
+	AppReconcileStarted  = "AppReconcileStarted"
+	AppReconcileComplete = "AppReconcileComplete"
+	AppReconcileUpdate   = "AppReconcileUpdate"
+	AppReconcileError    = "AppReconcileError"
 )
 
 // AppDeploymentEvent represents fields and annotations for an Event that describes an app deployment.
