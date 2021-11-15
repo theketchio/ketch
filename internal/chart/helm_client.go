@@ -3,7 +3,6 @@ package chart
 import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/postrender"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"log"
@@ -55,8 +54,6 @@ func getActionConfig(namespace string) (*action.Configuration, error) {
 
 // InstallOption to perform additional configuration of action.Install before running a chart installation.
 type InstallOption func(install *action.Install)
-
-var _ postrender.PostRenderer = &postRender{}
 
 // UpdateChart checks if the app chart is already installed and performs "helm install" or "helm update" operation.
 func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...InstallOption) (*release.Release, error) {

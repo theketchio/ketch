@@ -5,12 +5,15 @@ import (
 	"context"
 	"strings"
 
+	"helm.sh/helm/v3/pkg/postrender"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/krusty"
 	kTypes "sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
+
+var _ postrender.PostRenderer = &postRender{}
 
 type postRender struct {
 	cli       client.Client
