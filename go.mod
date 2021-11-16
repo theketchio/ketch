@@ -29,6 +29,11 @@ require (
 )
 
 require (
+	sigs.k8s.io/kustomize/api v0.10.0
+	sigs.k8s.io/kustomize/kyaml v0.12.0
+)
+
+require (
 	cloud.google.com/go v0.57.0 // indirect
 	github.com/Azure/azure-sdk-for-go v42.3.0+incompatible // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
@@ -179,7 +184,5 @@ require (
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
 	k8s.io/legacy-cloud-providers v0.18.8 // indirect
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a // indirect
-	sigs.k8s.io/kustomize/api v0.8.5 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.10.15 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 )

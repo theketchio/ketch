@@ -1,20 +1,21 @@
 package chart
 
 import (
-	"log"
-	"os"
-
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"log"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // HelmClient performs helm install and uninstall operations for provided application helm charts.
 type HelmClient struct {
 	cfg       *action.Configuration
 	namespace string
+	c         client.Client
 }
 
 // TemplateValuer is an interface that permits types that implement it (e.g. Application, Job)
@@ -26,12 +27,12 @@ type TemplateValuer interface {
 }
 
 // NewHelmClient returns a HelmClient instance.
-func NewHelmClient(namespace string) (*HelmClient, error) {
+func NewHelmClient(namespace string, c client.Client) (*HelmClient, error) {
 	cfg, err := getActionConfig(namespace)
 	if err != nil {
 		return nil, err
 	}
-	return &HelmClient{cfg: cfg, namespace: namespace}, nil
+	return &HelmClient{cfg: cfg, namespace: namespace, c: c}, nil
 }
 
 func getActionConfig(namespace string) (*action.Configuration, error) {
@@ -51,7 +52,7 @@ func getActionConfig(namespace string) (*action.Configuration, error) {
 	return actionConfig, nil
 }
 
-// Option to perform additional configuration of action.Install before running a chart installation.
+// InstallOption to perform additional configuration of action.Install before running a chart installation.
 type InstallOption func(install *action.Install)
 
 // UpdateChart checks if the app chart is already installed and performs "helm install" or "helm update" operation.
@@ -76,6 +77,10 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 		clientInstall := action.NewInstall(c.cfg)
 		clientInstall.ReleaseName = appName
 		clientInstall.Namespace = c.namespace
+		clientInstall.PostRenderer = &postRender{
+			namespace: c.namespace,
+			cli:       c.c,
+		}
 		for _, opt := range opts {
 			opt(clientInstall)
 		}
@@ -86,6 +91,10 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	}
 	updateClient := action.NewUpgrade(c.cfg)
 	updateClient.Namespace = c.namespace
+	updateClient.PostRenderer = &postRender{
+		namespace: c.namespace,
+		cli:       c.c,
+	}
 	return updateClient.Run(appName, chrt, vals)
 }
 

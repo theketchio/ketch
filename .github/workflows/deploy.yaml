@@ -1,0 +1,84 @@
+name: Build, test, and deploy ketch
+
+on: push
+
+jobs:
+  build:
+    name: Build binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Go Version
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.17'
+      - name: Unit Tests
+        run : |
+          make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
+          export TEST_ASSET_KUBECTL=/tmp/kubebuilder/bin/kubectl
+          export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
+          export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
+          make test
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Push to Docker Hub
+        uses: docker/build-push-action@v2
+        with:
+          tags: shipasoftware/ketch:${{github.sha}}
+          push: true
+      - uses: AbsaOSS/k3d-action@v1.5.0
+        name: "Create K3D Cluster"
+        with:
+          cluster-name: "test-cluster-1"
+          args: --agents 1
+      - name: Install Integration Test Dependencies
+        run: |
+          # kubebuilder
+          make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
+
+          # kustomize
+          make install-kustomize KUSTOMIZE_INSTALL_DIR=/tmp
+          export PATH=$PATH:/tmp
+
+          # ketch
+          kubectl cluster-info
+          make manifests install ketch manager
+          export PATH=$PATH:$(pwd)/bin
+          ketch -v
+
+          # helm
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && chmod 700 get_helm.sh && ./get_helm.sh
+
+          # cert-manager
+          kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.yaml
+
+          # traefik
+          helm repo add traefik https://helm.traefik.io/traefik
+          helm repo update
+          helm uninstall traefik -n kube-system
+          helm install traefik traefik/traefik
+
+          # istio
+          ISTIO_VERSION=1.11.0 && curl -L -k https://istio.io/downloadIstio |ISTIO_VERSION=1.11.0 sh - && cd istio-$ISTIO_VERSION && ./bin/istioctl install --set profile=demo -y
+          cd ../
+
+          # nginx
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+          helm install ingress-nginx ingress-nginx/ingress-nginx
+
+          # wait for containers
+          kubectl wait --for=condition=Ready=true pod -n cert-manager --all
+          kubectl get pods -A
+
+          # install bats
+          sudo apt-get update -yq && sudo apt-get install bats -y
+
+      - name: Run Integration Tests
+        run: |
+          cli_tests/app.sh
+          cli_tests/job.sh
