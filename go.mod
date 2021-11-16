@@ -28,6 +28,8 @@ require (
 	sigs.k8s.io/yaml v1.2.0
 )
 
+require sigs.k8s.io/kustomize/api v0.10.0
+
 require (
 	cloud.google.com/go v0.57.0 // indirect
 	github.com/Azure/azure-sdk-for-go v42.3.0+incompatible // indirect
@@ -176,10 +178,9 @@ require (
 	k8s.io/component-base v0.21.3 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.8.0 // indirect
-	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7 // indirect
+	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
 	k8s.io/legacy-cloud-providers v0.18.8 // indirect
 	k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471 // indirect
-	sigs.k8s.io/kustomize/api v0.8.5 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.10.15 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.12.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 )

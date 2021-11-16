@@ -1,0 +1,112 @@
+rendered manifests: ---
+# Source: post/templates/gateway_service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    theketch.io/app-name: "post"
+    theketch.io/is-isolated-run: "false"
+  name: app-post
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-default-1
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    theketch.io/app-name: "post"
+    theketch.io/app-process: "web"
+    theketch.io/app-deployment-version: "1"
+    theketch.io/is-isolated-run: "false"
+---
+# Source: post/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    theketch.io/app-name: "post"
+    theketch.io/app-process: "web"
+    theketch.io/app-deployment-version: "1"
+    theketch.io/is-isolated-run: "false"
+  name: post-web-1
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-default-1
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    theketch.io/app-name: "post"
+    theketch.io/app-process: "web"
+    theketch.io/app-deployment-version: "1"
+    theketch.io/is-isolated-run: "false"
+---
+# Source: post/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    theketch.io/app-name: "post"
+    theketch.io/app-process: "web"
+    theketch.io/app-process-replicas: "1"
+    theketch.io/app-deployment-version: "1"
+    theketch.io/is-isolated-run: "false"
+  name: post-web-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "post"
+      version: "1"
+      theketch.io/app-name: "post"
+      theketch.io/app-process: "web"
+      theketch.io/app-deployment-version: "1"
+      theketch.io/is-isolated-run: "false"
+  template:
+    metadata:
+      labels:
+        app: "post"
+        version: "1"
+        theketch.io/app-name: "post"
+        theketch.io/app-process: "web"
+        theketch.io/app-deployment-version: "1"
+        theketch.io/is-isolated-run: "false"
+    spec:
+      containers:
+        - name: post-web-1
+          command: ["docker-entrypoint.sh","npm","start"]
+          env:
+            - name: port
+              value: "8080"
+            - name: PORT
+              value: "8080"
+            - name: PORT_web
+              value: "8080"
+          image: docker.io/shipasoftware/bulletinboard:1.0
+          ports:
+            - containerPort: 8080
+---
+# Source: post/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: post-0-http-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    theketch.io/metadata-item-kind: Ingress
+    theketch.io/metadata-item-apiVersion: networking.k8s.io/v1
+  labels:
+    theketch.io/app-name: "post"
+spec:
+  rules:
+    - host: post.10.99.113.29.shipa.cloud
+      http:
+        paths:
+          - backend:
+              service:
+                name: post-web-1
+                port:
+                  number: 8080
+            pathType: ImplementationSpecific
