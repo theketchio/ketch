@@ -5,4 +5,3 @@ kind: Kustomization
 images:
 - name: controller
   newName: gcr.io/kubernetes-312803/ketch
-  newTag: "20"
