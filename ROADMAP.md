@@ -1,12 +1,1 @@
-This roadmap provides guidance in to upcoming Ketch features
-
-v0.3.0 - April 2021
----
-- Improved Canary deployment
-- Support for private env variables
-- Migrate pool to Framework
-
-v0.2.0 - Jan 2021
----
-- Deploy application from source code
-- Canary deployment
+[Ketch Roadmap](https://portal.productboard.com/shipa/3-ketch-roadmap/tabs/7-under-consideration)
