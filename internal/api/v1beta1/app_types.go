@@ -22,6 +22,7 @@ import (
 	"math"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -951,4 +952,62 @@ func ParseAppReconcileOutcome(in string) (*AppReconcileOutcome, error) {
 		return nil, fmt.Errorf(`unable to parse reconcile reason: %v`, err)
 	}
 	return &rm, nil
+}
+
+const (
+	DeploymentAnnotationAppName                 = "deployment.shipa.io/app-name"
+	DeploymentAnnotationDevelopmentVersion      = "deployment.shipa.io/deployment-version"
+	DeploymentAnnotationEventName               = "deployment.shipa.io/event-name"
+	DeploymentAnnotationDescription             = "deployment.shipa.io/description"
+	DeploymentAnnotationProcessName             = "deployment.shipa.io/process-name"
+	DeploymentAnnotationInvolvedObjectName      = "deployment.shipa.io/involved-object-name"
+	DeploymentAnnotationInvolvedObjectFieldPath = "deployment.shipa.io/involved-object-field-path"
+	DeploymentAnnotationSourceHost              = "deployment.shipa.io/source-host"
+	DeploymentAnnotationSourceComponent         = "deployment.shipa.io/cource-component"
+
+	AppReconcileStarted  = "AppReconcileStarted"
+	AppReconcileComplete = "AppReconcileComplete"
+	AppReconcileUpdate   = "AppReconcileUpdate"
+	AppReconcileError    = "AppReconcileError"
+)
+
+// AppDeploymentEvent represents fields and annotations for an Event that describes an app deployment.
+type AppDeploymentEvent struct {
+	Name string
+	// DeploymentVersion represents for which deployment event is associated with
+	DeploymentVersion int
+	// Reason is the reason for the event
+	Reason string
+	// Description states what is the outcome of this event
+	Description string
+	// ProcessName is the name of this process for this appsv1.Deployment
+	ProcessName string
+	// Annotations contain details on the deployment
+	Annotations map[string]string
+	// InvolvedObject is the object about which an incoming Event refers
+	InvolvedObjectName      string
+	InvolvedObjectFieldPath string
+	// Source is the source of an incoming event
+	SourceHost      string
+	SourceComponent string
+}
+
+func AppDeploymentEventFromAnnotations(annotations map[string]string) *AppDeploymentEvent {
+	version, _ := strconv.Atoi(annotations[DeploymentAnnotationDevelopmentVersion])
+	description := annotations[DeploymentAnnotationDescription]
+	if annotations[DeploymentAnnotationInvolvedObjectFieldPath] != "" {
+		description = fmt.Sprintf("%s - %s - %s [%s]",
+			annotations[DeploymentAnnotationInvolvedObjectName],
+			annotations[DeploymentAnnotationInvolvedObjectFieldPath],
+			annotations[DeploymentAnnotationDescription],
+			strings.Join([]string{annotations[DeploymentAnnotationSourceComponent], annotations[DeploymentAnnotationSourceHost]}, ","),
+		)
+	}
+	return &AppDeploymentEvent{
+		Name:              annotations[DeploymentAnnotationAppName],
+		DeploymentVersion: version,
+		Reason:            annotations[DeploymentAnnotationEventName],
+		Description:       description,
+		ProcessName:       annotations[DeploymentAnnotationProcessName],
+	}
 }

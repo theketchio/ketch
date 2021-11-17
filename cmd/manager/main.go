@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -129,7 +129,9 @@ func main() {
 		Group: group,
 		Recorder: eventBroadcaster.NewRecorder(clientgoscheme.Scheme, v1.EventSource{
 			Component: "ketch-controller",
-		}),
+		},
+		),
+		Config: ctrl.GetConfigOrDie(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "App")
 		os.Exit(1)
