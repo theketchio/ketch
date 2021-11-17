@@ -1,0 +1,21 @@
+{
+	"github.com/theketchio/ketch/cmd/ketch": 61.4,
+	"github.com/theketchio/ketch/cmd/ketch/configuration": 0,
+	"github.com/theketchio/ketch/cmd/ketch/output": 68.3,
+	"github.com/theketchio/ketch/cmd/manager": 0,
+	"github.com/theketchio/ketch/codeprofile/unit_test_coverage": 0,
+	"github.com/theketchio/ketch/internal/api/v1beta1": 33.2,
+	"github.com/theketchio/ketch/internal/api/v1beta1/mocks": 0,
+	"github.com/theketchio/ketch/internal/build": 92.3,
+	"github.com/theketchio/ketch/internal/chart": 67.8,
+	"github.com/theketchio/ketch/internal/controllers": 55.7,
+	"github.com/theketchio/ketch/internal/deploy": 26.5,
+	"github.com/theketchio/ketch/internal/errors": 50,
+	"github.com/theketchio/ketch/internal/mocks": 0,
+	"github.com/theketchio/ketch/internal/pack": 0,
+	"github.com/theketchio/ketch/internal/templates": 5,
+	"github.com/theketchio/ketch/internal/templates/generator": 0,
+	"github.com/theketchio/ketch/internal/utils": 0,
+	"github.com/theketchio/ketch/internal/utils/conversions": 0,
+	"github.com/theketchio/ketch/internal/validation": 0
+}
