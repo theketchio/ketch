@@ -25,9 +25,9 @@ rules:
   verbs:
   - create
   - delete
+  - list
   - patch
   - update
-  - list
   - watch
 - apiGroups:
   - ""
