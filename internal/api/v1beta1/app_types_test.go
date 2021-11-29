@@ -966,12 +966,13 @@ func TestApp_DoCanary(t *testing.T) {
 		return &t
 	}
 	tests := []struct {
-		name          string
-		app           App
-		now           metav1.Time
-		wantNoChanges bool
-		wantApp       App
-		wantErr       string
+		name           string
+		app            App
+		now            metav1.Time
+		disableScaling bool
+		wantNoChanges  bool
+		wantApp        App
+		wantErr        string
 	}{
 		{
 			name: "happy path - do canary",
@@ -1041,6 +1042,45 @@ func TestApp_DoCanary(t *testing.T) {
 					},
 					Deployments: []AppDeploymentSpec{
 						{Version: 3, RoutingSettings: RoutingSettings{Weight: 100}},
+					},
+				},
+			},
+		},
+		{
+			// process not in target should be updated to 1 unit
+			name: "updated version's process not in target",
+			now:  *timeRef(10, 31),
+			app: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             5,
+						StepWeight:        20,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 30),
+						CurrentStep:       1,
+						Active:            true,
+						Target:            map[string]uint16{"p1": 7},
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 80}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 20}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}, {Name: "p2", Units: intRef(4)}}},
+					},
+				},
+			},
+			wantApp: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             5,
+						StepWeight:        20,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 40),
+						CurrentStep:       2,
+						Active:            true,
+						Target:            map[string]uint16{"p1": 7},
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 60}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(4)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 40}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(3)}, {Name: "p2", Units: intRef(1)}}},
 					},
 				},
 			},
@@ -1186,10 +1226,50 @@ func TestApp_DoCanary(t *testing.T) {
 				},
 			},
 		},
+		{
+			// weight should still change, but units should remain the same
+			name: "disable pod scaling",
+			now:  *timeRef(10, 31),
+			app: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             5,
+						StepWeight:        20,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 30),
+						CurrentStep:       1,
+						Active:            true,
+						Target:            map[string]uint16{"p1": 7},
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 80}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 20}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}, {Name: "p2", Units: intRef(4)}}},
+					},
+				},
+			},
+			disableScaling: true,
+			wantApp: App{
+				Spec: AppSpec{
+					Canary: CanarySpec{
+						Steps:             5,
+						StepWeight:        20,
+						StepTimeInteval:   10 * time.Minute,
+						NextScheduledTime: timeRef(10, 40),
+						CurrentStep:       2,
+						Active:            true,
+						Target:            map[string]uint16{"p1": 7},
+					},
+					Deployments: []AppDeploymentSpec{
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 60}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 40}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}, {Name: "p2", Units: intRef(4)}}},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.app.DoCanary(tt.now, logr.Discard(), &record.FakeRecorder{})
+			err := tt.app.DoCanary(tt.now, logr.Discard(), &record.FakeRecorder{}, tt.disableScaling)
 			originalApp := *tt.app.DeepCopy()
 			if len(tt.wantErr) > 0 {
 				require.NotNil(t, err)

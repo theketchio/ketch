@@ -361,7 +361,7 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 	}
 
 	opts := metav1.ListOptions{
-		FieldSelector: "involvedObject.kind=Deployment",
+		FieldSelector: "involvedObject.kind=Pod",
 		Watch:         true,
 	}
 	watcher, err := cli.CoreV1().Events(namespace).Watch(ctx, opts) // requires "watch" permission on events in clusterrole
