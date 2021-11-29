@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -111,7 +112,7 @@ func main() {
 		os.Exit(1)
 	}
 	eventBroadcaster := record.NewBroadcasterWithCorrelatorOptions(record.CorrelatorOptions{
-		BurstSize: 10,
+		BurstSize: math.MaxInt,
 		QPS:       1,
 	})
 	eventBroadcaster.StartLogging(func(format string, args ...interface{}) { logg.Info(fmt.Sprintf(format, args...)) })
