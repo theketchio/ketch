@@ -525,7 +525,7 @@ func getUpdatedUnits(weight uint8, targetUnits uint16) (int, int) {
 
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
-func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder) error {
+func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder, disableScale bool) error {
 	if !app.Spec.Canary.Active {
 		failEvent := newCanaryEvent(app, CanaryNotActiveEvent, CanaryNotActiveEventDesc)
 		recorder.AnnotatedEventf(app, failEvent.Annotations, v1.EventTypeNormal, failEvent.Name, failEvent.Message())
@@ -556,7 +556,7 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 		eventStep := newCanaryNextStepEvent(app)
 		recorder.AnnotatedEventf(app, eventStep.Event.Annotations, v1.EventTypeNormal, eventStep.Event.Name, eventStep.Message())
 
-		if app.Spec.Canary.Target != nil {
+		if app.Spec.Canary.Target != nil && !disableScale {
 			// scale units based on weight and process target
 			for processName, target := range app.Spec.Canary.Target {
 				p1Units, p2Units := getUpdatedUnits(app.Spec.Deployments[0].RoutingSettings.Weight, target)

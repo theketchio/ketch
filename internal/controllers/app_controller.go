@@ -20,6 +20,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"k8s.io/api/autoscaling/v2beta1"
 	"strconv"
 	"strings"
 	"time"
@@ -159,7 +160,26 @@ type reconcileResult struct {
 	useTimeout bool
 }
 
+func isHPATarget(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList) (isTarget bool) {
+	var deploymentNames []string
+	for _, deployment := range app.Spec.Deployments {
+		for _, process := range deployment.Processes {
+			deploymentNames = append(deploymentNames, fmt.Sprintf("%s-%s-%s", app.Name, process.Name, deployment.Version))
+		}
+	}
+
+	for _, target := range hpaList.Items {
+		for _, deploymentName := range deploymentNames {
+			if target.Spec.ScaleTargetRef.Name == deploymentName {
+				isTarget = true
+			}
+		}
+	}
+	return isTarget
+}
+
 func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger logr.Logger) reconcileResult {
+
 	framework := ketchv1.Framework{}
 	if err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
 		return reconcileResult{
@@ -263,8 +283,16 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 			}
 		}
 
-		// Once all pods are running then Perform canary deployment.
-		if err = app.DoCanary(metav1.NewTime(r.Now()), logger, r.Recorder); err != nil {
+		var hpaList v2beta1.HorizontalPodAutoscalerList
+		if err := r.List(ctx, &hpaList); err != nil {
+			return reconcileResult{
+				status:  v1.ConditionFalse,
+				message: "failed to find HPAs",
+			}
+		}
+
+		// Once all pods are running then Perform canary deployment, do not scale pods if app has HPA.
+		if err = app.DoCanary(metav1.NewTime(r.Now()), logger, r.Recorder, isHPATarget(app, hpaList)); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
 				message: fmt.Sprintf("canary update failed: %v", err),
@@ -333,7 +361,7 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 	}
 
 	opts := metav1.ListOptions{
-		FieldSelector: "involvedObject.kind=Pod",
+		FieldSelector: "involvedObject.kind=Deployment",
 		Watch:         true,
 	}
 	watcher, err := cli.CoreV1().Events(namespace).Watch(ctx, opts) // requires "watch" permission on events in clusterrole
