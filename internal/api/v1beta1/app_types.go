@@ -525,7 +525,7 @@ func getUpdatedUnits(weight uint8, targetUnits uint16) (int, int) {
 
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
-func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder, disableScale bool) error {
+func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder, disableScaleForProcess map[string]bool) error {
 	if !app.Spec.Canary.Active {
 		failEvent := newCanaryEvent(app, CanaryNotActiveEvent, CanaryNotActiveEventDesc)
 		recorder.AnnotatedEventf(app, failEvent.Annotations, v1.EventTypeNormal, failEvent.Name, failEvent.Message())
@@ -556,20 +556,22 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 		eventStep := newCanaryNextStepEvent(app)
 		recorder.AnnotatedEventf(app, eventStep.Event.Annotations, v1.EventTypeNormal, eventStep.Event.Name, eventStep.Message())
 
-		if app.Spec.Canary.Target != nil && !disableScale {
+		if app.Spec.Canary.Target != nil {
 			// scale units based on weight and process target
 			for processName, target := range app.Spec.Canary.Target {
-				p1Units, p2Units := getUpdatedUnits(app.Spec.Deployments[0].RoutingSettings.Weight, target)
-				// might be fine to ignore these errors
-				if err := app.Spec.Deployments[0].setUnits(processName, p1Units); err != nil {
-					logger.Info("the process: %s is not present in the previous deployment\n", processName)
-				}
-				if err := app.Spec.Deployments[1].setUnits(processName, p2Units); err != nil {
-					logger.Info("the process: %s in not present in the updated deployment\n", processName)
-				}
+				if _, disable := disableScaleForProcess[processName]; !disable {
+					p1Units, p2Units := getUpdatedUnits(app.Spec.Deployments[0].RoutingSettings.Weight, target)
+					// might be fine to ignore these errors
+					if err := app.Spec.Deployments[0].setUnits(processName, p1Units); err != nil {
+						logger.Info("the process: %s is not present in the previous deployment\n", processName)
+					}
+					if err := app.Spec.Deployments[1].setUnits(processName, p2Units); err != nil {
+						logger.Info("the process: %s in not present in the updated deployment\n", processName)
+					}
 
-				eventTarget := newCanaryTargetChangeEvent(app, processName, p1Units, p2Units)
-				recorder.AnnotatedEventf(app, eventTarget.Event.Annotations, v1.EventTypeNormal, eventTarget.Event.Name, eventTarget.Message())
+					eventTarget := newCanaryTargetChangeEvent(app, processName, p1Units, p2Units)
+					recorder.AnnotatedEventf(app, eventTarget.Event.Annotations, v1.EventTypeNormal, eventTarget.Event.Name, eventTarget.Message())
+				}
 			}
 
 			// if a process in the updated deployment isn't found in target create 1 unit

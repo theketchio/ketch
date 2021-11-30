@@ -543,22 +543,23 @@ func TestIsHPATarget(t *testing.T) {
 	tests := []struct {
 		name      string
 		hpaTarget string
-		expected  bool
+		expected  map[string]bool
 	}{
 		{
 			name:      "is target",
 			hpaTarget: "app-worker-2",
-			expected:  true,
+			expected:  map[string]bool{"worker": true},
 		},
 		{
 			name:      "not target",
 			hpaTarget: "target",
+			expected:  map[string]bool{},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			hpaList.Items[0].Spec.ScaleTargetRef.Name = tc.hpaTarget
-			require.Equal(t, tc.expected, isHPATarget(&app, hpaList))
+			require.Equal(t, tc.expected, hpaTargetMap(&app, hpaList))
 		})
 	}
 }

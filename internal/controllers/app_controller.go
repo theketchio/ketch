@@ -160,22 +160,23 @@ type reconcileResult struct {
 	useTimeout bool
 }
 
-func isHPATarget(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList) (isTarget bool) {
-	var deploymentNames []string
-	for _, deployment := range app.Spec.Deployments {
-		for _, process := range deployment.Processes {
-			deploymentNames = append(deploymentNames, fmt.Sprintf("%s-%s-%s", app.Name, process.Name, deployment.Version))
-		}
+func hpaTargetMap(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList) map[string]bool {
+	targets := map[string]bool{}
+	for _, target := range hpaList.Items {
+		targets[target.Spec.ScaleTargetRef.Name] = true
 	}
 
-	for _, target := range hpaList.Items {
-		for _, deploymentName := range deploymentNames {
-			if target.Spec.ScaleTargetRef.Name == deploymentName {
-				isTarget = true
+	hpaTargets := map[string]bool{}
+	for _, deployment := range app.Spec.Deployments {
+		for _, process := range deployment.Processes {
+
+			deploymentName := fmt.Sprintf("%s-%s-%s", app.Name, process.Name, deployment.Version)
+			if _, ok := targets[deploymentName]; ok {
+				hpaTargets[process.Name] = true
 			}
 		}
 	}
-	return isTarget
+	return hpaTargets
 }
 
 func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger logr.Logger) reconcileResult {
@@ -284,15 +285,15 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 
 		var hpaList v2beta1.HorizontalPodAutoscalerList
-		if err := r.List(ctx, &hpaList); err != nil {
+		if err := r.List(ctx, &hpaList, &client.ListOptions{Namespace: framework.Status.Namespace.Name}); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
 				message: "failed to find HPAs",
 			}
 		}
 
-		// Once all pods are running then Perform canary deployment, do not scale pods if app has HPA.
-		if err = app.DoCanary(metav1.NewTime(r.Now()), logger, r.Recorder, isHPATarget(app, hpaList)); err != nil {
+		// Once all pods are running then Perform canary deployment, do not scale pods for a process that is a HPA target.
+		if err = app.DoCanary(metav1.NewTime(r.Now()), logger, r.Recorder, hpaTargetMap(app, hpaList)); err != nil {
 			return reconcileResult{
 				status:  v1.ConditionFalse,
 				message: fmt.Sprintf("canary update failed: %v", err),

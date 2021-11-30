@@ -969,7 +969,7 @@ func TestApp_DoCanary(t *testing.T) {
 		name           string
 		app            App
 		now            metav1.Time
-		disableScaling bool
+		disableScaling map[string]bool
 		wantNoChanges  bool
 		wantApp        App
 		wantErr        string
@@ -1188,8 +1188,8 @@ func TestApp_DoCanary(t *testing.T) {
 			},
 		},
 		{
-			// weight should still change, but units should remain the same
-			name: "disable pod scaling",
+			// process' weight should still change, but units should remain the same if specified in disableScaling
+			name: "disable pod scaling per process",
 			now:  *timeRef(10, 31),
 			app: App{
 				Spec: AppSpec{
@@ -1200,15 +1200,15 @@ func TestApp_DoCanary(t *testing.T) {
 						NextScheduledTime: timeRef(10, 30),
 						CurrentStep:       1,
 						Active:            true,
-						Target:            map[string]uint16{"p1": 7},
+						Target:            map[string]uint16{"p1": 7, "p2": 10},
 					},
 					Deployments: []AppDeploymentSpec{
-						{Version: 2, RoutingSettings: RoutingSettings{Weight: 80}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}}},
-						{Version: 3, RoutingSettings: RoutingSettings{Weight: 20}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}, {Name: "p2", Units: intRef(4)}}},
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 80}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(7)}, {Name: "p2", Units: intRef(8)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 20}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(7)}, {Name: "p2", Units: intRef(2)}}},
 					},
 				},
 			},
-			disableScaling: true,
+			disableScaling: map[string]bool{"p1": true},
 			wantApp: App{
 				Spec: AppSpec{
 					Canary: CanarySpec{
@@ -1218,11 +1218,11 @@ func TestApp_DoCanary(t *testing.T) {
 						NextScheduledTime: timeRef(10, 40),
 						CurrentStep:       2,
 						Active:            true,
-						Target:            map[string]uint16{"p1": 7},
+						Target:            map[string]uint16{"p1": 7, "p2": 10},
 					},
 					Deployments: []AppDeploymentSpec{
-						{Version: 2, RoutingSettings: RoutingSettings{Weight: 60}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}}},
-						{Version: 3, RoutingSettings: RoutingSettings{Weight: 40}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(1)}, {Name: "p2", Units: intRef(4)}}},
+						{Version: 2, RoutingSettings: RoutingSettings{Weight: 60}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(7)}, {Name: "p2", Units: intRef(6)}}},
+						{Version: 3, RoutingSettings: RoutingSettings{Weight: 40}, Processes: []ProcessSpec{{Name: "p1", Units: intRef(7)}, {Name: "p2", Units: intRef(4)}}},
 					},
 				},
 			},
