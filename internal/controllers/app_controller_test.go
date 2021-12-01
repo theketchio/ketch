@@ -541,24 +541,41 @@ func TestIsHPATarget(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		name      string
-		hpaTarget string
-		expected  map[string]bool
+		name              string
+		hpaScaleTargetRef v2beta1.CrossVersionObjectReference
+		expected          map[string]bool
 	}{
 		{
-			name:      "is target",
-			hpaTarget: "app-worker-2",
-			expected:  map[string]bool{"worker": true},
+			name: "is target",
+			hpaScaleTargetRef: v2beta1.CrossVersionObjectReference{
+				Name:       "app-worker-2",
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+			},
+			expected: map[string]bool{"worker": true},
 		},
 		{
-			name:      "not target",
-			hpaTarget: "target",
-			expected:  map[string]bool{},
+			name: "not target",
+			hpaScaleTargetRef: v2beta1.CrossVersionObjectReference{
+				Name:       "target",
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+			},
+			expected: map[string]bool{},
+		},
+		{
+			name: "mismatched apiVersion/Kind",
+			hpaScaleTargetRef: v2beta1.CrossVersionObjectReference{
+				Name:       "app-worker-2",
+				APIVersion: "fake/v3",
+				Kind:       "TestKind",
+			},
+			expected: map[string]bool{},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			hpaList.Items[0].Spec.ScaleTargetRef.Name = tc.hpaTarget
+			hpaList.Items[0].Spec.ScaleTargetRef = tc.hpaScaleTargetRef
 			require.Equal(t, tc.expected, hpaTargetMap(&app, hpaList))
 		})
 	}

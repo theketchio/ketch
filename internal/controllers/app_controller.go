@@ -161,9 +161,9 @@ type reconcileResult struct {
 }
 
 func hpaTargetMap(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList) map[string]bool {
-	targets := map[string]bool{}
+	targets := map[string]v2beta1.CrossVersionObjectReference{}
 	for _, target := range hpaList.Items {
-		targets[target.Spec.ScaleTargetRef.Name] = true
+		targets[target.Spec.ScaleTargetRef.Name] = target.Spec.ScaleTargetRef
 	}
 
 	hpaTargets := map[string]bool{}
@@ -171,8 +171,11 @@ func hpaTargetMap(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList)
 		for _, process := range deployment.Processes {
 
 			deploymentName := fmt.Sprintf("%s-%s-%s", app.Name, process.Name, deployment.Version)
-			if _, ok := targets[deploymentName]; ok {
-				hpaTargets[process.Name] = true
+			if details, ok := targets[deploymentName]; ok {
+				// even if a target name is a match, it could be targeting a different kind than deployment
+				if details.Kind == "Deployment" && details.APIVersion == "apps/v1" {
+					hpaTargets[process.Name] = true
+				}
 			}
 		}
 	}
