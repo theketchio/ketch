@@ -1,4 +1,4 @@
-name: Build and sign shipa binaries
+name: release
 
 on:
   push:

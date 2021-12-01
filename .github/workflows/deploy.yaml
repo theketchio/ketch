@@ -1,4 +1,4 @@
-name: Build, test, and deploy ketch
+name: deploy
 
 on: push
 
