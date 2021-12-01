@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/api/autoscaling/v2beta1"
 	"testing"
 	"time"
 
@@ -505,6 +506,77 @@ func TestIsDeploymentEvent(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			res := isDeploymentEvent(tc.msg, dep)
 			require.Equal(t, tc.expected, res)
+		})
+	}
+}
+
+func TestIsHPATarget(t *testing.T) {
+	hpaList := v2beta1.HorizontalPodAutoscalerList{
+		Items: []v2beta1.HorizontalPodAutoscaler{
+			{
+				Spec: v2beta1.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: v2beta1.CrossVersionObjectReference{},
+				},
+			},
+		},
+	}
+	app := ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "app",
+		},
+		Spec: ketchv1.AppSpec{
+			Deployments: []ketchv1.AppDeploymentSpec{
+				{
+					Version: ketchv1.DeploymentVersion(2),
+					Processes: []ketchv1.ProcessSpec{
+						{
+							Name: "web",
+						},
+						{
+							Name: "worker",
+						},
+					},
+				},
+			},
+		},
+	}
+	tests := []struct {
+		name              string
+		hpaScaleTargetRef v2beta1.CrossVersionObjectReference
+		expected          map[string]bool
+	}{
+		{
+			name: "is target",
+			hpaScaleTargetRef: v2beta1.CrossVersionObjectReference{
+				Name:       "app-worker-2",
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+			},
+			expected: map[string]bool{"worker": true},
+		},
+		{
+			name: "not target",
+			hpaScaleTargetRef: v2beta1.CrossVersionObjectReference{
+				Name:       "target",
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+			},
+			expected: map[string]bool{},
+		},
+		{
+			name: "mismatched apiVersion/Kind",
+			hpaScaleTargetRef: v2beta1.CrossVersionObjectReference{
+				Name:       "app-worker-2",
+				APIVersion: "fake/v3",
+				Kind:       "TestKind",
+			},
+			expected: map[string]bool{},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			hpaList.Items[0].Spec.ScaleTargetRef = tc.hpaScaleTargetRef
+			require.Equal(t, tc.expected, hpaTargetMap(&app, hpaList))
 		})
 	}
 }
