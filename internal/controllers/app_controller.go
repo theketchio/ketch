@@ -20,7 +20,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"k8s.io/api/autoscaling/v2beta1"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/release"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/api/autoscaling/v2beta1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +74,6 @@ type Helm interface {
 }
 
 const (
-	replicaDepRevision            = "deployment.kubernetes.io/revision"
 	DeploymentProgressing         = "Progressing"
 	deadlineExeceededProgressCond = "ProgressDeadlineExceeded"
 	DefaultPodRunningTimeout      = 10 * time.Minute
@@ -106,6 +105,7 @@ const (
 // +kubebuilder:rbac:groups="traefik.containo.us",resources=traefikservices/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch;update;delete;list;watch
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;create;update
+// +kubebuilder:rbac:groups="autoscaling",resources=horizontalpodautoscalers,verbs=list
 
 func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("app", req.NamespacedName)
