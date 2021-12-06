@@ -117,31 +117,6 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 				"istio-injection": "disabled",
 			},
 		},
-		{
-			name: "framework annotations and labels added to namespace",
-			framework: ketchv1.Framework{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "framework-6",
-				},
-				Spec: ketchv1.FrameworkSpec{
-					AppQuotaLimit: conversions.IntPtr(1),
-					Annotations:   map[string]string{"test-annotation": "value"},
-					Labels:        map[string]string{"test-label": "value"},
-					NamespaceName: "another-namespace-6",
-					IngressController: ketchv1.IngressControllerSpec{
-						IngressType: ketchv1.IstioIngressControllerType,
-					},
-				},
-			},
-			wantStatusPhase: ketchv1.FrameworkCreated,
-			wantNamespaceAnnotations: map[string]string{
-				"test-annotation": "value",
-			},
-			wantNamespaceLabels: map[string]string{
-				"test-label":      "value",
-				"istio-injection": "enabled",
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -185,14 +160,6 @@ func TestFrameworkReconciler_ReconcileUpdate(t *testing.T) {
 				Name: "default-framework",
 			},
 			Spec: ketchv1.FrameworkSpec{
-				Annotations: map[string]string{
-					"remove-after-update": "value",
-					"keep-after-update":   "value",
-				},
-				Labels: map[string]string{
-					"remove-after-update": "value",
-					"keep-after-update":   "value",
-				},
 				NamespaceName: "default-namespace",
 				AppQuotaLimit: conversions.IntPtr(100),
 				IngressController: ketchv1.IngressControllerSpec{
@@ -205,45 +172,19 @@ func TestFrameworkReconciler_ReconcileUpdate(t *testing.T) {
 	assert.Nil(t, err)
 
 	defer teardown(ctx)
-	updatedAnnotations := map[string]string{
-		"keep-after-update": "value",
-	}
-	updatedLabels := map[string]string{
-		"keep-after-update": "value",
-	}
 
 	tests := []struct {
-		name                  string
-		frameworkName         string
-		namespaceName         string
-		wantStatusPhase       ketchv1.FrameworkPhase
-		wantStatusMessage     string
-		preUpdateAnnotations  map[string]string
-		preUpdateLabels       map[string]string
-		postUpdateAnnotations map[string]string
-		postUpdateLabels      map[string]string
+		name              string
+		frameworkName     string
+		namespaceName     string
+		wantStatusPhase   ketchv1.FrameworkPhase
+		wantStatusMessage string
 	}{
 		{
 			name:            "Updating framework annotations/labels is reflected in namespace",
 			frameworkName:   "default-framework",
 			namespaceName:   "default-namespace",
 			wantStatusPhase: ketchv1.FrameworkCreated,
-			preUpdateAnnotations: map[string]string{
-				"remove-after-update": "value",
-				"keep-after-update":   "value",
-			},
-			preUpdateLabels: map[string]string{
-				"remove-after-update": "value",
-				"keep-after-update":   "value",
-				"istio-injection":     "enabled",
-			},
-			postUpdateAnnotations: map[string]string{
-				"keep-after-update": "value",
-			},
-			postUpdateLabels: map[string]string{
-				"keep-after-update": "value",
-				"istio-injection":   "enabled",
-			},
 		},
 	}
 	for _, tt := range tests {
@@ -260,11 +201,6 @@ func TestFrameworkReconciler_ReconcileUpdate(t *testing.T) {
 			}
 			gotNamespace := v1.Namespace{}
 			err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.namespaceName}, &gotNamespace)
-			assert.Equal(t, tt.preUpdateLabels, gotNamespace.Labels)
-			assert.Equal(t, tt.preUpdateAnnotations, gotNamespace.Annotations)
-
-			resultFramework.Spec.Labels = updatedLabels
-			resultFramework.Spec.Annotations = updatedAnnotations
 
 			err := ctx.k8sClient.Update(context.TODO(), &resultFramework)
 			assert.Nil(t, err)
@@ -287,8 +223,6 @@ func TestFrameworkReconciler_ReconcileUpdate(t *testing.T) {
 
 			gotNamespace = v1.Namespace{}
 			err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.namespaceName}, &gotNamespace)
-			assert.Equal(t, tt.postUpdateLabels, gotNamespace.Labels)
-			assert.Equal(t, tt.postUpdateAnnotations, gotNamespace.Annotations)
 		})
 	}
 }

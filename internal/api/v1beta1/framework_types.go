@@ -57,10 +57,6 @@ type FrameworkSpec struct {
 
 	AppQuotaLimit *int `json:"appQuotaLimit"`
 
-	Annotations map[string]string `json:"annotations,omitempty"`
-
-	Labels map[string]string `json:"labels,omitempty"`
-
 	IngressController IngressControllerSpec `json:"ingressController,omitempty"`
 }
 
