@@ -113,12 +113,6 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 		}
 	}
 
-	namespace.Annotations = framework.Spec.Annotations
-	if namespace.Annotations == nil {
-		namespace.Annotations = map[string]string{}
-	}
-
-	namespace.Labels = framework.Spec.Labels
 	if namespace.Labels == nil {
 		namespace.Labels = map[string]string{}
 	}
