@@ -27,7 +27,7 @@ all: manager ketch
 # Run tests
 .PHONY: test
 test: generate fmt vet manifests
-	go test ./... -coverprofile cover.out | tee coverage.txt
+	go test ./... -p 1 -coverprofile cover.out | tee coverage.txt
 
 # Build manager binary
 .PHONY: manager

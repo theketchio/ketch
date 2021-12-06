@@ -37,6 +37,7 @@ import (
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 	"github.com/theketchio/ketch/internal/chart"
 	"github.com/theketchio/ketch/internal/controllers"
+	"github.com/theketchio/ketch/internal/inform"
 	"github.com/theketchio/ketch/internal/templates"
 	// +kubebuilder:scaffold:imports
 )
@@ -175,9 +176,20 @@ func main() {
 	}
 	// +kubebuilder:scaffold:builder
 
+	informerManager, err := inform.NewInformerManager(mgr, eventBroadcaster.NewRecorder(clientgoscheme.Scheme, v1.EventSource{
+		Component: "ketch-controller",
+	}))
+	if err != nil {
+		setupLog.Error(err, "error creating informerManager")
+		os.Exit(1)
+	}
+	informerManager.AddInformer(informerManager.AutoscalerInformer())
+	informerManager.RunInformers()
+
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+	informerManager.Stop()
 }

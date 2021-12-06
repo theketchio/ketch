@@ -42,6 +42,7 @@ type testingContext struct {
 	env *envtest.Environment
 	context.Context
 	k8sClient client.Client
+	Manager   ctrl.Manager
 	cancel    context.CancelFunc
 }
 
@@ -61,7 +62,7 @@ func verifyKubeApiServerVersion() error {
 	return nil
 }
 
-func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testingContext, error) {
+func Setup(reader templates.Reader, helm Helm, objects []client.Object) (*testingContext, error) {
 	err := verifyKubeApiServerVersion()
 	if err != nil {
 		return nil, err
@@ -89,6 +90,7 @@ func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testin
 	if err != nil {
 		return nil, err
 	}
+	ctx.Manager = k8sManager
 	err = (&AppReconciler{
 		Client:         k8sManager.GetClient(),
 		Log:            ctrl.Log.WithName("controllers").WithName("App"),
@@ -165,7 +167,7 @@ func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testin
 	return ctx, nil
 }
 
-func teardown(ctx *testingContext) {
+func Teardown(ctx *testingContext) {
 	if ctx == nil {
 		return
 	}

@@ -104,10 +104,10 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			"templates-failed": errors.New("no templates"),
 		},
 	}
-	ctx, err := setup(readerMock, helmMock, defaultObjects)
+	ctx, err := Setup(readerMock, helmMock, defaultObjects)
 	require.Nil(t, err)
 	require.NotNil(t, ctx)
-	defer teardown(ctx)
+	defer Teardown(ctx)
 
 	tests := []struct {
 		name                 string

@@ -31,10 +31,10 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 			},
 		},
 	}
-	ctx, err := setup(nil, nil, defaultObjects)
+	ctx, err := Setup(nil, nil, defaultObjects)
 	assert.Nil(t, err)
 
-	defer teardown(ctx)
+	defer Teardown(ctx)
 	tests := []struct {
 		name                     string
 		framework                ketchv1.Framework
@@ -201,10 +201,10 @@ func TestFrameworkReconciler_ReconcileUpdate(t *testing.T) {
 			},
 		},
 	}
-	ctx, err := setup(nil, nil, defaultObjects)
+	ctx, err := Setup(nil, nil, defaultObjects)
 	assert.Nil(t, err)
 
-	defer teardown(ctx)
+	defer Teardown(ctx)
 	updatedAnnotations := map[string]string{
 		"keep-after-update": "value",
 	}
