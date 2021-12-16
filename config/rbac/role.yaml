@@ -338,3 +338,15 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+    - traefik.containo.us
+  resources:
+    - middlewares
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
