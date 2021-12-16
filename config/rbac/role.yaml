@@ -321,6 +321,18 @@ rules:
 - apiGroups:
   - traefik.containo.us
   resources:
+  - middlewares
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - traefik.containo.us
+  resources:
   - traefikservices
   verbs:
   - create
