@@ -94,9 +94,10 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	}
 	updateClient := action.NewUpgrade(c.cfg)
 	updateClient.Namespace = c.namespace
-	// MaxHistory=0 means there is an unlimited number of k8s secrets per application,
-	// and the number keeps growing.
-	// Let's set it to minimal.
+
+	// MaxHistory specifies the maximum number of historical releases that will be retained, including the most recent release.
+	// Values of 0 or less are ignored (meaning no limits are imposed).
+	// Let's set it to minimal to disable "helm rollback".
 	updateClient.MaxHistory = 1
 	updateClient.PostRenderer = &postRender{
 		namespace: c.namespace,
