@@ -1,12 +1,15 @@
 package chart
 
 import (
+	"errors"
+	"log"
+	"os"
+
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"log"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -73,7 +76,7 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	getValuesClient := action.NewGetValues(c.cfg)
 	getValuesClient.AllValues = true
 	_, err = getValuesClient.Run(appName)
-	if err != nil && err.Error() == "release: not found" {
+	if err != nil && errors.Is(err, driver.ErrReleaseNotFound) {
 		clientInstall := action.NewInstall(c.cfg)
 		clientInstall.ReleaseName = appName
 		clientInstall.Namespace = c.namespace
@@ -91,6 +94,11 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	}
 	updateClient := action.NewUpgrade(c.cfg)
 	updateClient.Namespace = c.namespace
+
+	// MaxHistory specifies the maximum number of historical releases that will be retained, including the most recent release.
+	// Values of 0 or less are ignored (meaning no limits are imposed).
+	// Let's set it to minimal to disable "helm rollback".
+	updateClient.MaxHistory = 1
 	updateClient.PostRenderer = &postRender{
 		namespace: c.namespace,
 		cli:       c.c,
@@ -102,7 +110,7 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 func (c HelmClient) DeleteChart(appName string) error {
 	uninstall := action.NewUninstall(c.cfg)
 	_, err := uninstall.Run(appName)
-	if err != nil && err.Error() == "release: not found" {
+	if err != nil && errors.Is(err, driver.ErrReleaseNotFound) {
 		return nil
 	}
 	return err
