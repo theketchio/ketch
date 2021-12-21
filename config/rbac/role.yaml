@@ -129,18 +129,6 @@ rules:
   - list
   - update
 - apiGroups:
-  - extensions
-  resources:
-  - ingresses
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - networking.istio.io
   resources:
   - destinationrules
