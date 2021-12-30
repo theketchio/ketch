@@ -342,6 +342,8 @@ kind: Certificate
 metadata:
   name: "dashboard-cname-theketch-io"
   namespace: istio-system
+  labels:
+    theketch.io/app-name: "dashboard"
 spec:
   secretName: dashboard-cname-theketch-io
   dnsNames:
@@ -356,6 +358,8 @@ kind: Certificate
 metadata:
   name: "dashboard-cname-app-theketch-io"
   namespace: istio-system
+  labels:
+    theketch.io/app-name: "dashboard"
 spec:
   secretName: dashboard-cname-app-theketch-io
   dnsNames:
@@ -369,6 +373,8 @@ apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
   name: shipa-dashboard-rule-3
+  labels:
+    theketch.io/app-name: "dashboard"
 spec:
   host: dashboard-web-3
   subsets:
@@ -382,6 +388,8 @@ apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
   name: shipa-dashboard-rule-4
+  labels:
+    theketch.io/app-name: "dashboard"
 spec:
   host: dashboard-web-4
   subsets:

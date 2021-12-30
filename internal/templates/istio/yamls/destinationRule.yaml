@@ -5,6 +5,8 @@ apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
   name: shipa-{{ $.Values.app.name}}-rule-{{ $deployment.version }}
+  labels:
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
   host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
   subsets:

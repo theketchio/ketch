@@ -4,6 +4,8 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: {{ $https.secretName | quote }}
+  labels:
+    {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
   secretName: {{ $https.secretName | quote }}
   dnsNames:
