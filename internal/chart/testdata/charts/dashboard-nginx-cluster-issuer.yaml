@@ -501,6 +501,8 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: "dashboard-cname-theketch-io"
+  labels:
+    theketch.io/app-name: "dashboard"
 spec:
   secretName: "dashboard-cname-theketch-io"
   dnsNames:
@@ -514,6 +516,8 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: "dashboard-cname-app-theketch-io"
+  labels:
+    theketch.io/app-name: "dashboard"
 spec:
   secretName: "dashboard-cname-app-theketch-io"
   dnsNames:
