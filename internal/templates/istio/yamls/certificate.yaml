@@ -9,6 +9,9 @@ metadata:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
   secretName: {{ $https.secretName }}
+  secretTemplate:
+    labels:
+      {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
   dnsNames:
     - {{ $https.cname }}
   issuerRef:

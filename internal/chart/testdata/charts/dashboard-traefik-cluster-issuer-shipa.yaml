@@ -345,6 +345,9 @@ metadata:
     shipa.io/app-name: "dashboard"
 spec:
   secretName: "dashboard-cname-theketch-io"
+  secretTemplate:
+    labels:
+      shipa.io/app-name: "dashboard"
   dnsNames:
     - theketch.io
   issuerRef:
@@ -360,6 +363,9 @@ metadata:
     shipa.io/app-name: "dashboard"
 spec:
   secretName: "dashboard-cname-app-theketch-io"
+  secretTemplate:
+    labels:
+      shipa.io/app-name: "dashboard"
   dnsNames:
     - app.theketch.io
   issuerRef:
