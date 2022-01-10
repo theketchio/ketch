@@ -118,7 +118,7 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 			c.log.Info(fmt.Sprintf("Found pending helm release: %d", lastRelease.Version))
 			timeoutLimit := time.Now().Add(-defaultDeploymentTimeout)
 			if lastRelease.Info.FirstDeployed.Before(helmTime.Time{Time: timeoutLimit}) {
-				newStatus := release.StatusFailed
+				newStatus := release.StatusDeployed
 				c.log.Info(fmt.Sprintf("Setting status of release that has timeouted to: %s", newStatus))
 				lastRelease.SetStatus(newStatus, "manually canceled")
 				if err := c.cfg.Releases.Update(lastRelease); err != nil {
