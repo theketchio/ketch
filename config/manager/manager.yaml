@@ -34,12 +34,9 @@ spec:
         image: controller
         name: manager
         resources:
-          limits:
+          requests:
             cpu: 700m
             memory: 1024Mi
-          requests:
-            cpu: 300m
-            memory: 300Mi
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
