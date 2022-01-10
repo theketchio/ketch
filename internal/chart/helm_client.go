@@ -45,7 +45,7 @@ func NewHelmClient(namespace string, c client.Client, log logr.Logger) (*HelmCli
 	if err != nil {
 		return nil, err
 	}
-	return &HelmClient{cfg: cfg, namespace: namespace, c: c, log: log.WithValues("helm_client")}, nil
+	return &HelmClient{cfg: cfg, namespace: namespace, c: c, log: log.WithValues("helm-client", namespace)}, nil
 }
 
 func getActionConfig(namespace string) (*action.Configuration, error) {
