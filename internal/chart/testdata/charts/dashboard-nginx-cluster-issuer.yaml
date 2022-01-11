@@ -505,6 +505,9 @@ metadata:
     theketch.io/app-name: "dashboard"
 spec:
   secretName: "dashboard-cname-theketch-io"
+  secretTemplate:
+    labels:
+      theketch.io/app-name: "dashboard"
   dnsNames:
     - theketch.io
   issuerRef:
@@ -520,6 +523,9 @@ metadata:
     theketch.io/app-name: "dashboard"
 spec:
   secretName: "dashboard-cname-app-theketch-io"
+  secretTemplate:
+    labels:
+      theketch.io/app-name: "dashboard"
   dnsNames:
     - app.theketch.io
   issuerRef:
