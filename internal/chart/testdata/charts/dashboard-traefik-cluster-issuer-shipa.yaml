@@ -146,6 +146,9 @@ spec:
         shipa.io/app-process: "web"
         shipa.io/app-deployment-version: "3"
         shipa.io/is-isolated-run: "false"
+        pod.io/label: "pod-label"
+      annotations:
+        pod.io/annotation: "pod-annotation"
     spec:
       containers:
         - name: dashboard-web-3

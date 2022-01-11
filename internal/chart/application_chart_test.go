@@ -140,22 +140,31 @@ func TestNewApplicationChart(t *testing.T) {
 					{Name: "darkweb.theketch.io", Secure: true, SecretName: "darkweb-ssl"},
 				},
 			},
-			Labels: []ketchv1.MetadataItem{{
-				Apply:             map[string]string{"theketch.io/test-label": "test-label-value"},
-				DeploymentVersion: 3,
-				ProcessName:       "web",
-				Target: ketchv1.Target{
-					APIVersion: "apps/v1",
-					Kind:       "Deployment",
+			Labels: []ketchv1.MetadataItem{
+				{
+					Apply:             map[string]string{"pod.io/label": "pod-label"},
+					DeploymentVersion: 3,
+					ProcessName:       "web",
+					Target:            ketchv1.Target{APIVersion: "v1", Kind: "Pod"},
 				},
-			}, {
-				Apply: map[string]string{"theketch.io/test-label-all": "test-label-value-all"},
-				Target: ketchv1.Target{
-					APIVersion: "apps/v1",
-					Kind:       "Deployment",
+				{
+					Apply:             map[string]string{"theketch.io/test-label": "test-label-value"},
+					DeploymentVersion: 3,
+					ProcessName:       "web",
+					Target:            ketchv1.Target{APIVersion: "apps/v1", Kind: "Deployment"},
 				},
-			}},
+				{
+					Apply:  map[string]string{"theketch.io/test-label-all": "test-label-value-all"},
+					Target: ketchv1.Target{APIVersion: "apps/v1", Kind: "Deployment"},
+				},
+			},
 			Annotations: []ketchv1.MetadataItem{
+				{
+					Apply:             map[string]string{"pod.io/annotation": "pod-annotation"},
+					DeploymentVersion: 3,
+					ProcessName:       "web",
+					Target:            ketchv1.Target{APIVersion: "v1", Kind: "Pod"},
+				},
 				{
 					Apply:             map[string]string{"theketch.io/test-annotation": "test-annotation-value"},
 					DeploymentVersion: 4,

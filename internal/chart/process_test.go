@@ -118,15 +118,13 @@ func TestNewProcess(t *testing.T) {
 					{Name: "PORT", Value: "9999"},
 					{Name: "PORT_web", Value: "9999"},
 				},
-				PodExtra: podExtra{
-					Lifecycle: &v1.Lifecycle{},
-					SecurityContext: &v1.SecurityContext{
-						Privileged: boolRef(true),
-					},
-					ResourceRequirements: &rr,
-					Volumes:              volumes,
-					VolumeMounts:         volumeMounts,
+				Lifecycle: &v1.Lifecycle{},
+				SecurityContext: &v1.SecurityContext{
+					Privileged: boolRef(true),
 				},
+				ResourceRequirements: &rr,
+				Volumes:              volumes,
+				VolumeMounts:         volumeMounts,
 			},
 		},
 		{
@@ -228,57 +226,159 @@ func TestNewProcess(t *testing.T) {
 	}
 }
 
-func TestWithAnnotationsAndLabels(t *testing.T) {
-	newProcess := func() *process {
-		return &process{
-			Name: "web",
-			PodExtra: podExtra{
-				ServiceMetadata: extraMetadata{
-					Labels:      make(map[string]string),
-					Annotations: make(map[string]string),
-				},
-				DeploymentMetadata: extraMetadata{
-					Labels:      make(map[string]string),
-					Annotations: make(map[string]string),
-				},
-			},
-		}
-	}
+func Test_withAnnotations(t *testing.T) {
 
 	tests := []struct {
 		description       string
 		annotations       []ketchv1.MetadataItem
-		labels            []ketchv1.MetadataItem
 		deploymentVersion ketchv1.DeploymentVersion
 		expected          *process
 		expectedError     error
 	}{
 		{
-			description: "ok - specify deploymentVersion and processName",
+			description: "ok - specify exact deploymentVersion and processName",
 			annotations: []ketchv1.MetadataItem{
 				{
 					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
 					DeploymentVersion: 1,
 					ProcessName:       "web",
-					Apply:             map[string]string{"theketch.io/test": "value"},
+					Apply:             map[string]string{"deployment.io/test": "value"},
 				},
 				{
 					Target:            ketchv1.Target{Kind: "Service", APIVersion: "v1"},
 					DeploymentVersion: 1,
 					ProcessName:       "web",
-					Apply:             map[string]string{"theketch.io/test": "value"},
+					Apply:             map[string]string{"service.io/test": "value"},
 				},
+				{
+					Target:            ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+					DeploymentVersion: 1,
+					ProcessName:       "web",
+					Apply:             map[string]string{"pod.io/test": "value"},
+				},
+			},
+			deploymentVersion: 1,
+			expected: &process{
+				Name: "web",
+				ServiceMetadata: extraMetadata{
+					Annotations: map[string]string{"service.io/test": "value"},
+				},
+				DeploymentMetadata: extraMetadata{
+					Annotations: map[string]string{"deployment.io/test": "value"},
+				},
+				PodMetadata: extraMetadata{
+					Annotations: map[string]string{"pod.io/test": "value"},
+				},
+			},
+		},
+		{
+			description: "ok - any deploymentVersion and processName",
+			annotations: []ketchv1.MetadataItem{
 				{
 					Target:            ketchv1.Target{Kind: "Service", APIVersion: "v1"},
 					DeploymentVersion: 1,
-					Apply:             map[string]string{"theketch.io/any-deployment-1": "any-deployment-1-value"},
+					Apply:             map[string]string{"service.io/any-deployment-1": "any-deployment-1-value"},
 				},
 				{
 					Target:      ketchv1.Target{Kind: "Service", APIVersion: "v1"},
 					ProcessName: "web",
-					Apply:       map[string]string{"theketch.io/any-process-web": "any-process-web-value"},
+					Apply:       map[string]string{"service.io/any-process-web": "any-process-web-value"},
+				},
+				{
+					Target:            ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+					DeploymentVersion: 1,
+					Apply:             map[string]string{"pod.io/any-deployment-1": "any-deployment-1-value"},
+				},
+				{
+					Target:      ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+					ProcessName: "web",
+					Apply:       map[string]string{"pod.io/any-process-web": "any-process-web-value"},
+				},
+				{
+					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
+					DeploymentVersion: 1,
+					Apply:             map[string]string{"deployment.io/any-deployment-1": "any-deployment-1-value"},
+				},
+				{
+					Target:      ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
+					ProcessName: "web",
+					Apply:       map[string]string{"deployment.io/any-process-web": "any-process-web-value"},
 				},
 			},
+			deploymentVersion: 1,
+			expected: &process{
+				Name: "web",
+				ServiceMetadata: extraMetadata{
+					Annotations: map[string]string{
+						"service.io/any-deployment-1": "any-deployment-1-value",
+						"service.io/any-process-web":  "any-process-web-value",
+					},
+				},
+				DeploymentMetadata: extraMetadata{
+					Annotations: map[string]string{
+						"deployment.io/any-deployment-1": "any-deployment-1-value",
+						"deployment.io/any-process-web":  "any-process-web-value",
+					},
+				},
+				PodMetadata: extraMetadata{
+					Annotations: map[string]string{
+						"pod.io/any-deployment-1": "any-deployment-1-value",
+						"pod.io/any-process-web":  "any-process-web-value",
+					},
+				},
+			},
+		},
+		{
+			description: "error - malformed annotations",
+			annotations: []ketchv1.MetadataItem{
+				{
+					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
+					DeploymentVersion: 1,
+					ProcessName:       "web",
+					Apply:             map[string]string{"_theketch.io/test": "CANT_START_KEY_WITH_UNDERSCORE"},
+				},
+			},
+			deploymentVersion: 1,
+			expectedError:     errors.New("malformed metadata key"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.description, func(t *testing.T) {
+			p := &process{Name: "web"}
+			fn := withAnnotations(tt.annotations, tt.deploymentVersion)
+			err := fn(p)
+			if tt.expectedError != nil {
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.Equal(t, tt.expected, p)
+			}
+		})
+	}
+}
+
+func Test_withLabels(t *testing.T) {
+	tests := []struct {
+		name              string
+		labels            []ketchv1.MetadataItem
+		deploymentVersion ketchv1.DeploymentVersion
+		expected          *process
+		wantErr           string
+	}{
+		{
+			name: "error - malformed label",
+			labels: []ketchv1.MetadataItem{
+				{
+					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
+					DeploymentVersion: 1,
+					ProcessName:       "web",
+					Apply:             map[string]string{"_theketch.io/test": "CANT_START_KEY_WITH_UNDERSCORE"},
+				},
+			},
+			deploymentVersion: 1,
+			wantErr:           "malformed metadata key",
+		},
+		{
+			name: "all good",
 			labels: []ketchv1.MetadataItem{
 				{
 					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
@@ -296,7 +396,7 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
 					DeploymentVersion: 2,
 					ProcessName:       "web",
-					Apply:             map[string]string{"theketch.io/NON-MATCHING-DEPLOYEMT-VERSION": "value"},
+					Apply:             map[string]string{"theketch.io/NON-MATCHING-DEPLOYMENT-VERSION": "value"},
 				},
 				{
 					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
@@ -316,52 +416,52 @@ func TestWithAnnotationsAndLabels(t *testing.T) {
 					ProcessName:       "web",
 					Apply:             map[string]string{"theketch.io/NON-EXISTENT-KIND": "value"},
 				},
+				{
+					Target:            ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+					DeploymentVersion: 1,
+					ProcessName:       "web",
+					Apply:             map[string]string{"pod.label.io": "pod-label"},
+				},
+				{
+					Target:            ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+					DeploymentVersion: 2,
+					ProcessName:       "web",
+					Apply:             map[string]string{"theketch.io/NON-MATCHING-DEPLOYMENT-VERSION": "value"},
+				},
+				{
+					Target:            ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+					DeploymentVersion: 1,
+					ProcessName:       "SOMETHING_ELSE",
+					Apply:             map[string]string{"theketch.io/NON-MATCHING-PROCESS": "value"},
+				},
 			},
 			deploymentVersion: 1,
 			expected: &process{
 				Name: "web",
-				PodExtra: podExtra{
-					ServiceMetadata: extraMetadata{
-						Labels: map[string]string{"theketch.io/test": "value"},
-						Annotations: map[string]string{
-							"theketch.io/test":             "value",
-							"theketch.io/any-deployment-1": "any-deployment-1-value",
-							"theketch.io/any-process-web":  "any-process-web-value",
-						},
-					},
-					DeploymentMetadata: extraMetadata{
-						Labels:      map[string]string{"theketch.io/test": "value"},
-						Annotations: map[string]string{"theketch.io/test": "value"},
-					},
+				ServiceMetadata: extraMetadata{
+					Labels: map[string]string{"theketch.io/test": "value"},
+				},
+				DeploymentMetadata: extraMetadata{
+					Labels: map[string]string{"theketch.io/test": "value"},
+				},
+				PodMetadata: extraMetadata{
+					Labels: map[string]string{"pod.label.io": "pod-label"},
 				},
 			},
-		},
-		{
-			description: "error - malformed label",
-			labels: []ketchv1.MetadataItem{
-				{
-					Target:            ketchv1.Target{Kind: "Deployment", APIVersion: "apps/v1"},
-					DeploymentVersion: 1,
-					ProcessName:       "web",
-					Apply:             map[string]string{"_theketch.io/test": "CANT_START_KEY_WITH_UNDERSCORE"},
-				},
-			},
-			deploymentVersion: 1,
-			expectedError:     errors.New("malformed metadata key"),
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.description, func(t *testing.T) {
-			p := newProcess()
-			fn := withAnnotations(tt.annotations, tt.deploymentVersion)
-			fn(p)
-			fn = withLabels(tt.labels, tt.deploymentVersion)
+		t.Run(tt.name, func(t *testing.T) {
+			fn := withLabels(tt.labels, tt.deploymentVersion)
+			p := &process{Name: "web"}
 			err := fn(p)
-			if tt.expectedError != nil {
-				require.EqualError(t, err, tt.expectedError.Error())
-			} else {
-				require.Equal(t, tt.expected, p)
+			if len(tt.wantErr) > 0 {
+				require.NotNil(t, err)
+				require.Equal(t, tt.wantErr, err.Error())
+				return
 			}
+			require.Nil(t, err)
+			require.Equal(t, tt.expected, p)
 		})
 	}
 }

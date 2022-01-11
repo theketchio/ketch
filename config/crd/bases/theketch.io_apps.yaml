@@ -45,7 +45,7 @@ spec:
             properties:
               annotations:
                 description: Annotations is a list of annotations that will be applied
-                  to Services/Deployments/Gateways.
+                  to Services/Deployments/Pods/Gateways/Ingresses/IngressRoutes.
                 items:
                   description: MetadataItem represent a request to add label/annotations
                     to processes
@@ -2356,7 +2356,7 @@ spec:
                 - generateDefaultCname
                 type: object
               labels:
-                description: Labels is a list of labels that will be applied to Services/Deployments.
+                description: Labels is a list of labels that will be applied to Services/Deployments/Pods.
                 items:
                   description: MetadataItem represent a request to add label/annotations
                     to processes

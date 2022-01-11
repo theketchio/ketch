@@ -24,10 +24,6 @@ type process struct {
 	PublicServicePort int32              `json:"publicServicePort,omitempty"`
 	Env               []ketchv1.Env      `json:"env"`
 
-	PodExtra podExtra `json:"extra"`
-}
-
-type podExtra struct {
 	SecurityContext      *v1.SecurityContext      `json:"securityContext,omitempty"`
 	ResourceRequirements *v1.ResourceRequirements `json:"resourceRequirements,omitempty"`
 	NodeSelectorTerms    []v1.NodeSelectorTerm    `json:"nodeSelectorTerms,omitempty"`
@@ -36,8 +32,12 @@ type podExtra struct {
 	ReadinessProbe       *v1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe        *v1.Probe                `json:"livenessProbe,omitempty"`
 	Lifecycle            *v1.Lifecycle            `json:"lifecycle,omitempty"`
-	ServiceMetadata      extraMetadata            `json:"serviceMetadata,omitempty"`
-	DeploymentMetadata   extraMetadata            `json:"deploymentMetadata,omitempty"`
+	// ServiceMetadata contains Labels and Annotations to be added to a k8s Service of this process.
+	ServiceMetadata extraMetadata `json:"serviceMetadata,omitempty"`
+	// DeploymentMetadata contains Labels and Annotations to be added to a k8s Deployment of this process.
+	DeploymentMetadata extraMetadata `json:"deploymentMetadata,omitempty"`
+	// PodMetadata contains Labels and Annotations to be added to a k8s Pod of this process.
+	PodMetadata extraMetadata `json:"podMetadata,omitempty"`
 }
 
 type extraMetadata struct {
@@ -91,43 +91,43 @@ func withPortsAndProbes(c portConfigurator) processOption {
 			return err
 		}
 		p.PublicServicePort = p.ServicePorts[0].Port
-		p.PodExtra.LivenessProbe = probes.Liveness
-		p.PodExtra.ReadinessProbe = probes.Readiness
+		p.LivenessProbe = probes.Liveness
+		p.ReadinessProbe = probes.Readiness
 		return nil
 	}
 }
 
 func withSecurityContext(securityContext *v1.SecurityContext) processOption {
 	return func(p *process) error {
-		p.PodExtra.SecurityContext = securityContext
+		p.SecurityContext = securityContext
 		return nil
 	}
 }
 
 func withLifecycle(lc *v1.Lifecycle) processOption {
 	return func(p *process) error {
-		p.PodExtra.Lifecycle = lc
+		p.Lifecycle = lc
 		return nil
 	}
 }
 
 func withResourceRequirements(rr *v1.ResourceRequirements) processOption {
 	return func(p *process) error {
-		p.PodExtra.ResourceRequirements = rr
+		p.ResourceRequirements = rr
 		return nil
 	}
 }
 
 func withVolumes(volumes []v1.Volume) processOption {
 	return func(p *process) error {
-		p.PodExtra.Volumes = volumes
+		p.Volumes = volumes
 		return nil
 	}
 }
 
 func withVolumeMounts(vm []v1.VolumeMount) processOption {
 	return func(p *process) error {
-		p.PodExtra.VolumeMounts = vm
+		p.VolumeMounts = vm
 		return nil
 	}
 }
@@ -144,15 +144,20 @@ func withLabels(labels []ketchv1.MetadataItem, deploymentVersion ketchv1.Deploym
 			}
 			for k, v := range label.Apply {
 				if label.Target.IsDeployment() {
-					if p.PodExtra.DeploymentMetadata.Labels == nil {
-						p.PodExtra.DeploymentMetadata.Labels = make(map[string]string)
+					if p.DeploymentMetadata.Labels == nil {
+						p.DeploymentMetadata.Labels = make(map[string]string)
 					}
-					p.PodExtra.DeploymentMetadata.Labels[k] = v
+					p.DeploymentMetadata.Labels[k] = v
 				} else if label.Target.IsService() {
-					if p.PodExtra.ServiceMetadata.Labels == nil {
-						p.PodExtra.ServiceMetadata.Labels = make(map[string]string)
+					if p.ServiceMetadata.Labels == nil {
+						p.ServiceMetadata.Labels = make(map[string]string)
 					}
-					p.PodExtra.ServiceMetadata.Labels[k] = v
+					p.ServiceMetadata.Labels[k] = v
+				} else if label.Target.IsPod() {
+					if p.PodMetadata.Labels == nil {
+						p.PodMetadata.Labels = make(map[string]string)
+					}
+					p.PodMetadata.Labels[k] = v
 				}
 			}
 		}
@@ -172,15 +177,20 @@ func withAnnotations(annotations []ketchv1.MetadataItem, deploymentVersion ketch
 			}
 			for k, v := range annotation.Apply {
 				if annotation.Target.IsDeployment() {
-					if p.PodExtra.DeploymentMetadata.Annotations == nil {
-						p.PodExtra.DeploymentMetadata.Annotations = make(map[string]string)
+					if p.DeploymentMetadata.Annotations == nil {
+						p.DeploymentMetadata.Annotations = make(map[string]string)
 					}
-					p.PodExtra.DeploymentMetadata.Annotations[k] = v
+					p.DeploymentMetadata.Annotations[k] = v
 				} else if annotation.Target.IsService() {
-					if p.PodExtra.ServiceMetadata.Annotations == nil {
-						p.PodExtra.ServiceMetadata.Annotations = make(map[string]string)
+					if p.ServiceMetadata.Annotations == nil {
+						p.ServiceMetadata.Annotations = make(map[string]string)
 					}
-					p.PodExtra.ServiceMetadata.Annotations[k] = v
+					p.ServiceMetadata.Annotations[k] = v
+				} else if annotation.Target.IsPod() {
+					if p.PodMetadata.Annotations == nil {
+						p.PodMetadata.Annotations = make(map[string]string)
+					}
+					p.PodMetadata.Annotations[k] = v
 				}
 			}
 		}

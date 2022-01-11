@@ -12,12 +12,12 @@ metadata:
     {{- range $i, $label := $deployment.labels }}
     {{ $label.name }}: {{ $label.value | quote }}
     {{- end }}
-    {{- range $k, $v := $process.extra.serviceMetadata.labels }}
+    {{- range $k, $v := $process.serviceMetadata.labels }}
     {{ $k }}: {{ $v | quote }}
     {{- end}}
-  {{- if $process.extra.serviceMetadata.annotations }}
+  {{- if $process.serviceMetadata.annotations }}
   annotations:
-    {{- range $k, $v := $process.extra.serviceMetadata.annotations }}
+    {{- range $k, $v := $process.serviceMetadata.annotations }}
     {{ $k }}: {{ $v | quote }}
     {{- end }}
   {{- end }}

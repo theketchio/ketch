@@ -9,12 +9,12 @@ metadata:
     {{ $.Values.app.group }}/app-process-replicas: {{ $process.units | quote }}
     {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
-    {{- range $k, $v := $process.extra.deploymentMetadata.labels }}
+    {{- range $k, $v := $process.deploymentMetadata.labels }}
     {{ $k }}: {{ $v | quote }}
     {{- end}}
-  {{- if $process.extra.deploymentMetadata.annotations }}
+  {{- if $process.deploymentMetadata.annotations }}
   annotations:
-    {{- range $k, $v := $process.extra.deploymentMetadata.annotations }}
+    {{- range $k, $v := $process.deploymentMetadata.annotations }}
     {{ $k }}: {{ $v | quote }}
     {{- end }}
   {{- end }}
@@ -38,6 +38,15 @@ spec:
         {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
         {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
         {{ $.Values.app.group }}/is-isolated-run: "false"
+        {{- range $k, $v := $process.podMetadata.labels }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+      {{- if $process.podMetadata.annotations }}
+      annotations:
+        {{- range $k, $v := $process.podMetadata.annotations }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+      {{- end }}
     spec:
       {{- if $.Values.app.serviceAccountName }}
       serviceAccountName: {{ $.Values.app.serviceAccountName }}
@@ -59,36 +68,36 @@ spec:
           ports:
 {{ $process.containerPorts | toYaml | indent 10 }}
           {{- end }}
-          {{- if $process.extra.volumeMounts }}
+          {{- if $process.volumeMounts }}
           volumeMounts:
-{{ $process.extra.volumeMounts | toYaml | indent 12 }}
+{{ $process.volumeMounts | toYaml | indent 12 }}
           {{- end }}
-          {{- if $process.extra.resourceRequirements }}
+          {{- if $process.resourceRequirements }}
           resources:
-{{ $process.extra.resourceRequirements | toYaml | indent 12 }}
+{{ $process.resourceRequirements | toYaml | indent 12 }}
           {{- end }}
-          {{- if $process.extra.lifecycle }}
+          {{- if $process.lifecycle }}
           lifecycle:
-{{ $process.extra.lifecycle | toYaml | indent 12 }}
+{{ $process.lifecycle | toYaml | indent 12 }}
           {{- end }}
-          {{- if $process.extra.securityContext }}
+          {{- if $process.securityContext }}
           securityContext:
-{{ $process.extra.securityContext | toYaml | indent 12 }}
+{{ $process.securityContext | toYaml | indent 12 }}
           {{- end }}
       {{- if $deployment.imagePullSecrets }}
       imagePullSecrets:
 {{ $deployment.imagePullSecrets | toYaml | indent 12}}
       {{- end }}
-      {{- if $process.extra.volumes }}
+      {{- if $process.volumes }}
       volumes:
-{{ $process.extra.volumes | toYaml | indent 12 }}
+{{ $process.volumes | toYaml | indent 12 }}
       {{- end }}
-      {{- if $process.extra.nodeSelectorTerms }}
+      {{- if $process.nodeSelectorTerms }}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-{{ $process.extra.nodeSelectorTerms | toYaml | indent 14 }}
+{{ $process.nodeSelectorTerms | toYaml | indent 14 }}
       {{- end }}
 ---
 {{ end }}

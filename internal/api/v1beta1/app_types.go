@@ -96,7 +96,6 @@ type ProcessSpec struct {
 	Volumes []v1.Volume `json:"volumes,omitempty"`
 
 	VolumeMounts []v1.VolumeMount `json:"volumeMounts,omitempty"`
-
 	// Security options the process should run with.
 	SecurityContext *v1.SecurityContext `json:"securityContext,omitempty"`
 }
@@ -225,10 +224,10 @@ type AppSpec struct {
 	// BuildPacks is a list of build packs to use when building from source.
 	BuildPacks []string `json:"buildPacks,omitempty"`
 
-	// Labels is a list of labels that will be applied to Services/Deployments.
+	// Labels is a list of labels that will be applied to Services/Deployments/Pods.
 	Labels []MetadataItem `json:"labels,omitempty"`
 
-	// Annotations is a list of annotations that will be applied to Services/Deployments/Gateways.
+	// Annotations is a list of annotations that will be applied to Services/Deployments/Pods/Gateways/Ingresses/IngressRoutes.
 	Annotations []MetadataItem `json:"annotations,omitempty"`
 
 	// ServiceAccountName specifies a service account name to be used for this application.
@@ -662,6 +661,11 @@ func (t Target) IsDeployment() bool {
 // IsService returns true if the target is a Service.
 func (t Target) IsService() bool {
 	return t.Kind == "Service" && t.APIVersion == "v1"
+}
+
+// IsPod returns true if the target is a Pod.
+func (t Target) IsPod() bool {
+	return t.Kind == "Pod" && t.APIVersion == "v1"
 }
 
 const (
