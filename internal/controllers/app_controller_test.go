@@ -293,6 +293,91 @@ EXPECTED:
 	}
 }
 
+func TestCancelWatchDeployEvents(t *testing.T) {
+	process := &ketchv1.ProcessSpec{
+		Name: "test",
+	}
+
+	app := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: ketchv1.AppSpec{
+			Deployments: []ketchv1.AppDeploymentSpec{
+				{
+					Image:     "gcr.io/test",
+					Version:   1,
+					Processes: []ketchv1.ProcessSpec{*process},
+				},
+			},
+			Framework: "test",
+		},
+	}
+	namespace := "ketch-test"
+	replicas := int32(1)
+
+	// depStart is the Deployment in it's initial state
+	depStart := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "ketch-test",
+		},
+		Status: appsv1.DeploymentStatus{
+			UpdatedReplicas:     1,
+			UnavailableReplicas: 1,
+			Replicas:            1,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+		},
+	}
+
+	// depFetch is the Deployment as returned via Get() in the function's loop
+	depFetch := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "ketch-test",
+		},
+		Status: appsv1.DeploymentStatus{
+			UpdatedReplicas:     1,
+			UnavailableReplicas: 0,
+			Replicas:            1,
+			ReadyReplicas:       1,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+		},
+	}
+
+	recorder := record.NewFakeRecorder(1024)
+	watcher := watch.NewFake()
+	cli := clientFake.NewSimpleClientset(depFetch)
+	timeout := time.After(DefaultPodRunningTimeout)
+	r := AppReconciler{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var events []string
+	go func() {
+		for ev := range recorder.Events {
+			cancel() // cancel context after first event received
+			events = append(events, ev)
+		}
+	}()
+
+	err := r.watchFunc(ctx, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
+	require.EqualError(t, err, "context canceled")
+
+	// assert that watchFunc() ended early via context cancelation and that not all events were processed.
+	allPossibleEvents := []string{
+		"Normal AppReconcileUpdate 1 of 1 new units created",
+		"Normal AppReconcileUpdate 0 of 1 new units ready",
+		"Normal AppReconcileUpdate 1 of 1 new units ready",
+		"Normal AppReconcileComplete app test 1 reconcile success",
+	}
+	require.True(t, len(events) < len(allPossibleEvents))
+}
+
 func Test_checkPodStatus(t *testing.T) {
 	createPod := func(group, appName, version string, status v1.PodStatus) *v1.Pod {
 		return &v1.Pod{

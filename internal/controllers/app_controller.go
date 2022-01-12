@@ -57,8 +57,9 @@ type AppReconciler struct {
 	Now            timeNowFn
 	Recorder       record.EventRecorder
 	// Group stands for k8s group of Ketch App CRD.
-	Group  string
-	Config *rest.Config
+	Group      string
+	Config     *rest.Config
+	ContextMap map[string]context.CancelFunc
 }
 
 // timeNowFn knows how to get the current time.
@@ -390,6 +391,11 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 		}
 	}
 
+	if cancel, ok := r.ContextMap[dep.Name]; ok {
+		cancel() // cancel previous context for this deployment
+	}
+	ctx, r.ContextMap[dep.Name] = context.WithCancel(ctx) // assign current cancelFunc
+
 	reconcileStartedEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileStarted, fmt.Sprintf("Updating units [%s]", process.Name), process.Name)
 	recorder.AnnotatedEventf(app, reconcileStartedEvent.Annotations, v1.EventTypeNormal, reconcileStartedEvent.Reason, reconcileStartedEvent.Description)
 	go r.watchFunc(ctx, app, namespace, dep, process.Name, recorder, watcher, cli, timeout, watcher.Stop)
@@ -397,6 +403,7 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 }
 
 func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespace string, dep *appsv1.Deployment, processName string, recorder record.EventRecorder, watcher watch.Interface, cli kubernetes.Interface, timeout <-chan time.Time, stopFunc func()) error {
+	defer delete(r.ContextMap, dep.Name) // delete key from ContextMap when returning or Done()
 	var err error
 	watchCh := watcher.ResultChan()
 
