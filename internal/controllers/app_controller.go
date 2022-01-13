@@ -59,6 +59,8 @@ type AppReconciler struct {
 	// Group stands for k8s group of Ketch App CRD.
 	Group  string
 	Config *rest.Config
+	// CancelMap tracks cancelFunc functions for goroutines AppReconciler starts to watch deployment events.
+	CancelMap *CancelMap
 }
 
 // timeNowFn knows how to get the current time.
@@ -390,13 +392,19 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 		}
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	// assign current cancelFunc and cancel the previous one
+	cleanup := r.CancelMap.replaceAndCancelPrevious(dep.Name, cancel)
+
 	reconcileStartedEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileStarted, fmt.Sprintf("Updating units [%s]", process.Name), process.Name)
 	recorder.AnnotatedEventf(app, reconcileStartedEvent.Annotations, v1.EventTypeNormal, reconcileStartedEvent.Reason, reconcileStartedEvent.Description)
-	go r.watchFunc(ctx, app, namespace, dep, process.Name, recorder, watcher, cli, timeout, watcher.Stop)
+	go r.watchFunc(ctx, cleanup, app, namespace, dep, process.Name, recorder, watcher, cli, timeout, watcher.Stop)
 	return nil
 }
 
-func (r *AppReconciler) watchFunc(ctx context.Context, app *ketchv1.App, namespace string, dep *appsv1.Deployment, processName string, recorder record.EventRecorder, watcher watch.Interface, cli kubernetes.Interface, timeout <-chan time.Time, stopFunc func()) error {
+func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app *ketchv1.App, namespace string, dep *appsv1.Deployment, processName string, recorder record.EventRecorder, watcher watch.Interface, cli kubernetes.Interface, timeout <-chan time.Time, stopFunc func()) error {
+	defer cleanup()
+
 	var err error
 	watchCh := watcher.ResultChan()
 

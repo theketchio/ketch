@@ -132,7 +132,8 @@ func main() {
 			Component: "ketch-controller",
 		},
 		),
-		Config: ctrl.GetConfigOrDie(),
+		Config:    ctrl.GetConfigOrDie(),
+		CancelMap: controllers.NewCancelMap(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "App")
 		os.Exit(1)
