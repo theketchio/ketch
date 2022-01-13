@@ -47,6 +47,7 @@ var (
 )
 
 func main() {
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	var disableWebhooks bool
@@ -118,13 +119,15 @@ func main() {
 	eventBroadcaster.StartLogging(func(format string, args ...interface{}) { logg.Info(fmt.Sprintf(format, args...)) })
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: clientSet.CoreV1().Events("")})
 
+	factory := chart.NewHelmClientFactory()
+
 	if err = (&controllers.AppReconciler{
 		TemplateReader: storage,
 		Client:         mgr.GetClient(),
 		Log:            logg,
 		Scheme:         mgr.GetScheme(),
 		HelmFactoryFn: func(namespace string) (controllers.Helm, error) {
-			return chart.NewHelmClient(namespace, mgr.GetClient(), logg)
+			return factory.NewHelmClient(namespace, mgr.GetClient(), logg)
 		},
 		Now:   time.Now,
 		Group: group,
@@ -145,7 +148,7 @@ func main() {
 		Scheme:         mgr.GetScheme(),
 		TemplateReader: storage,
 		HelmFactoryFn: func(namespace string) (controllers.Helm, error) {
-			return chart.NewHelmClient(namespace, mgr.GetClient(), logg)
+			return factory.NewHelmClient(namespace, mgr.GetClient(), logg)
 		},
 		Recorder: eventBroadcaster.NewRecorder(clientgoscheme.Scheme, v1.EventSource{
 			Component: "ketch-controller",

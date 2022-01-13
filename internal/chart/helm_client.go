@@ -3,8 +3,6 @@ package chart
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -14,8 +12,6 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 	helmTime "helm.sh/helm/v3/pkg/time"
 
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -37,32 +33,6 @@ type TemplateValuer interface {
 	GetValues() interface{}
 	GetTemplates() map[string]string
 	GetName() string
-}
-
-// NewHelmClient returns a HelmClient instance.
-func NewHelmClient(namespace string, c client.Client, log logr.Logger) (*HelmClient, error) {
-	cfg, err := getActionConfig(namespace)
-	if err != nil {
-		return nil, err
-	}
-	return &HelmClient{cfg: cfg, namespace: namespace, c: c, log: log.WithValues("helm-client", namespace)}, nil
-}
-
-func getActionConfig(namespace string) (*action.Configuration, error) {
-	actionConfig := new(action.Configuration)
-
-	config := ctrl.GetConfigOrDie()
-
-	// Create the ConfigFlags struct instance with initialized values from ServiceAccount
-	kubeConfig := genericclioptions.NewConfigFlags(false)
-	kubeConfig.APIServer = &config.Host
-	kubeConfig.BearerToken = &config.BearerToken
-	kubeConfig.CAFile = &config.CAFile
-	kubeConfig.Namespace = &namespace
-	if err := actionConfig.Init(kubeConfig, namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
-		return nil, err
-	}
-	return actionConfig, nil
 }
 
 // InstallOption to perform additional configuration of action.Install before running a chart installation.
