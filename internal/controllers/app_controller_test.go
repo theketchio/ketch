@@ -270,7 +270,12 @@ func TestWatchDeployEvents(t *testing.T) {
 		}
 	}()
 
-	err := r.watchFunc(ctx, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
+	cleanupIsCalled := false
+	cleanupFn := func() {
+		cleanupIsCalled = true
+	}
+
+	err := r.watchFunc(ctx, cleanupFn, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
 	require.Nil(t, err)
 
 	time.Sleep(time.Millisecond * 100)
@@ -291,6 +296,8 @@ EXPECTED:
 		}
 		t.Errorf("expected event %s, but it was not found", expected)
 	}
+
+	require.True(t, cleanupIsCalled)
 }
 
 func TestCancelWatchDeployEvents(t *testing.T) {
@@ -365,7 +372,7 @@ func TestCancelWatchDeployEvents(t *testing.T) {
 		}
 	}()
 
-	err := r.watchFunc(ctx, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
+	err := r.watchFunc(ctx, func() {}, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
 	require.EqualError(t, err, "context canceled")
 
 	// assert that watchFunc() ended early via context cancelation and that not all events were processed.

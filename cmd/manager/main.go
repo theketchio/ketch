@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"math"
@@ -133,8 +132,8 @@ func main() {
 			Component: "ketch-controller",
 		},
 		),
-		Config:     ctrl.GetConfigOrDie(),
-		ContextMap: make(map[string]context.CancelFunc),
+		Config:    ctrl.GetConfigOrDie(),
+		CancelMap: controllers.NewCancelMap(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "App")
 		os.Exit(1)
