@@ -7,24 +7,22 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/api/autoscaling/v2beta1"
-
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/release"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/api/autoscaling/v2beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	clientFake "k8s.io/client-go/kubernetes/fake"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-
-	clientFake "k8s.io/client-go/kubernetes/fake"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlFake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 	"github.com/theketchio/ketch/internal/chart"
@@ -173,16 +171,17 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			wantConditionMessage: "failed to update helm chart: render error",
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ctx.k8sClient.Create(context.TODO(), &tt.app)
-			assert.Nil(t, err)
+			err := ctx.k8sClient.Create(context.Background(), &tt.app)
+			require.Nil(t, err)
 
 			resultApp := ketchv1.App{}
 			for {
 				time.Sleep(250 * time.Millisecond)
-				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.app.Name}, &resultApp)
-				assert.Nil(t, err)
+				err = ctx.k8sClient.Get(context.Background(), types.NamespacedName{Name: tt.app.Name}, &resultApp)
+				require.Nil(t, err)
 				if len(resultApp.Status.Conditions) > 0 {
 					break
 				}
@@ -190,14 +189,16 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			condition := resultApp.Status.Condition(ketchv1.Scheduled)
 			require.NotNil(t, condition)
 			require.Equal(t, tt.wantConditionStatus, condition.Status)
-			assert.Equal(t, tt.wantConditionMessage, condition.Message)
+			require.Equal(t, tt.wantConditionMessage, condition.Message)
+			require.True(t, controllerutil.ContainsFinalizer(&resultApp, ketchv1.KetchFinalizer))
 
 			if condition.Status == v1.ConditionTrue {
-				err = ctx.k8sClient.Delete(context.TODO(), &resultApp)
+				err = ctx.k8sClient.Delete(context.Background(), &resultApp)
+				require.Nil(t, err)
 			}
 		})
 	}
-	assert.Equal(t, []string{"app-running"}, helmMock.deleteChartCalled)
+	require.Equal(t, []string{"app-running"}, helmMock.deleteChartCalled)
 }
 
 func TestWatchDeployEvents(t *testing.T) {
