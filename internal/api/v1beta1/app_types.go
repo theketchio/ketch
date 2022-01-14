@@ -35,6 +35,7 @@ import (
 const (
 	ShipaCloudDomain     = "shipa.cloud"
 	DefaultNumberOfUnits = 1
+	KetchFinalizer       = "ketch-controller"
 )
 
 // Env represents an environment variable present in an application.

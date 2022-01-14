@@ -30,7 +30,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/autoscaling/v2beta1"
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,6 +40,7 @@ import (
 	"k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 	"github.com/theketchio/ketch/internal/chart"
@@ -113,11 +113,20 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	app := ketchv1.App{}
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
-		if apierrors.IsNotFound(err) {
-			err := r.deleteChart(ctx, req.Name)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if !controllerutil.ContainsFinalizer(&app, ketchv1.KetchFinalizer) {
+		controllerutil.AddFinalizer(&app, ketchv1.KetchFinalizer)
+		if err := r.Update(ctx, &app); err != nil {
+			logger.Error(err, "failed to add ketch finalizer")
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if !app.ObjectMeta.DeletionTimestamp.IsZero() {
+		err := r.deleteChart(ctx, &app)
+		return ctrl.Result{}, err
 	}
 
 	var (
@@ -660,14 +669,14 @@ func checkPodStatus(group string, c client.Client, appName string, depVersion ke
 	return nil
 }
 
-func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {
+func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error {
 	frameworks := ketchv1.FrameworkList{}
 	err := r.Client.List(ctx, &frameworks)
 	if err != nil {
 		return err
 	}
 	for _, framework := range frameworks.Items {
-		if !framework.HasApp(appName) {
+		if !framework.HasApp(app.Name) {
 			continue
 		}
 
@@ -675,7 +684,7 @@ func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {
 		if err != nil {
 			return err
 		}
-		err = helmClient.DeleteChart(appName)
+		err = helmClient.DeleteChart(app.Name)
 		if err != nil {
 			return err
 		}
@@ -683,13 +692,21 @@ func (r *AppReconciler) deleteChart(ctx context.Context, appName string) error {
 
 		patchedFramework.Status.Apps = make([]string, 0, len(patchedFramework.Status.Apps))
 		for _, name := range framework.Status.Apps {
-			if name == appName {
+			if name == app.Name {
 				continue
 			}
 			patchedFramework.Status.Apps = append(patchedFramework.Status.Apps, name)
 		}
 		mergePatch := client.MergeFrom(&framework)
-		return r.Status().Patch(ctx, &patchedFramework, mergePatch)
+		if err := r.Status().Patch(ctx, &patchedFramework, mergePatch); err != nil {
+			return err
+		}
+		break
+	}
+
+	controllerutil.RemoveFinalizer(app, ketchv1.KetchFinalizer)
+	if err := r.Update(ctx, app); err != nil {
+		return err
 	}
 	return nil
 
