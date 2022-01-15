@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 	"github.com/theketchio/ketch/internal/utils/conversions"
@@ -85,13 +85,13 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ctx.k8sClient.Create(context.TODO(), &tt.job)
-			assert.Nil(t, err)
+			err := ctx.k8sClient.Create(context.Background(), &tt.job)
+			require.Nil(t, err)
 			resultJob := ketchv1.Job{}
 			for {
 				time.Sleep(250 * time.Millisecond)
-				err = ctx.k8sClient.Get(context.TODO(), types.NamespacedName{Name: tt.job.Name, Namespace: tt.job.Namespace}, &resultJob)
-				assert.Nil(t, err)
+				err = ctx.k8sClient.Get(context.Background(), types.NamespacedName{Name: tt.job.Name, Namespace: tt.job.Namespace}, &resultJob)
+				require.Nil(t, err)
 				if len(resultJob.Status.Conditions) > 0 {
 					break
 				}
@@ -99,6 +99,7 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 			condition := resultJob.Status.Condition(ketchv1.Scheduled)
 			require.Equal(t, tt.wantConditionStatus, condition.Status)
 			require.Equal(t, tt.wantConditionMessage, condition.Message)
+			require.True(t, controllerutil.ContainsFinalizer(&resultJob, ketchv1.KetchFinalizer))
 		})
 	}
 }
