@@ -108,6 +108,12 @@ func (r *JobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+type reconcileResult struct {
+	status    v1.ConditionStatus
+	message   string
+	framework *v1.ObjectReference
+}
+
 func (r *JobReconciler) reconcile(ctx context.Context, job *ketchv1.Job) reconcileResult {
 	framework := ketchv1.Framework{}
 	if err := r.Get(ctx, types.NamespacedName{Name: job.Spec.Framework}, &framework); err != nil {

@@ -12,8 +12,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/autoscaling/v2beta1"
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	clientFake "k8s.io/client-go/kubernetes/fake"
@@ -671,6 +673,41 @@ func TestIsHPATarget(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			hpaList.Items[0].Spec.ScaleTargetRef = tc.hpaScaleTargetRef
 			require.Equal(t, tc.expected, hpaTargetMap(&app, hpaList))
+		})
+	}
+}
+
+func Test_appReconcileResult_isConflictError(t *testing.T) {
+	resource := schema.GroupResource{Group: "theketch.io", Resource: "App"}
+	conflictErr := k8serrors.NewConflict(resource, "app-web-1", fmt.Errorf("some err"))
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "some err",
+			err:  fmt.Errorf("some err"),
+			want: false,
+		},
+		{
+			name: "conflict error",
+			err:  conflictErr,
+			want: true,
+		},
+		{
+			name: "conflict error",
+			err:  fmt.Errorf("failed %w", conflictErr),
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := appReconcileResult{
+				err: tt.err,
+			}
+			isConflict := r.isConflictError()
+			require.Equal(t, tt.want, isConflict)
 		})
 	}
 }
