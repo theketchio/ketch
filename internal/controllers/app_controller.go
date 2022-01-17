@@ -207,9 +207,13 @@ type appReconcileResult struct {
 	err        error
 }
 
+// isConflictError returns true if AppReconciler was trying to update an App CR and got a conflict error.
 func (r appReconcileResult) isConflictError() bool {
 	err := r.err
 	for {
+		// we need this loop to properly handle cases like:
+		// fmt.Error("some err %w", conflictErr)
+		// fmt.Error("some err %w", fmt.Error("some err %w", conflictErr))
 		if err == nil {
 			return false
 		}
