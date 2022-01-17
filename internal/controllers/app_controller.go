@@ -30,6 +30,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/autoscaling/v2beta1"
 	v1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -129,23 +130,38 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	scheduleResult := r.reconcile(ctx, &app, logger)
+	if scheduleResult.isConflictError() {
+		// we don't want to create an event with this conflict error and show it to the user.
+		// ketch will eventually reconcile the app.
+		logger.Error(scheduleResult.err, "failed to reconcile app")
+		return ctrl.Result{}, scheduleResult.err
+	}
+
 	var (
 		err    error
 		result ctrl.Result
 	)
-	scheduleResult := r.reconcile(ctx, &app, logger)
-	if scheduleResult.status == v1.ConditionFalse {
-		// we have to return an error to run reconcile again.
-		err = fmt.Errorf(scheduleResult.message)
+
+	if scheduleResult.err != nil {
+		err = scheduleResult.err
 		outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeWarning, ketchv1.AppReconcileOutcomeReason, outcome.String(err))
+		app.SetCondition(ketchv1.Scheduled, v1.ConditionFalse, scheduleResult.err.Error(), metav1.NewTime(time.Now()))
 	} else {
 		app.Status.Framework = scheduleResult.framework
 		outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeNormal, ketchv1.AppReconcileOutcomeReason, outcome.String())
+		app.SetCondition(ketchv1.Scheduled, v1.ConditionTrue, "", metav1.NewTime(time.Now()))
 	}
-	app.SetCondition(ketchv1.Scheduled, scheduleResult.status, scheduleResult.message, metav1.NewTime(time.Now()))
+
 	if err := r.Status().Update(context.Background(), &app); err != nil {
+		if k8sErrors.IsConflict(err) {
+			// we don't want to create an event with this conflict error and show it to the user.
+			// ketch will eventually reconcile the app.
+			logger.Error(err, "failed to reconcile app status")
+			return ctrl.Result{}, err
+		}
 		outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeWarning, ketchv1.AppReconcileOutcomeReason, outcome.String(err))
 		return result, err
@@ -161,13 +177,6 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		result = ctrl.Result{RequeueAfter: reconcileTimeout}
 	}
 	return result, err
-}
-
-type reconcileResult struct {
-	status     v1.ConditionStatus
-	message    string
-	framework  *v1.ObjectReference
-	useTimeout bool
 }
 
 func hpaTargetMap(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList) map[string]bool {
@@ -192,73 +201,79 @@ func hpaTargetMap(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList)
 	return hpaTargets
 }
 
-func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger logr.Logger) reconcileResult {
+type appReconcileResult struct {
+	framework  *v1.ObjectReference
+	useTimeout bool
+	err        error
+}
+
+// isConflictError returns true if AppReconciler was trying to update an App CR and got a conflict error.
+func (r appReconcileResult) isConflictError() bool {
+	err := r.err
+	for {
+		// we need this loop to properly handle cases like:
+		// fmt.Error("some err %w", conflictErr)
+		// fmt.Error("some err %w", fmt.Error("some err %w", conflictErr))
+		if err == nil {
+			return false
+		}
+		if k8sErrors.IsConflict(err) {
+			return true
+		}
+		err = errors.Unwrap(err)
+	}
+}
+
+func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger logr.Logger) appReconcileResult {
 
 	framework := ketchv1.Framework{}
 	if err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`framework "%s" is not found`, app.Spec.Framework),
+		return appReconcileResult{
+			err: fmt.Errorf(`framework "%s" is not found`, app.Spec.Framework),
 		}
 	}
 	ref, err := reference.GetReference(r.Scheme, &framework)
 	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: err.Error(),
-		}
+		return appReconcileResult{err: err}
 	}
 	if framework.Status.Namespace == nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`framework "%s" is not linked to a kubernetes namespace`, framework.Name),
+		return appReconcileResult{
+			err: fmt.Errorf(`framework "%s" is not linked to a kubernetes namespace`, framework.Name),
 		}
 	}
 	tpls, err := r.TemplateReader.Get(templates.IngressConfigMapName(framework.Spec.IngressController.IngressType.String()))
 	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`failed to read configmap with the app's chart templates: %v`, err),
+		return appReconcileResult{
+			err: fmt.Errorf(`failed to read configmap with the app's chart templates: %w`, err),
 		}
 	}
 	if !framework.HasApp(app.Name) && framework.Spec.AppQuotaLimit != nil && len(framework.Status.Apps) >= *framework.Spec.AppQuotaLimit && *framework.Spec.AppQuotaLimit != -1 {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`you have reached the limit of apps`),
+		return appReconcileResult{
+			err: fmt.Errorf(`you have reached the limit of apps`),
 		}
 	}
 
-	options := []chart.Option{
+	appChrt, err := chart.New(app, &framework,
 		chart.WithExposedPorts(app.ExposedPorts()),
-		chart.WithTemplates(*tpls),
+		chart.WithTemplates(*tpls))
+	if err != nil {
+		return appReconcileResult{err: err}
 	}
 
-	appChrt, err := chart.New(app, &framework, options...)
-	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: err.Error(),
-		}
-	}
 	patchedFramework := framework
 	if !patchedFramework.HasApp(app.Name) {
 		patchedFramework.Status.Apps = append(patchedFramework.Status.Apps, app.Name)
 		mergePatch := client.MergeFrom(&framework)
 		if err := r.Status().Patch(ctx, &patchedFramework, mergePatch); err != nil {
-			return reconcileResult{
-				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("failed to update framework status: %v", err),
+			return appReconcileResult{
+				err: fmt.Errorf("failed to update framework status: %w", err),
 			}
 		}
 	}
 	targetNamespace := framework.Status.Namespace.Name
 	helmClient, err := r.HelmFactoryFn(targetNamespace)
-
 	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: err.Error(),
-		}
+		return appReconcileResult{err: err}
 	}
 
 	// check for canary deployment
@@ -267,11 +282,8 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		if len(app.Spec.Deployments) <= 1 {
 			// reset canary specs
 			app.Spec.Canary = ketchv1.CanarySpec{}
-
-			return reconcileResult{
-				status:     v1.ConditionFalse,
-				message:    "no canary deployment found",
-				useTimeout: true,
+			return appReconcileResult{
+				err: fmt.Errorf("no canary deployment found"),
 			}
 		}
 
@@ -279,52 +291,45 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		if err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
 
 			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
-				return reconcileResult{
-					status:     v1.ConditionFalse,
-					message:    fmt.Sprintf("canary update failed: %v", err),
+				return appReconcileResult{
+					err:        fmt.Errorf("canary update failed: %w", err),
 					useTimeout: true,
 				}
 			}
 
 			// Do rollback if timeout expired
 			app.DoRollback()
-			if e := r.Update(ctx, app); err != nil {
-				return reconcileResult{
-					status:     v1.ConditionFalse,
-					message:    fmt.Sprintf("failed to update app crd: %v", e),
-					useTimeout: true,
+			if err := r.Update(ctx, app); err != nil {
+				return appReconcileResult{
+					err: fmt.Errorf("failed to update app crd: %w", err),
 				}
 			}
 		}
 
 		var hpaList v2beta1.HorizontalPodAutoscalerList
 		if err := r.List(ctx, &hpaList, &client.ListOptions{Namespace: framework.Status.Namespace.Name}); err != nil {
-			return reconcileResult{
-				status:  v1.ConditionFalse,
-				message: "failed to find HPAs",
+			return appReconcileResult{
+				err: fmt.Errorf("failed to find HPAs"),
 			}
 		}
 
 		// Once all pods are running then Perform canary deployment, do not scale pods for a process that is a HPA target.
 		if err = app.DoCanary(metav1.NewTime(r.Now()), logger, r.Recorder, hpaTargetMap(app, hpaList)); err != nil {
-			return reconcileResult{
-				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("canary update failed: %v", err),
+			return appReconcileResult{
+				err: fmt.Errorf("canary update failed: %w", err),
 			}
 		}
 		if err := r.Update(ctx, app); err != nil {
-			return reconcileResult{
-				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("canary update failed: %v", err),
+			return appReconcileResult{
+				err: fmt.Errorf("canary update failed: %w", err),
 			}
 		}
 	}
 
 	_, err = helmClient.UpdateChart(*appChrt, chart.NewChartConfig(*app))
 	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf("failed to update helm chart: %v", err),
+		return appReconcileResult{
+			err: fmt.Errorf("failed to update helm chart: %w", err),
 		}
 	}
 
@@ -337,32 +342,28 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 				Namespace: framework.Spec.NamespaceName,
 				Name:      fmt.Sprintf("%s-%s-%d", app.GetName(), process.Name, latestDeployment.Version),
 			}, &dep); err != nil {
-				return reconcileResult{
-					status:  v1.ConditionFalse,
-					message: fmt.Sprintf("failed to get deployment: %v", err),
+				return appReconcileResult{
+					err: fmt.Errorf("failed to get deployment: %w", err),
 				}
 			}
 			err = r.watchDeployEvents(ctx, app, framework.Spec.NamespaceName, &dep, &process, r.Recorder)
 			if err != nil {
-				return reconcileResult{
-					status:  v1.ConditionFalse,
-					message: fmt.Sprintf("failed to get deploy events: %v", err),
+				return appReconcileResult{
+					err: fmt.Errorf("failed to get deploy events: %w", err),
 				}
 			}
 		}
 		// We useTimeout here to set reconcile.ReququeAfter in the Reconciler
 		// in order to ensure events actually get sent. It seems the lazyRecorder we use
 		// can stop with unhandled messages if the reconciler rapidly requeues.
-		return reconcileResult{
+		return appReconcileResult{
 			framework:  ref,
-			status:     v1.ConditionTrue,
 			useTimeout: true,
 		}
 	}
 
-	return reconcileResult{
+	return appReconcileResult{
 		framework: ref,
-		status:    v1.ConditionTrue,
 	}
 }
 
