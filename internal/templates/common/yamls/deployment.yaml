@@ -84,6 +84,14 @@ spec:
           securityContext:
 {{ $process.securityContext | toYaml | indent 12 }}
           {{- end }}
+          {{- if $process.readinessProbe }}
+          readinessProbe:
+{{ $process.readinessProbe | toYaml | indent 12 }}
+          {{- end }}
+          {{- if $process.livenessProbe }}
+          livenessProbe:
+{{ $process.livenessProbe | toYaml | indent 12 }}
+          {{- end }}
       {{- if $deployment.imagePullSecrets }}
       imagePullSecrets:
 {{ $deployment.imagePullSecrets | toYaml | indent 12}}
