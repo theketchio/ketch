@@ -108,6 +108,19 @@ func TestNewApplicationChart(t *testing.T) {
 						{Name: "registry-secret"},
 						{Name: "private-registry-secret"},
 					},
+					KetchYaml: &ketchv1.KetchYamlData{
+						Healthcheck: &ketchv1.KetchYamlHealthcheck{
+							Path:            "/actuator/health/liveness",
+							Method:          "GET",
+							Scheme:          "http",
+							Match:           ".*UP.*",
+							UseInRouter:     true,
+							ForceRestart:    false,
+							AllowedFailures: 0,
+							IntervalSeconds: 0,
+							TimeoutSeconds:  0,
+						},
+					},
 				},
 				{
 					Image:   "shipasoftware/go-app:v2",
@@ -331,7 +344,6 @@ func TestNewApplicationChart(t *testing.T) {
 			}
 
 			client := HelmClient{cfg: &action.Configuration{KubeClient: &fake.PrintingKubeClient{}, Releases: storage.Init(driver.NewMemory())}, namespace: tt.framework.Spec.NamespaceName, c: clientfake.NewClientBuilder().Build()}
-
 			release, err := client.UpdateChart(*got, chartConfig, func(install *action.Install) {
 				install.DryRun = true
 				install.ClientOnly = true
