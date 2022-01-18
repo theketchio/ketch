@@ -68,6 +68,14 @@ spec:
           ports:
 {{ $process.containerPorts | toYaml | indent 10 }}
           {{- end }}
+          {{- if $process.livenessProbe }}
+          livenessProbe:
+{{ $process.livenessProbe | toYaml | indent 12 }}
+          {{- end }}
+          {{- if $process.readinessProbe }}
+          readinessProbe:
+{{ $process.readinessProbe | toYaml | indent 12 }}
+          {{- end }}
           {{- if $process.volumeMounts }}
           volumeMounts:
 {{ $process.volumeMounts | toYaml | indent 12 }}
