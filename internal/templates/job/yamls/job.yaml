@@ -3,7 +3,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   labels:
-    theketch.io/app-name: {{ $.Values.job.name | quote }}
+    {{ $.Values.job.group }}/job-name: {{ $.Values.job.name | quote }}
   name: {{ $.Values.job.name | quote }}
 spec:
   {{- if $.Values.job.parallelism }}

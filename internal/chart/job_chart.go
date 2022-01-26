@@ -14,14 +14,22 @@ type JobChart struct {
 }
 
 type jobValues struct {
-	Job ketchv1.JobSpec `json:"job"`
+	Job Job `json:"job"`
+}
+
+type Job struct {
+	ketchv1.JobSpec
+	Group string `json:"group"`
 }
 
 // NewJobChart returns a JobChart instance from a ketchv1.Job and []Option
 func NewJobChart(job *ketchv1.Job, opts ...Option) *JobChart {
 	jobChart := &JobChart{
 		values: jobValues{
-			Job: job.Spec,
+			Job: Job{
+				JobSpec: job.Spec,
+				Group:   ketchv1.Group,
+			},
 		},
 	}
 	options := &Options{}

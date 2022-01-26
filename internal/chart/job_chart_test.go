@@ -48,7 +48,10 @@ func TestNewJobChart(t *testing.T) {
 	}
 	expected := &JobChart{
 		values: jobValues{
-			Job: testJob.Spec,
+			Job: Job{
+				JobSpec: testJob.Spec,
+				Group:   "theketch.io",
+			},
 		},
 		templates: map[string]string{"test.yaml": "Lots of values"},
 	}

@@ -20,26 +20,29 @@ func TestBufferedFiles(t *testing.T) {
 		"test.yaml": "name: {{ App.spec.name }}",
 	}
 	values := jobValues{
-		Job: ketchv1.JobSpec{
-			Version:      "v1",
-			Type:         "Job",
-			Name:         "testjob",
-			Framework:    "myframework",
-			Description:  "this is a test",
-			Parallelism:  2,
-			Completions:  2,
-			Suspend:      false,
-			BackoffLimit: 4,
-			Containers: []ketchv1.Container{
-				{
-					Name:    "test",
-					Image:   "ubuntu",
-					Command: []string{"pwd"},
+		Job: Job{
+			JobSpec: ketchv1.JobSpec{
+				Version:      "v1",
+				Type:         "Job",
+				Name:         "testjob",
+				Framework:    "myframework",
+				Description:  "this is a test",
+				Parallelism:  2,
+				Completions:  2,
+				Suspend:      false,
+				BackoffLimit: 4,
+				Containers: []ketchv1.Container{
+					{
+						Name:    "test",
+						Image:   "ubuntu",
+						Command: []string{"pwd"},
+					},
+				},
+				Policy: ketchv1.Policy{
+					RestartPolicy: "Never",
 				},
 			},
-			Policy: ketchv1.Policy{
-				RestartPolicy: "Never",
-			},
+			Group: "theketch.io",
 		},
 	}
 
@@ -61,6 +64,7 @@ appVersion: v1
     name: test
   description: this is a test
   framework: myframework
+  group: theketch.io
   name: testjob
   parallelism: 2
   policy:
