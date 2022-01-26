@@ -1,5 +1,5 @@
 ## Contributing to Ketch
-We welcome contributions to Ketch in the form of Pull Requests or submitting Issues. Looking for your first contribution? There 
+We welcome contributions to Ketch in the form of Pull Requests or submitting Issues. Looking for your first contribution? There
 are excellent [starter issues](https://github.com/theketchio/ketch/labels/good%20first%20issue) to work on. If you encounter a problem with Ketch or want
 to suggest an improvement please submit an Issue. If you find a bug please tell us about it by submitting an Issue or
 Pull Request.  Please make sure you are testing against the latest version of Ketch when you are submitting a bug. Provide
@@ -55,5 +55,35 @@ Use the cluster IP address when you create frameworks.
 ```bash
 ketch framework add myframework --ingress-service-endpoint $(kubectl get svc traefik -o jsonpath='{.spec.clusterIP}')
 ```
+
+### Running the Ketch Controller locally with Minikube
+Start a Minikube cluster:
+
+`minikube start -p ketch-cluster --driver=hyperkit`
+
+Install CRDs:
+
+`make install`
+
+*Note: If you revise any CRDs or experience trouble, you can install them manually from the `config/crd` directory, e.g. `kubectl apply -f config/crd/bases/theketch.io_frameworks.yaml`*
+
+Create Ketch's namespace:
+
+`kubectl create ns ketch-system`
+
+Run the controller locally. This permits you to see logs during development:
+
+`go run ./cmd/manager/main.go --enable-leader-election=false --disable-webhooks`
+
+Run a CLI command (in a seperate terminal window):
+
+`go run ./cmd/ketch/. framework add test`
+
+During development, you may need to utilize some `make` utils to update generated code/templates:
+
+- `make generate` to update modified helm templates.
+- `make uninstall` to uninstall CRDs prior to re-running `make install`.
+- `make manifests` to generate CRDs & RBAC from from code annotations. Ketch uses [Kubebuilder](https://book.kubebuilder.io/reference/controller-gen.html).
+
 ## Submission Guidelines
 Ketch follows a lightweight Pull Request process. When submitting a PR, answering a few [basic questions](https://github.com/theketchio/ketch/blob/main/.github/pull_request_template.md) around type of change and steps to test and you are well on your way to a PR approval.   
