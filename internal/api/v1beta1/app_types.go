@@ -233,6 +233,8 @@ type AppSpec struct {
 
 	// ServiceAccountName specifies a service account name to be used for this application.
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
+	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
 }
 
 // MetadataItem represent a request to add label/annotations to processes

@@ -3,6 +3,7 @@ package chart
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 
 	"helm.sh/helm/v3/pkg/postrender"
@@ -21,7 +22,8 @@ type postRender struct {
 }
 
 func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *bytes.Buffer, err error) {
-
+	fmt.Println("post render")
+	fmt.Println(renderedManifests.String())
 	var configMapList v1.ConfigMapList
 	opts := &client.ListOptions{Namespace: p.namespace}
 	if err := p.cli.List(context.Background(), &configMapList, opts); err != nil {
