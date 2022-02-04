@@ -97,6 +97,7 @@ func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testin
 			return helm, nil
 		},
 		Recorder: k8sManager.GetEventRecorderFor("App"),
+		Group:    "theketch.io",
 	}).SetupWithManager(k8sManager)
 	if err != nil {
 		return nil, err

@@ -56,6 +56,35 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 		wantConditionMessage string
 	}{
 		{
+			name: "running job",
+			job: ketchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-job",
+					Namespace: "default",
+				},
+				Spec: ketchv1.JobSpec{
+					Framework: "working-framework",
+				},
+			},
+			wantConditionStatus: v1.ConditionTrue,
+		},
+		{
+			name: "running job, delete it but keep its helm chart",
+			job: ketchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-job-2",
+					Namespace: "default",
+					Annotations: map[string]string{
+						"theketch.io/dont-uninstall-helm-chart": "true",
+					},
+				},
+				Spec: ketchv1.JobSpec{
+					Framework: "working-framework",
+				},
+			},
+			wantConditionStatus: v1.ConditionTrue,
+		},
+		{
 			name: "job linked to nonexisting framework",
 			job: ketchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
@@ -68,19 +97,6 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 			},
 			wantConditionStatus:  v1.ConditionFalse,
 			wantConditionMessage: `framework "non-existent-framework" is not found`,
-		},
-		{
-			name: "running job",
-			job: ketchv1.Job{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-job",
-					Namespace: "default",
-				},
-				Spec: ketchv1.JobSpec{
-					Framework: "working-framework",
-				},
-			},
-			wantConditionStatus: v1.ConditionTrue,
 		},
 	}
 	for _, tt := range tests {
@@ -100,6 +116,11 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 			require.Equal(t, tt.wantConditionStatus, condition.Status)
 			require.Equal(t, tt.wantConditionMessage, condition.Message)
 			require.True(t, controllerutil.ContainsFinalizer(&resultJob, ketchv1.KetchFinalizer))
+			if condition.Status == v1.ConditionTrue {
+				err = ctx.k8sClient.Delete(context.Background(), &resultJob)
+				require.Nil(t, err)
+			}
 		})
 	}
+	require.Equal(t, []string{"test-job"}, helmMock.deleteChartCalled)
 }
