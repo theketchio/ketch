@@ -681,14 +681,16 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 			continue
 		}
 
-		helmClient, err := r.HelmFactoryFn(framework.Spec.NamespaceName)
-		if err != nil {
-			return err
+		if uninstallHelmChart(r.Group, app.Annotations) {
+			helmClient, err := r.HelmFactoryFn(framework.Spec.NamespaceName)
+			if err != nil {
+				return err
+			}
+			if err = helmClient.DeleteChart(app.Name); err != nil {
+				return err
+			}
 		}
-		err = helmClient.DeleteChart(app.Name)
-		if err != nil {
-			return err
-		}
+
 		patchedFramework := framework
 
 		patchedFramework.Status.Apps = make([]string, 0, len(patchedFramework.Status.Apps))

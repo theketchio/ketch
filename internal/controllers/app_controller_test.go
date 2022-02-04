@@ -145,6 +145,22 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			wantConditionStatus: v1.ConditionTrue,
 		},
 		{
+			name: "running application, delete it but keep its helm chart",
+			app: ketchv1.App{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "app-running-with-dont-uninstall-annotation",
+					Annotations: map[string]string{
+						"theketch.io/dont-uninstall-helm-chart": "true",
+					},
+				},
+				Spec: ketchv1.AppSpec{
+					Deployments: []ketchv1.AppDeploymentSpec{},
+					Framework:   "working-framework",
+				},
+			},
+			wantConditionStatus: v1.ConditionTrue,
+		},
+		{
 			name: "create an app linked to a framework without available slots to run the app",
 			app: ketchv1.App{
 				ObjectMeta: metav1.ObjectMeta{

@@ -196,13 +196,15 @@ func (r *JobReconciler) deleteChart(ctx context.Context, job *ketchv1.Job) error
 			continue
 		}
 
-		helmClient, err := r.HelmFactoryFn(framework.Spec.NamespaceName)
-		if err != nil {
-			return err
-		}
-		err = helmClient.DeleteChart(job.Name)
-		if err != nil {
-			return err
+		if uninstallHelmChart(ketchv1.Group, job.Annotations) {
+			helmClient, err := r.HelmFactoryFn(framework.Spec.NamespaceName)
+			if err != nil {
+				return err
+			}
+			err = helmClient.DeleteChart(job.Name)
+			if err != nil {
+				return err
+			}
 		}
 		patchedFramework := framework
 
