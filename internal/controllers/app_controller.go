@@ -253,8 +253,6 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 	}
 
-	fmt.Println("app in the reconcile")
-	fmt.Printf("%+v\n", app)
 	appChrt, err := chart.New(app, &framework,
 		chart.WithExposedPorts(app.ExposedPorts()),
 		chart.WithTemplates(*tpls))
