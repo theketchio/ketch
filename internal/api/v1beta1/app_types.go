@@ -234,6 +234,7 @@ type AppSpec struct {
 	// ServiceAccountName specifies a service account name to be used for this application.
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
+	// SecurityContext specifies security settings for a pod/app, which get applied to all containers.
 	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
 }
 

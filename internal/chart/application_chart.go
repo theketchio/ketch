@@ -56,8 +56,9 @@ type app struct {
 	MetadataAnnotations []ketchv1.MetadataItem `json:"metadataAnnotations"`
 	// ServiceAccountName specifies a service account name to be used for this application.
 	// SA should exist.
-	ServiceAccountName string                 `json:"serviceAccountName"`
-	SecurityContext    *v1.PodSecurityContext `json:"securityContext,omitempty"`
+	ServiceAccountName string `json:"serviceAccountName"`
+	// SecurityContext specifies security settings for a pod/app, which get applied to all containers.
+	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
 }
 
 type deployment struct {
