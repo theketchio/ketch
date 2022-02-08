@@ -15,16 +15,58 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type statusFunc func(cfg *action.Configuration, appName string) (*release.Release, release.Status, error)
+
+const (
+	WaitRetry = iota
+	TakeAction
+	NoAction
+)
+
+// helmStatusActionMapUpdate maps a Release Status to a Ketch action for helm updates
+var helmStatusActionMapUpdate = map[release.Status]int{
+	"not-found":                   TakeAction,
+	release.StatusUnknown:         WaitRetry,
+	release.StatusDeployed:        TakeAction,
+	release.StatusUninstalled:     TakeAction,
+	release.StatusSuperseded:      NoAction,
+	release.StatusFailed:          TakeAction,
+	release.StatusUninstalling:    WaitRetry,
+	release.StatusPendingInstall:  WaitRetry,
+	release.StatusPendingUpgrade:  WaitRetry,
+	release.StatusPendingRollback: WaitRetry,
+}
+
+// helmStatusActionMapDelete maps a Release Status to a Ketch action for helm deletions
+var helmStatusActionMapDelete = map[release.Status]int{
+	"not-found":                   NoAction,
+	release.StatusUnknown:         WaitRetry,
+	release.StatusDeployed:        TakeAction,
+	release.StatusUninstalled:     NoAction,
+	release.StatusSuperseded:      NoAction,
+	release.StatusFailed:          NoAction,
+	release.StatusUninstalling:    NoAction,
+	release.StatusPendingInstall:  WaitRetry,
+	release.StatusPendingUpgrade:  WaitRetry,
+	release.StatusPendingRollback: WaitRetry,
+}
+
+var (
+	statusRetryInterval = time.Second * 1
+	statusRetryTimeout  = time.Second * 5
+)
+
 const (
 	defaultDeploymentTimeout = 10 * time.Minute
 )
 
 // HelmClient performs helm install and uninstall operations for provided application helm charts.
 type HelmClient struct {
-	cfg       *action.Configuration
-	namespace string
-	c         client.Client
-	log       logr.Logger
+	cfg        *action.Configuration
+	namespace  string
+	c          client.Client
+	log        logr.Logger
+	statusFunc statusFunc
 }
 
 // TemplateValuer is an interface that permits types that implement it (e.g. Application, Job)
@@ -105,15 +147,67 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 		namespace: c.namespace,
 		cli:       c.c,
 	}
+	shouldUpdate, err := c.waitForActionableStatus(c.statusFunc, appName, helmStatusActionMapUpdate)
+	if err != nil || !shouldUpdate {
+		return nil, err
+	}
 	return updateClient.Run(appName, chrt, vals)
 }
 
 // DeleteChart uninstalls the app's helm release. It doesn't return an error if the release is not found.
 func (c HelmClient) DeleteChart(appName string) error {
+	shouldDelete, err := c.waitForActionableStatus(c.statusFunc, appName, helmStatusActionMapDelete)
+	if err != nil || !shouldDelete {
+		return err
+	}
 	uninstall := action.NewUninstall(c.cfg)
-	_, err := uninstall.Run(appName)
+	_, err = uninstall.Run(appName)
 	if err != nil && errors.Is(err, driver.ErrReleaseNotFound) {
 		return nil
 	}
 	return err
+}
+
+// getHelmStatus returns the Release, Status, and error for an app
+func getHelmStatus(cfg *action.Configuration, appName string) (*release.Release, release.Status, error) {
+	statusClient := action.NewStatus(cfg)
+	status, err := statusClient.Run(appName)
+	if err != nil {
+		if errors.Is(err, driver.ErrReleaseNotFound) || status.Info == nil {
+			return nil, "not-found", nil
+		}
+		return nil, "", err
+	}
+	return status, status.Info.Status, nil
+}
+
+// waitForActionableStatus returns true if the helm status is such that it is ok to proceed with update/delete. If the statusFunc returns
+// WaitRetry, the func blocks while retrying.
+func (c HelmClient) waitForActionableStatus(statusFunc statusFunc, appName string, statusActionMap map[release.Status]int) (bool, error) {
+	ticker := time.NewTicker(statusRetryInterval)
+	done := time.After(statusRetryTimeout)
+	var helmRelease *release.Release
+	var status release.Status
+	var err error
+	for {
+		select {
+		case <-done:
+			c.log.Info(fmt.Sprintf("Setting status (%s) of %s release that has timeouted to: deployed", appName, status))
+			helmRelease.SetStatus(release.StatusDeployed, "set manually after timeout waiting for actionable status")
+			return true, nil
+		case <-ticker.C:
+			helmRelease, status, err = statusFunc(c.cfg, appName)
+			if err != nil {
+				return false, err
+			}
+			action := statusActionMap[status] // default wait-retry
+			if action == NoAction {
+				c.log.Info(fmt.Sprintf("helm chart for app %s release already in state %s - no action required", appName, status))
+				return false, nil
+			}
+			if action == TakeAction {
+				return true, nil
+			}
+		}
+	}
 }
