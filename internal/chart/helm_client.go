@@ -15,46 +15,43 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type statusFunc func(cfg *action.Configuration, appName string) (*release.Release, release.Status, error)
+type statusFunc func(cfg *action.Configuration, appName string) (release.Status, error)
 
 const (
-	WaitRetry = iota
-	TakeAction
-	NoAction
+	waitRetry = iota
+	takeAction
+	noAction
+
+	notFound release.Status = "not-found"
 )
 
 // helmStatusActionMapUpdate maps a Release Status to a Ketch action for helm updates
 var helmStatusActionMapUpdate = map[release.Status]int{
-	"not-found":                   TakeAction,
-	release.StatusUnknown:         WaitRetry,
-	release.StatusDeployed:        TakeAction,
-	release.StatusUninstalled:     TakeAction,
-	release.StatusSuperseded:      NoAction,
-	release.StatusFailed:          TakeAction,
-	release.StatusUninstalling:    WaitRetry,
-	release.StatusPendingInstall:  WaitRetry,
-	release.StatusPendingUpgrade:  WaitRetry,
-	release.StatusPendingRollback: WaitRetry,
+	notFound:                      takeAction,
+	release.StatusUnknown:         waitRetry,
+	release.StatusDeployed:        takeAction,
+	release.StatusUninstalled:     takeAction,
+	release.StatusSuperseded:      noAction,
+	release.StatusFailed:          takeAction,
+	release.StatusUninstalling:    waitRetry,
+	release.StatusPendingInstall:  waitRetry,
+	release.StatusPendingUpgrade:  waitRetry,
+	release.StatusPendingRollback: waitRetry,
 }
 
 // helmStatusActionMapDelete maps a Release Status to a Ketch action for helm deletions
 var helmStatusActionMapDelete = map[release.Status]int{
-	"not-found":                   NoAction,
-	release.StatusUnknown:         WaitRetry,
-	release.StatusDeployed:        TakeAction,
-	release.StatusUninstalled:     NoAction,
-	release.StatusSuperseded:      NoAction,
-	release.StatusFailed:          NoAction,
-	release.StatusUninstalling:    NoAction,
-	release.StatusPendingInstall:  WaitRetry,
-	release.StatusPendingUpgrade:  WaitRetry,
-	release.StatusPendingRollback: WaitRetry,
+	notFound:                      noAction,
+	release.StatusUnknown:         waitRetry,
+	release.StatusDeployed:        takeAction,
+	release.StatusUninstalled:     noAction,
+	release.StatusSuperseded:      noAction,
+	release.StatusFailed:          noAction,
+	release.StatusUninstalling:    noAction,
+	release.StatusPendingInstall:  waitRetry,
+	release.StatusPendingUpgrade:  waitRetry,
+	release.StatusPendingRollback: waitRetry,
 }
-
-var (
-	statusRetryInterval = time.Second * 1
-	statusRetryTimeout  = time.Second * 5
-)
 
 const (
 	defaultDeploymentTimeout = 10 * time.Minute
@@ -147,7 +144,7 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 		namespace: c.namespace,
 		cli:       c.c,
 	}
-	shouldUpdate, err := c.waitForActionableStatus(c.statusFunc, appName, helmStatusActionMapUpdate)
+	shouldUpdate, err := c.isHelmChartStatusActionable(c.statusFunc, appName, helmStatusActionMapUpdate)
 	if err != nil || !shouldUpdate {
 		return nil, err
 	}
@@ -156,7 +153,7 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 
 // DeleteChart uninstalls the app's helm release. It doesn't return an error if the release is not found.
 func (c HelmClient) DeleteChart(appName string) error {
-	shouldDelete, err := c.waitForActionableStatus(c.statusFunc, appName, helmStatusActionMapDelete)
+	shouldDelete, err := c.isHelmChartStatusActionable(c.statusFunc, appName, helmStatusActionMapDelete)
 	if err != nil || !shouldDelete {
 		return err
 	}
@@ -168,46 +165,34 @@ func (c HelmClient) DeleteChart(appName string) error {
 	return err
 }
 
-// getHelmStatus returns the Release, Status, and error for an app
-func getHelmStatus(cfg *action.Configuration, appName string) (*release.Release, release.Status, error) {
+// getHelmStatus returns the Status, and error for an app
+func getHelmStatus(cfg *action.Configuration, appName string) (release.Status, error) {
 	statusClient := action.NewStatus(cfg)
 	status, err := statusClient.Run(appName)
 	if err != nil {
 		if errors.Is(err, driver.ErrReleaseNotFound) || status.Info == nil {
-			return nil, "not-found", nil
+			return notFound, nil
 		}
-		return nil, "", err
+		return "", err
 	}
-	return status, status.Info.Status, nil
+	return status.Info.Status, nil
 }
 
-// waitForActionableStatus returns true if the helm status is such that it is ok to proceed with update/delete. If the statusFunc returns
-// WaitRetry, the func blocks while retrying.
-func (c HelmClient) waitForActionableStatus(statusFunc statusFunc, appName string, statusActionMap map[release.Status]int) (bool, error) {
-	ticker := time.NewTicker(statusRetryInterval)
-	done := time.After(statusRetryTimeout)
-	var helmRelease *release.Release
-	var status release.Status
-	var err error
-	for {
-		select {
-		case <-done:
-			c.log.Info(fmt.Sprintf("Setting status (%s) of %s release that has timeouted to: deployed", appName, status))
-			helmRelease.SetStatus(release.StatusDeployed, "set manually after timeout waiting for actionable status")
-			return true, nil
-		case <-ticker.C:
-			helmRelease, status, err = statusFunc(c.cfg, appName)
-			if err != nil {
-				return false, err
-			}
-			action := statusActionMap[status] // default wait-retry
-			if action == NoAction {
-				c.log.Info(fmt.Sprintf("helm chart for app %s release already in state %s - no action required", appName, status))
-				return false, nil
-			}
-			if action == TakeAction {
-				return true, nil
-			}
-		}
+// isHelmChartStatusActionable returns true if the statusFunc returns an actionable status according to the statusActionMap, false if the status is
+// non-actionable (e.g. "not-found" status for a "delete" action), and an error if the status requires a wait-retry. The retry is expected to be
+// executed by the calling reconciler's inherent looping.
+func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, appName string, statusActionMap map[release.Status]int) (bool, error) {
+	status, err := statusFunc(c.cfg, appName)
+	if err != nil {
+		return false, err
+	}
+	switch statusActionMap[status] {
+	case noAction:
+		c.log.Info(fmt.Sprintf("helm chart for app %s release already in state %s - no action required", appName, status))
+		return false, nil
+	case takeAction:
+		return true, nil
+	default:
+		return false, fmt.Errorf("helm chart for app %s in non-actionable status %s", appName, status)
 	}
 }

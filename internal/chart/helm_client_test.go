@@ -2,93 +2,70 @@ package chart
 
 import (
 	"testing"
-	"time"
-
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func TestWaitForActionableStatus(t *testing.T) {
+func TestIsHelmChartStatusActionable(t *testing.T) {
 	tests := []struct {
-		description             string
-		statusFuncMap           map[int]release.Status // sequence of responses returned by mockStatusFunc
-		statusMap               map[release.Status]int // test update or delete
-		expected                bool
-		expectedStatusFuncCalls int
+		description   string
+		status        release.Status
+		statusMap     map[release.Status]int // helmStatusActionMapUpdate or helmStatusActionMapDelete
+		expected      bool
+		expectedError string
 	}{
 		{
-			description:             "delete - deployed",
-			statusFuncMap:           map[int]release.Status{0: release.StatusDeployed},
-			statusMap:               helmStatusActionMapDelete,
-			expected:                true,
-			expectedStatusFuncCalls: 1,
+			description: "update - deployed",
+			status:      release.StatusDeployed,
+			statusMap:   helmStatusActionMapUpdate,
+			expected:    true,
 		},
 		{
-			description:             "delete - eventual success",
-			statusFuncMap:           map[int]release.Status{0: release.StatusUnknown, 1: release.StatusDeployed},
-			statusMap:               helmStatusActionMapDelete,
-			expected:                true,
-			expectedStatusFuncCalls: 2,
+			description: "update - not found",
+			status:      notFound,
+			statusMap:   helmStatusActionMapUpdate,
+			expected:    true,
 		},
 		{
-			description:             "delete - not found",
-			statusFuncMap:           map[int]release.Status{0: "not-found"},
-			statusMap:               helmStatusActionMapDelete,
-			expected:                false,
-			expectedStatusFuncCalls: 1,
+			description:   "update - unknown",
+			status:        release.StatusUnknown,
+			statusMap:     helmStatusActionMapUpdate,
+			expected:      false,
+			expectedError: "helm chart for app testapp in non-actionable status unknown",
 		},
 		{
-			description:             "delete - superseded",
-			statusFuncMap:           map[int]release.Status{0: release.StatusSuperseded},
-			statusMap:               helmStatusActionMapDelete,
-			expected:                false,
-			expectedStatusFuncCalls: 1,
+			description: "update - superseded",
+			status:      release.StatusSuperseded,
+			statusMap:   helmStatusActionMapUpdate,
+			expected:    false,
 		},
 		{
-			description:             "delete timeout",
-			statusFuncMap:           map[int]release.Status{0: release.StatusPendingInstall, 1: release.StatusPendingInstall, 2: release.StatusPendingInstall, 3: release.StatusPendingInstall, 4: release.StatusPendingInstall},
-			statusMap:               helmStatusActionMapDelete,
-			expected:                true,
-			expectedStatusFuncCalls: 5,
+			description: "delete - deployed",
+			status:      release.StatusDeployed,
+			statusMap:   helmStatusActionMapDelete,
+			expected:    true,
 		},
 		{
-			description:             "update - deployed",
-			statusFuncMap:           map[int]release.Status{0: release.StatusDeployed},
-			statusMap:               helmStatusActionMapUpdate,
-			expected:                true,
-			expectedStatusFuncCalls: 1,
+			description: "delete - not found",
+			status:      notFound,
+			statusMap:   helmStatusActionMapDelete,
+			expected:    false,
 		},
 		{
-			description:             "update - eventual success",
-			statusFuncMap:           map[int]release.Status{0: release.StatusUnknown, 1: release.StatusDeployed},
-			statusMap:               helmStatusActionMapUpdate,
-			expected:                true,
-			expectedStatusFuncCalls: 2,
+			description:   "delete - unknown",
+			status:        release.StatusUnknown,
+			statusMap:     helmStatusActionMapDelete,
+			expected:      false,
+			expectedError: "helm chart for app testapp in non-actionable status unknown",
 		},
 		{
-			description:             "update - not found",
-			statusFuncMap:           map[int]release.Status{0: "not-found"},
-			statusMap:               helmStatusActionMapUpdate,
-			expected:                true,
-			expectedStatusFuncCalls: 1,
-		},
-		{
-			description:             "update - superseded",
-			statusFuncMap:           map[int]release.Status{0: release.StatusSuperseded},
-			statusMap:               helmStatusActionMapUpdate,
-			expected:                false,
-			expectedStatusFuncCalls: 1,
-		},
-		{
-			description:             "update timeout",
-			statusFuncMap:           map[int]release.Status{0: release.StatusPendingInstall, 1: release.StatusPendingInstall, 2: release.StatusPendingInstall, 3: release.StatusPendingInstall, 4: release.StatusPendingInstall},
-			statusMap:               helmStatusActionMapUpdate,
-			expected:                true,
-			expectedStatusFuncCalls: 5,
+			description: "delete - superseded",
+			status:      release.StatusSuperseded,
+			statusMap:   helmStatusActionMapDelete,
+			expected:    false,
 		},
 	}
 	for _, tc := range tests {
@@ -96,22 +73,18 @@ func TestWaitForActionableStatus(t *testing.T) {
 			c := &HelmClient{
 				log: log.NullLogger{},
 			}
-			// speed up retry, timeout
-			statusRetryInterval = time.Millisecond * 100
-			statusRetryTimeout = time.Millisecond * 500
-			// mockStatusFunc and counter to track times called
-			counter := 0
-			mockStatusFunc := func(cfg *action.Configuration, appName string) (*release.Release, release.Status, error) {
-				status := tc.statusFuncMap[counter]
-				counter += 1
-				mockRelease := &release.Release{Chart: &chart.Chart{}, Info: &release.Info{}}
-				return mockRelease, status, nil
+			mockStatusFunc := func(cfg *action.Configuration, appName string) (release.Status, error) {
+				status := tc.status
+				return status, nil
 			}
 
-			ok, err := c.waitForActionableStatus(mockStatusFunc, "testapp", tc.statusMap)
-			require.Nil(t, err)
+			ok, err := c.isHelmChartStatusActionable(mockStatusFunc, "testapp", tc.statusMap)
+			if tc.expectedError != "" {
+				require.EqualError(t, err, tc.expectedError)
+			} else {
+				require.Nil(t, err)
+			}
 			require.Equal(t, tc.expected, ok)
-			require.Equal(t, tc.expectedStatusFuncCalls, counter)
 		})
 	}
 }
