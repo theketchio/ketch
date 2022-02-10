@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type statusFunc func(cfg *action.Configuration, appName string) (release.Status, error)
+type statusFunc func(cfg *action.Configuration, appName string) (*release.Release, release.Status, error)
 
 const (
 	waitRetry = iota
@@ -166,23 +166,23 @@ func (c HelmClient) DeleteChart(appName string) error {
 }
 
 // getHelmStatus returns the Status, and error for an app
-func getHelmStatus(cfg *action.Configuration, appName string) (release.Status, error) {
+func getHelmStatus(cfg *action.Configuration, appName string) (*release.Release, release.Status, error) {
 	statusClient := action.NewStatus(cfg)
 	status, err := statusClient.Run(appName)
 	if err != nil {
 		if errors.Is(err, driver.ErrReleaseNotFound) || status.Info == nil {
-			return notFound, nil
+			return nil, notFound, nil
 		}
-		return "", err
+		return nil, "", err
 	}
-	return status.Info.Status, nil
+	return status, status.Info.Status, nil
 }
 
 // isHelmChartStatusActionable returns true if the statusFunc returns an actionable status according to the statusActionMap, false if the status is
 // non-actionable (e.g. "not-found" status for a "delete" action), and an error if the status requires a wait-retry. The retry is expected to be
 // executed by the calling reconciler's inherent looping.
 func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, appName string, statusActionMap map[release.Status]int) (bool, error) {
-	status, err := statusFunc(c.cfg, appName)
+	currentRelease, status, err := statusFunc(c.cfg, appName)
 	if err != nil {
 		return false, err
 	}
@@ -193,6 +193,16 @@ func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, appName s
 	case takeAction:
 		return true, nil
 	default:
+		timeoutLimit := time.Now().Add(-defaultDeploymentTimeout)
+		if currentRelease.Info.FirstDeployed.Before(helmTime.Time{Time: timeoutLimit}) {
+			newStatus := release.StatusDeployed
+			c.log.Info(fmt.Sprintf("Setting status of release that has timeouted to: %s", newStatus))
+			currentRelease.SetStatus(newStatus, "manually canceled")
+			if err := c.cfg.Releases.Update(currentRelease); err != nil {
+				return false, err
+			}
+			return true, nil
+		}
 		return false, fmt.Errorf("helm chart for app %s in non-actionable status %s", appName, status)
 	}
 }

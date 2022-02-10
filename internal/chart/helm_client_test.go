@@ -2,10 +2,12 @@ package chart
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/release"
+	helmTime "helm.sh/helm/v3/pkg/time"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -73,9 +75,10 @@ func TestIsHelmChartStatusActionable(t *testing.T) {
 			c := &HelmClient{
 				log: log.NullLogger{},
 			}
-			mockStatusFunc := func(cfg *action.Configuration, appName string) (release.Status, error) {
+			mockStatusFunc := func(cfg *action.Configuration, appName string) (*release.Release, release.Status, error) {
 				status := tc.status
-				return status, nil
+				currentRelease := &release.Release{Info: &release.Info{FirstDeployed: helmTime.Time{Time: time.Now()}}}
+				return currentRelease, status, nil
 			}
 
 			ok, err := c.isHelmChartStatusActionable(mockStatusFunc, "testapp", tc.statusMap)
