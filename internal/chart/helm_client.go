@@ -114,28 +114,6 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	updateClient := action.NewUpgrade(c.cfg)
 	updateClient.Namespace = c.namespace
 
-	// we check releases and if lastRelease release was a while back, we set its status to Failure
-	// next helm update won't be blocked in that case
-	// this is an edge case we should cover when ketch controller pod gets restarted in middle of deploying and app
-	// in that case if helm secret (release) remains it would block next deployment forever
-	lastRelease, err := c.cfg.Releases.Last(appName)
-	if err != nil && err != driver.ErrReleaseNotFound {
-		return nil, err
-	}
-	if lastRelease != nil {
-		if lastRelease.Info.Status.IsPending() {
-			c.log.Info(fmt.Sprintf("Found pending helm release: %d", lastRelease.Version))
-			timeoutLimit := time.Now().Add(-defaultDeploymentTimeout)
-			if lastRelease.Info.FirstDeployed.Before(helmTime.Time{Time: timeoutLimit}) {
-				newStatus := release.StatusDeployed
-				c.log.Info(fmt.Sprintf("Setting status of release that has timeouted to: %s", newStatus))
-				lastRelease.SetStatus(newStatus, "manually canceled")
-				if err := c.cfg.Releases.Update(lastRelease); err != nil {
-					return nil, err
-				}
-			}
-		}
-	}
 	// MaxHistory specifies the maximum number of historical releases that will be retained, including the most recent release.
 	// Values of 0 or less are ignored (meaning no limits are imposed).
 	// Let's set it to minimal to disable "helm rollback".
@@ -165,7 +143,7 @@ func (c HelmClient) DeleteChart(appName string) error {
 	return err
 }
 
-// getHelmStatus returns the Status, and error for an app
+// getHelmStatus returns the latest Release, Status, and error for an app
 func getHelmStatus(cfg *action.Configuration, appName string) (*release.Release, release.Status, error) {
 	statusClient := action.NewStatus(cfg)
 	status, err := statusClient.Run(appName)
@@ -182,7 +160,7 @@ func getHelmStatus(cfg *action.Configuration, appName string) (*release.Release,
 // non-actionable (e.g. "not-found" status for a "delete" action), and an error if the status requires a wait-retry. The retry is expected to be
 // executed by the calling reconciler's inherent looping.
 func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, appName string, statusActionMap map[release.Status]int) (bool, error) {
-	currentRelease, status, err := statusFunc(c.cfg, appName)
+	lastRelease, status, err := statusFunc(c.cfg, appName)
 	if err != nil {
 		return false, err
 	}
@@ -193,12 +171,13 @@ func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, appName s
 	case takeAction:
 		return true, nil
 	default:
+		c.log.Info(fmt.Sprintf("Found pending helm release: %d", lastRelease.Version))
 		timeoutLimit := time.Now().Add(-defaultDeploymentTimeout)
-		if currentRelease.Info.FirstDeployed.Before(helmTime.Time{Time: timeoutLimit}) {
+		if lastRelease.Info.FirstDeployed.Before(helmTime.Time{Time: timeoutLimit}) {
 			newStatus := release.StatusDeployed
 			c.log.Info(fmt.Sprintf("Setting status of release that has timeouted to: %s", newStatus))
-			currentRelease.SetStatus(newStatus, "manually canceled")
-			if err := c.cfg.Releases.Update(currentRelease); err != nil {
+			lastRelease.SetStatus(newStatus, "manually canceled")
+			if err := c.cfg.Releases.Update(lastRelease); err != nil {
 				return false, err
 			}
 			return true, nil
