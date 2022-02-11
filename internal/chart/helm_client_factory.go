@@ -51,7 +51,7 @@ func (f *HelmClientFactory) NewHelmClient(namespace string, c client.Client, log
 		f.configurations[namespace] = cfg
 	}
 	f.configurationsLastUsedTimes[namespace] = time.Now()
-	return &HelmClient{cfg: cfg, namespace: namespace, c: c, log: log.WithValues("helm-client", namespace)}, nil
+	return &HelmClient{cfg: cfg, namespace: namespace, c: c, log: log.WithValues("helm-client", namespace), statusFunc: getHelmStatus}, nil
 }
 
 func (f *HelmClientFactory) cleanup() {
