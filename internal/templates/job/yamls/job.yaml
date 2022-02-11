@@ -9,7 +9,7 @@ spec:
   {{- if $.Values.job.parallelism }}
   parallelism: {{ $.Values.job.parallelism }}
   {{- end }}
-  {{- if $.Values.job.parallelism }}
+  {{- if $.Values.job.completions }}
   completions: {{ $.Values.job.completions }}
   {{- end }}
   {{- if $.Values.job.backoffLimit }}
