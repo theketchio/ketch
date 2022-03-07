@@ -57,6 +57,8 @@ type app struct {
 	// ServiceAccountName specifies a service account name to be used for this application.
 	// SA should exist.
 	ServiceAccountName string `json:"serviceAccountName"`
+	// SecurityContext specifies security settings for a pod/app, which get applied to all containers.
+	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
 }
 
 type deployment struct {
@@ -133,6 +135,10 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			ServiceAccountName:  application.Spec.ServiceAccountName,
 		},
 		IngressController: &framework.Spec.IngressController,
+	}
+
+	if application.Spec.SecurityContext != nil {
+		values.App.SecurityContext = application.Spec.SecurityContext
 	}
 
 	for _, deploymentSpec := range application.Spec.Deployments {

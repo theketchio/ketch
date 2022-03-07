@@ -226,6 +226,16 @@ func TestNewApplicationChart(t *testing.T) {
 		}
 		return &out
 	}
+	setPodSecurityContext := func(app *ketchv1.App) *ketchv1.App {
+		out := *app
+		fsGroup := int64(2000)
+		runAsUser := int64(3000)
+		out.Spec.SecurityContext = &v1.PodSecurityContext{
+			FSGroup:   &fsGroup,
+			RunAsUser: &runAsUser,
+		}
+		return &out
+	}
 
 	tests := []struct {
 		name        string
@@ -266,6 +276,16 @@ func TestNewApplicationChart(t *testing.T) {
 			application:       dashboard,
 			framework:         frameworkWithClusterIssuer,
 			wantYamlsFilename: "dashboard-istio-cluster-issuer",
+		},
+		{
+			name: "istio templates with cluster issuer and pod security context",
+			opts: []Option{
+				WithTemplates(templates.IstioDefaultTemplates),
+				WithExposedPorts(exportedPorts),
+			},
+			application:       setPodSecurityContext(dashboard),
+			framework:         frameworkWithClusterIssuer,
+			wantYamlsFilename: "dashboard-istio-cluster-issuer-pod-security-context",
 		},
 		{
 			name: "istio templates without cluster issuer",

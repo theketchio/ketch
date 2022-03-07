@@ -51,6 +51,10 @@ spec:
       {{- if $.Values.app.serviceAccountName }}
       serviceAccountName: {{ $.Values.app.serviceAccountName }}
       {{- end }}
+      {{- if $.Values.app.securityContext }}
+      securityContext:
+{{ $.Values.app.securityContext | toYaml | indent 8 }}
+      {{- end }}
       containers:
         - name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
           command: {{ $process.cmd | toJson }}
