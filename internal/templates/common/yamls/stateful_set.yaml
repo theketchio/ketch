@@ -1,8 +1,8 @@
-{{ if eq $.Values.app.type "Deployment" }}
+{{ if eq $.Values.app.type "StatefulSet" }}
 {{ range $_, $deployment := .Values.app.deployments }}
   {{ range $_, $process := $deployment.processes }}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
@@ -21,7 +21,6 @@ metadata:
   {{- end }}
   name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
 spec:
-  replicas: {{ $process.units }}
   selector:
     matchLabels:
       app: {{ default $.Values.app.name $.Values.app.id | quote }}
@@ -30,6 +29,7 @@ spec:
       {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
       {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
       {{ $.Values.app.group }}/is-isolated-run: "false"
+  serviceName: {{ $.Values.app.name | quote }}
   template:
     metadata:
       labels:
@@ -49,6 +49,19 @@ spec:
         {{- end }}
       {{- end }}
     {{- template "app.podTemplate" (dict "root" $.Values "deployment" $deployment "process" $process) }}
+  {{- if $.Values.app.volumeClaimTemplates }}
+  volumeClaimTemplates:
+    {{- range $_, $template := $.Values.app.volumeClaimTemplates }}
+  - metadata:
+      name: {{ $template.name }}
+    spec:
+      accessModes: {{ $template.accessModes }}
+      storageClassName: {{ $template.storageClassName | quote }}
+      resources:
+        requests:
+          storage: {{ $template.storage }}
+    {{- end }}
+  {{- end }}
 ---
 {{ end }}
 {{ end }}

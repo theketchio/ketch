@@ -236,6 +236,31 @@ func TestNewApplicationChart(t *testing.T) {
 		}
 		return &out
 	}
+	setVolumeClaimTemplates := func(app *ketchv1.App) *ketchv1.App {
+		out := *app
+		storageClass := "standard"
+		out.Spec.VolumeClaimTemplates = []ketchv1.PersistentVolumeClaim{
+			{
+				Name:             "v1-shipa",
+				AccessModes:      []v1.PersistentVolumeAccessMode{"ReadWriteMany"},
+				StorageClassName: &storageClass,
+				Storage:          "1Gi",
+			},
+			{
+				Name:             "v2-shipa",
+				AccessModes:      []v1.PersistentVolumeAccessMode{"ReadWriteOnce"},
+				StorageClassName: &storageClass,
+				Storage:          "1Gi",
+			},
+		}
+		return &out
+	}
+	setStatefulSet := func(app *ketchv1.App) *ketchv1.App {
+		out := *app
+		appType := "StatefulSet"
+		out.Spec.Type = &appType
+		return &out
+	}
 
 	tests := []struct {
 		name        string
@@ -286,6 +311,16 @@ func TestNewApplicationChart(t *testing.T) {
 			application:       setPodSecurityContext(dashboard),
 			framework:         frameworkWithClusterIssuer,
 			wantYamlsFilename: "dashboard-istio-cluster-issuer-pod-security-context",
+		},
+		{
+			name: "istio templates with cluster issuer and volume claim templates",
+			opts: []Option{
+				WithTemplates(templates.IstioDefaultTemplates),
+				WithExposedPorts(exportedPorts),
+			},
+			application:       setStatefulSet(setVolumeClaimTemplates(dashboard)),
+			framework:         frameworkWithClusterIssuer,
+			wantYamlsFilename: "dashboard-istio-cluster-issuer-volume-claim-templates",
 		},
 		{
 			name: "istio templates without cluster issuer",

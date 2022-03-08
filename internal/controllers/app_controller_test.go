@@ -294,7 +294,7 @@ func TestWatchDeployEvents(t *testing.T) {
 		cleanupIsCalled = true
 	}
 
-	err := r.watchFunc(ctx, cleanupFn, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
+	err := r.watchDeployFunc(ctx, cleanupFn, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
 	require.Nil(t, err)
 
 	time.Sleep(time.Millisecond * 100)
@@ -391,10 +391,193 @@ func TestCancelWatchDeployEvents(t *testing.T) {
 		}
 	}()
 
-	err := r.watchFunc(ctx, func() {}, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
+	err := r.watchDeployFunc(ctx, func() {}, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
 	require.EqualError(t, err, "context canceled")
 
-	// assert that watchFunc() ended early via context cancelation and that not all events were processed.
+	// assert that watchDeployFunc() ended early via context cancelation and that not all events were processed.
+	allPossibleEvents := []string{
+		"Normal AppReconcileUpdate 1 of 1 new units created",
+		"Normal AppReconcileUpdate 0 of 1 new units ready",
+		"Normal AppReconcileUpdate 1 of 1 new units ready",
+		"Normal AppReconcileComplete app test 1 reconcile success",
+	}
+	require.True(t, len(events) < len(allPossibleEvents))
+}
+
+func TestWatchStatefulSetEvents(t *testing.T) {
+	process := &ketchv1.ProcessSpec{
+		Name: "test",
+	}
+
+	app := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: ketchv1.AppSpec{
+			Deployments: []ketchv1.AppDeploymentSpec{
+				{
+					Image:     "gcr.io/test",
+					Version:   1,
+					Processes: []ketchv1.ProcessSpec{*process},
+				},
+			},
+			Framework: "test",
+		},
+	}
+	namespace := "ketch-test"
+	replicas := int32(1)
+
+	// statefulSetStart is the StatefulSet in it's initial state
+	statefulSetStart := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "ketch-test",
+		},
+		Status: appsv1.StatefulSetStatus{
+			UpdatedReplicas: 1,
+			ReadyReplicas:   0,
+			Replicas:        1,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: &replicas,
+		},
+	}
+
+	// statefulSetFetch is the StatefulSet as returned via Get() in the function's loop
+	statefulSetFetch := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "ketch-test",
+		},
+		Status: appsv1.StatefulSetStatus{
+			UpdatedReplicas: 1,
+			Replicas:        1,
+			ReadyReplicas:   1,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: &replicas,
+		},
+	}
+
+	recorder := record.NewFakeRecorder(1024)
+	watcher := watch.NewFake()
+	cli := clientFake.NewSimpleClientset(statefulSetFetch)
+	timeout := time.After(DefaultPodRunningTimeout)
+	r := AppReconciler{}
+	ctx := context.Background()
+
+	var events []string
+	go func() {
+		for ev := range recorder.Events {
+			events = append(events, ev)
+		}
+	}()
+
+	cleanupIsCalled := false
+	cleanupFn := func() {
+		cleanupIsCalled = true
+	}
+
+	err := r.watchStatefulSetFunc(ctx, cleanupFn, app, namespace, statefulSetStart, process.Name, recorder, watcher, cli, timeout, func() {})
+	require.Nil(t, err)
+
+	time.Sleep(time.Millisecond * 100)
+
+	expectedEvents := []string{
+		"Normal AppReconcileUpdate 1 of 1 new units created",
+		"Normal AppReconcileUpdate 0 of 1 new units ready",
+		"Normal AppReconcileUpdate 1 of 1 new units ready",
+		"Normal AppReconcileComplete app test 1 reconcile success",
+	}
+
+EXPECTED:
+	for _, expected := range expectedEvents {
+		for _, ev := range events {
+			if ev == expected {
+				continue EXPECTED
+			}
+		}
+		t.Errorf("expected event %s, but it was not found", expected)
+	}
+
+	require.True(t, cleanupIsCalled)
+}
+
+func TestCancelWatchStatefulSetEvents(t *testing.T) {
+	process := &ketchv1.ProcessSpec{
+		Name: "test",
+	}
+
+	app := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: ketchv1.AppSpec{
+			Deployments: []ketchv1.AppDeploymentSpec{
+				{
+					Image:     "gcr.io/test",
+					Version:   1,
+					Processes: []ketchv1.ProcessSpec{*process},
+				},
+			},
+			Framework: "test",
+		},
+	}
+	namespace := "ketch-test"
+	replicas := int32(1)
+
+	// depStart is the Deployment in it's initial state
+	statefulSetStart := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "ketch-test",
+		},
+		Status: appsv1.StatefulSetStatus{
+			UpdatedReplicas: 1,
+			ReadyReplicas:   0,
+			Replicas:        1,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: &replicas,
+		},
+	}
+
+	// statefulSetFetch is the StatefulSet as returned via Get() in the function's loop
+	statefulSetFetch := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "ketch-test",
+		},
+		Status: appsv1.StatefulSetStatus{
+			UpdatedReplicas: 1,
+			Replicas:        1,
+			ReadyReplicas:   1,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: &replicas,
+		},
+	}
+
+	recorder := record.NewFakeRecorder(1024)
+	watcher := watch.NewFake()
+	cli := clientFake.NewSimpleClientset(statefulSetFetch)
+	timeout := time.After(DefaultPodRunningTimeout)
+	r := AppReconciler{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var events []string
+	go func() {
+		for ev := range recorder.Events {
+			cancel() // cancel context after first event received
+			events = append(events, ev)
+		}
+	}()
+
+	err := r.watchStatefulSetFunc(ctx, func() {}, app, namespace, statefulSetStart, process.Name, recorder, watcher, cli, timeout, func() {})
+	require.EqualError(t, err, "context canceled")
+
+	// assert that watchStatefulSetFunc() ended early via context cancelation and that not all events were processed.
 	allPossibleEvents := []string{
 		"Normal AppReconcileUpdate 1 of 1 new units created",
 		"Normal AppReconcileUpdate 0 of 1 new units ready",
@@ -616,7 +799,7 @@ func TestIsDeploymentEvent(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run("", func(t *testing.T) {
-			res := isDeploymentEvent(tc.msg, dep)
+			res := isDeploymentEvent(tc.msg, dep.Name)
 			require.Equal(t, tc.expected, res)
 		})
 	}

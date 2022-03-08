@@ -236,6 +236,19 @@ type AppSpec struct {
 
 	// SecurityContext specifies security settings for a pod/app, which get applied to all containers.
 	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
+
+	// VolumeClaimTemplates is a list of an app's volumeClaimTemplates
+	VolumeClaimTemplates []PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
+
+	// Type specifies whether an app should be a deployment of a statefulset
+	Type *string `json:"type,omitempty"`
+}
+
+type PersistentVolumeClaim struct {
+	Name             string                          `json:"name"`
+	AccessModes      []v1.PersistentVolumeAccessMode `json:"accessModes"`
+	StorageClassName *string                         `json:"storageClassName,omitempty"`
+	Storage          string                          `json:"storage"`
 }
 
 // MetadataItem represent a request to add label/annotations to processes
