@@ -240,7 +240,7 @@ type AppSpec struct {
 	// VolumeClaimTemplates is a list of an app's volumeClaimTemplates
 	VolumeClaimTemplates []PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
 
-	// Type specifies whether an app should be a deployment of a statefulset
+	// Type specifies whether an app should be a deployment or a statefulset
 	Type *string `json:"type,omitempty"`
 }
 
