@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 
 	v1 "k8s.io/api/core/v1"
@@ -153,11 +154,13 @@ const (
 
 // AppStatus represents information about the status of an application.
 type AppStatus struct {
-
 	// Conditions of App resource.
-	Conditions []Condition `json:"conditions,omitempty"`
-
-	Framework *v1.ObjectReference `json:"framework,omitempty"`
+	Conditions []Condition         `json:"conditions,omitempty"`
+	Framework  *v1.ObjectReference `json:"framework,omitempty"`
+	// ExtensionsStatuses can be used by third-parties to keep additional information.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	ExtensionsStatuses []runtime.RawExtension `json:"extensionsStatuses,omitempty"`
 }
 
 // CanarySpec represents configuration for a canary deployment.
@@ -236,6 +239,11 @@ type AppSpec struct {
 
 	// SecurityContext specifies security settings for a pod/app, which get applied to all containers.
 	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
+
+	// Extensions can be used by third-parties to keep additional information.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Extensions []runtime.RawExtension `json:"extensions,omitempty"`
 }
 
 // MetadataItem represent a request to add label/annotations to processes

@@ -51,6 +51,13 @@ spec:
             properties:
               appQuotaLimit:
                 type: integer
+              extensions:
+                description: Extensions can be used by third-parties to keep additional
+                  information.
+                items:
+                  type: object
+                type: array
+                x-kubernetes-preserve-unknown-fields: true
               ingressController:
                 description: IngressControllerSpec contains configuration for an ingress
                   controller.
@@ -91,6 +98,13 @@ spec:
                 items:
                   type: string
                 type: array
+              extensionsStatuses:
+                description: ExtensionsStatuses can be used by third-parties to keep
+                  additional information.
+                items:
+                  type: object
+                type: array
+                x-kubernetes-preserve-unknown-fields: true
               jobs:
                 items:
                   type: string
