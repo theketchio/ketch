@@ -2537,8 +2537,32 @@ spec:
                 description: ServiceAccountName specifies a service account name to
                   be used for this application.
                 type: string
+              type:
+                description: Type specifies whether an app should be a deployment
+                  or a statefulset
+                type: string
               version:
                 type: string
+              volumeClaimTemplates:
+                description: VolumeClaimTemplates is a list of an app's volumeClaimTemplates
+                items:
+                  properties:
+                    accessModes:
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      type: string
+                    storage:
+                      type: string
+                    storageClassName:
+                      type: string
+                  required:
+                  - accessModes
+                  - name
+                  - storage
+                  type: object
+                type: array
             required:
             - deployments
             - framework
