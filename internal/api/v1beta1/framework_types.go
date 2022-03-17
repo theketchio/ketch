@@ -19,6 +19,7 @@ package v1beta1
 import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // +kubebuilder:object:root=true
@@ -58,6 +59,11 @@ type FrameworkSpec struct {
 	AppQuotaLimit *int `json:"appQuotaLimit"`
 
 	IngressController IngressControllerSpec `json:"ingressController,omitempty"`
+
+	// Extensions can be used by third-parties to keep additional information.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Extensions []runtime.RawExtension `json:"extensions,omitempty"`
 }
 
 type FrameworkPhase string
@@ -96,6 +102,10 @@ type FrameworkStatus struct {
 	Namespace *v1.ObjectReference `json:"namespace,omitempty"`
 	Apps      []string            `json:"apps,omitempty"`
 	Jobs      []string            `json:"jobs,omitempty"`
+	// ExtensionsStatuses can be used by third-parties to keep additional information.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	ExtensionsStatuses []runtime.RawExtension `json:"extensionsStatuses,omitempty"`
 }
 
 func (p *Framework) HasApp(name string) bool {

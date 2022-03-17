@@ -2311,6 +2311,13 @@ spec:
                   - value
                   type: object
                 type: array
+              extensions:
+                description: Extensions can be used by third-parties to keep additional
+                  information.
+                items:
+                  type: object
+                type: array
+                x-kubernetes-preserve-unknown-fields: true
               framework:
                 description: Framework is a name of a Framework used to run the application.
                 minLength: 1
@@ -2573,6 +2580,13 @@ spec:
                   - type
                   type: object
                 type: array
+              extensionsStatuses:
+                description: ExtensionsStatuses can be used by third-parties to keep
+                  additional information.
+                items:
+                  type: object
+                type: array
+                x-kubernetes-preserve-unknown-fields: true
               framework:
                 description: 'ObjectReference contains enough information to let you
                   inspect or modify the referred object. --- New uses of this type
