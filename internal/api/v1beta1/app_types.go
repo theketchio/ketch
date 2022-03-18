@@ -244,6 +244,18 @@ type AppSpec struct {
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Extensions []runtime.RawExtension `json:"extensions,omitempty"`
+	// VolumeClaimTemplates is a list of an app's volumeClaimTemplates
+	VolumeClaimTemplates []PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
+
+	// Type specifies whether an app should be a deployment or a statefulset
+	Type *string `json:"type,omitempty"`
+}
+
+type PersistentVolumeClaim struct {
+	Name             string                          `json:"name"`
+	AccessModes      []v1.PersistentVolumeAccessMode `json:"accessModes"`
+	StorageClassName *string                         `json:"storageClassName,omitempty"`
+	Storage          string                          `json:"storage"`
 }
 
 // MetadataItem represent a request to add label/annotations to processes

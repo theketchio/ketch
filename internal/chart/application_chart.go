@@ -59,6 +59,10 @@ type app struct {
 	ServiceAccountName string `json:"serviceAccountName"`
 	// SecurityContext specifies security settings for a pod/app, which get applied to all containers.
 	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
+	// VolumeClaimTemplates is a list of an app's volumeClaimTemplates
+	VolumeClaimTemplates []ketchv1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
+	// Type specifies whether the app should be a deployment or a statefulset
+	Type string `json:"type"`
 }
 
 type deployment struct {
@@ -123,6 +127,13 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 		return nil, err
 	}
 
+	appType := "Deployment"
+	if application.Spec.Type != nil {
+		if strings.ToLower(*application.Spec.Type) == "statefulset" {
+			appType = "StatefulSet"
+		}
+	}
+
 	values := &values{
 		App: &app{
 			ID:                  application.Spec.ID,
@@ -133,12 +144,17 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			MetadataLabels:      application.Spec.Labels,
 			MetadataAnnotations: application.Spec.Annotations,
 			ServiceAccountName:  application.Spec.ServiceAccountName,
+			Type:                appType,
 		},
 		IngressController: &framework.Spec.IngressController,
 	}
 
 	if application.Spec.SecurityContext != nil {
 		values.App.SecurityContext = application.Spec.SecurityContext
+	}
+
+	if application.Spec.VolumeClaimTemplates != nil {
+		values.App.VolumeClaimTemplates = application.Spec.VolumeClaimTemplates
 	}
 
 	for _, deploymentSpec := range application.Spec.Deployments {
