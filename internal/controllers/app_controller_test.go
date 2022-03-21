@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/client-go/tools/record"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	clientFake "k8s.io/client-go/kubernetes/fake"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -217,7 +219,6 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 	require.Equal(t, []string{"app-running"}, helmMock.deleteChartCalled)
 }
 
-/*
 func TestWatchDeployEvents(t *testing.T) {
 	process := &ketchv1.ProcessSpec{
 		Name: "test",
@@ -241,20 +242,12 @@ func TestWatchDeployEvents(t *testing.T) {
 	namespace := "ketch-test"
 	replicas := int32(1)
 
-	// depStart is the Deployment in it's initial state
-	depStart := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "ketch-test",
-		},
-		Status: appsv1.DeploymentStatus{
-			UpdatedReplicas:     1,
-			UnavailableReplicas: 1,
-			Replicas:            1,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-		},
+	// wl initial state
+	wl := workload{
+		Name:            "test",
+		UpdatedReplicas: 1,
+		ReadyReplicas:   0,
+		Replicas:        1,
 	}
 
 	// depFetch is the Deployment as returned via Get() in the function's loop
@@ -293,7 +286,14 @@ func TestWatchDeployEvents(t *testing.T) {
 		cleanupIsCalled = true
 	}
 
-	err := r.watchFunc(ctx, cleanupFn, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
+	wc := workloadClient{
+		k8sClient:         cli,
+		workloadNamespace: namespace,
+		workloadType:      "Deployment",
+		workloadName:      "test",
+	}
+
+	err := r.watchFunc(ctx, cleanupFn, app, process.Name, recorder, watcher, &wc, &wl, timeout)
 	require.Nil(t, err)
 
 	time.Sleep(time.Millisecond * 100)
@@ -341,20 +341,12 @@ func TestCancelWatchDeployEvents(t *testing.T) {
 	namespace := "ketch-test"
 	replicas := int32(1)
 
-	// depStart is the Deployment in it's initial state
-	depStart := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "ketch-test",
-		},
-		Status: appsv1.DeploymentStatus{
-			UpdatedReplicas:     1,
-			UnavailableReplicas: 1,
-			Replicas:            1,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-		},
+	// wl initial state
+	wl := workload{
+		Name:            "test",
+		UpdatedReplicas: 1,
+		ReadyReplicas:   0,
+		Replicas:        1,
 	}
 
 	// depFetch is the Deployment as returned via Get() in the function's loop
@@ -390,7 +382,14 @@ func TestCancelWatchDeployEvents(t *testing.T) {
 		}
 	}()
 
-	err := r.watchFunc(ctx, func() {}, app, namespace, depStart, process.Name, recorder, watcher, cli, timeout, func() {})
+	wc := workloadClient{
+		k8sClient:         cli,
+		workloadNamespace: namespace,
+		workloadType:      "Deployment",
+		workloadName:      "test",
+	}
+
+	err := r.watchFunc(ctx, func() {}, app, process.Name, recorder, watcher, &wc, &wl, timeout)
 	require.EqualError(t, err, "context canceled")
 
 	// assert that watchFunc() ended early via context cancelation and that not all events were processed.
@@ -401,7 +400,7 @@ func TestCancelWatchDeployEvents(t *testing.T) {
 		"Normal AppReconcileComplete app test 1 reconcile success",
 	}
 	require.True(t, len(events) < len(allPossibleEvents))
-}*/
+}
 
 func Test_checkPodStatus(t *testing.T) {
 	createPod := func(group, appName, version string, status v1.PodStatus) *v1.Pod {

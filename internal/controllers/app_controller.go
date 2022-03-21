@@ -224,6 +224,72 @@ func (r appReconcileResult) isConflictError() bool {
 	}
 }
 
+type condition struct {
+	Type   string
+	Reason string
+}
+
+type workload struct {
+	Name               string
+	Replicas           int
+	UpdatedReplicas    int
+	ReadyReplicas      int
+	Generation         int
+	ObservedGeneration int
+	Conditions         []condition
+}
+
+type workloadClient struct {
+	workloadType      string
+	workloadName      string
+	workloadNamespace string
+	k8sClient         kubernetes.Interface
+}
+
+func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
+	switch cli.workloadType {
+	case "Deployment":
+		o, err := cli.k8sClient.AppsV1().Deployments(cli.workloadNamespace).Get(ctx, cli.workloadName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		w := workload{
+			Name:               o.Name,
+			UpdatedReplicas:    int(o.Status.UpdatedReplicas),
+			ReadyReplicas:      int(o.Status.ReadyReplicas),
+			Generation:         int(o.Generation),
+			ObservedGeneration: int(o.Status.ObservedGeneration),
+		}
+		if o.Spec.Replicas != nil {
+			w.Replicas = int(*o.Spec.Replicas)
+		}
+		for _, c := range o.Status.Conditions {
+			w.Conditions = append(w.Conditions, condition{Type: string(c.Type), Reason: c.Reason})
+		}
+		return &w, nil
+	case "StatefulSet":
+		o, err := cli.k8sClient.AppsV1().StatefulSets(cli.workloadNamespace).Get(ctx, cli.workloadName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		w := workload{
+			Name:               o.Name,
+			UpdatedReplicas:    int(o.Status.UpdatedReplicas),
+			ReadyReplicas:      int(o.Status.ReadyReplicas),
+			Generation:         int(o.Generation),
+			ObservedGeneration: int(o.Status.ObservedGeneration),
+		}
+		if o.Spec.Replicas != nil {
+			w.Replicas = int(*o.Spec.Replicas)
+		}
+		for _, c := range o.Status.Conditions {
+			w.Conditions = append(w.Conditions, condition{Type: string(c.Type), Reason: c.Reason})
+		}
+		return &w, nil
+	}
+	return nil, fmt.Errorf("unknown workload type")
+}
+
 func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger logr.Logger) appReconcileResult {
 
 	framework := ketchv1.Framework{}
@@ -356,29 +422,20 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 				workloadNamespace: framework.Spec.NamespaceName,
 				workloadType:      appType,
 			}
-			fmt.Printf("Beginning new code with client: %+v\n", wc)
 
-			err = r.watchDeployEvents(ctx, app, &wc, &process, r.Recorder)
+			wl, err := wc.Get(ctx)
+			if err != nil {
+				return appReconcileResult{
+					err: err,
+				}
+			}
+
+			err = r.watchDeployEvents(ctx, app, &wc, wl, &process, r.Recorder)
 			if err != nil {
 				return appReconcileResult{
 					err: fmt.Errorf("failed to get deploy events: %w", err),
 				}
 			}
-			/*var dep appsv1.Deployment
-			if err := r.Get(ctx, client.ObjectKey{
-				Namespace: framework.Spec.NamespaceName,
-				Name:      fmt.Sprintf("%s-%s-%d", app.GetName(), process.Name, latestDeployment.Version),
-			}, &dep); err != nil {
-				return appReconcileResult{
-					err: fmt.Errorf("failed to get deployment: %w", err),
-				}
-			}
-			err = r.watchDeployEvents(ctx, app, framework.Spec.NamespaceName, &dep, &process, r.Recorder)
-			if err != nil {
-				return appReconcileResult{
-					err: fmt.Errorf("failed to get deploy events: %w", err),
-				}
-			}*/
 		}
 		// We useTimeout here to set reconcile.ReququeAfter in the Reconciler
 		// in order to ensure events actually get sent. It seems the lazyRecorder we use
@@ -396,8 +453,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 
 // watchDeployEvents watches a namespace for events and, after a deployment has started updating, records events
 // with updated deployment status and/or healthcheck and timeout failures
-func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App, cli *workloadClient, process *ketchv1.ProcessSpec, recorder record.EventRecorder) error {
-	fmt.Println("In watchDeployEvents")
+func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App, cli *workloadClient, wl *workload, process *ketchv1.ProcessSpec, recorder record.EventRecorder) error {
 	opts := metav1.ListOptions{
 		FieldSelector: "involvedObject.kind=Pod",
 		Watch:         true,
@@ -407,12 +463,6 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 		return err
 	}
 
-	wl, err := cli.Get(ctx)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("cli.Get output #1: %+v\n", wl)
-
 	// wait for Deployment Generation
 	timeout := time.After(DefaultPodRunningTimeout)
 	for wl.ObservedGeneration < wl.Generation {
@@ -421,7 +471,6 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 			recorder.Eventf(app, v1.EventTypeWarning, ketchv1.AppReconcileError, "error getting deployments: %s", err.Error())
 			return err
 		}
-		fmt.Printf("cli.Get output #2: %+v\n", wl)
 		select {
 		case <-time.After(100 * time.Millisecond):
 		case <-timeout:
@@ -438,91 +487,18 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 
 	reconcileStartedEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileStarted, fmt.Sprintf("Updating units [%s]", process.Name), process.Name)
 	recorder.AnnotatedEventf(app, reconcileStartedEvent.Annotations, v1.EventTypeNormal, reconcileStartedEvent.Reason, reconcileStartedEvent.Description)
-
-	go r.watchFunc(ctx, cleanup, app, process.Name, recorder, watcher, cli, timeout)
+	go r.watchFunc(ctx, cleanup, app, process.Name, recorder, watcher, cli, wl, timeout)
 	return nil
 }
 
-type condition struct {
-	Type   string
-	Reason string
-}
-
-type workload struct {
-	Name               string
-	Replicas           int
-	UpdatedReplicas    int
-	ReadyReplicas      int
-	Generation         int
-	ObservedGeneration int
-	Conditions         []condition
-}
-
-type workloadClient struct {
-	workloadType      string
-	workloadName      string
-	workloadNamespace string
-	k8sClient         kubernetes.Interface
-}
-
-func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
-	switch cli.workloadType {
-	case "Deployment":
-		o, err := cli.k8sClient.AppsV1().Deployments(cli.workloadNamespace).Get(ctx, cli.workloadName, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-		w := workload{
-			Name:               o.Name,
-			UpdatedReplicas:    int(o.Status.UpdatedReplicas),
-			ReadyReplicas:      int(o.Status.ReadyReplicas),
-			Generation:         int(o.Generation),
-			ObservedGeneration: int(o.Status.ObservedGeneration),
-		}
-		if o.Spec.Replicas != nil {
-			w.Replicas = int(*o.Spec.Replicas)
-		}
-		for _, c := range o.Status.Conditions {
-			w.Conditions = append(w.Conditions, condition{Type: string(c.Type), Reason: c.Reason})
-		}
-		return &w, nil
-	case "StatefulSet":
-		o, err := cli.k8sClient.AppsV1().StatefulSets(cli.workloadNamespace).Get(ctx, cli.workloadName, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-		w := workload{
-			Name:               o.Name,
-			UpdatedReplicas:    int(o.Status.UpdatedReplicas),
-			ReadyReplicas:      int(o.Status.ReadyReplicas),
-			Generation:         int(o.Generation),
-			ObservedGeneration: int(o.Status.ObservedGeneration),
-		}
-		if o.Spec.Replicas != nil {
-			w.Replicas = int(*o.Spec.Replicas)
-		}
-		for _, c := range o.Status.Conditions {
-			w.Conditions = append(w.Conditions, condition{Type: string(c.Type), Reason: c.Reason})
-		}
-		return &w, nil
-	}
-	return nil, fmt.Errorf("unknown workload type")
-}
-
-func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app *ketchv1.App, processName string, recorder record.EventRecorder, watcher watch.Interface, cli *workloadClient, timeout <-chan time.Time) error {
+func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app *ketchv1.App, processName string, recorder record.EventRecorder, watcher watch.Interface, cli *workloadClient, wl *workload, timeout <-chan time.Time) error {
 	defer cleanup()
-	fmt.Println("In watch func")
 
 	var err error
 	watchCh := watcher.ResultChan()
 	defer watcher.Stop()
 
-	set, err := cli.Get(ctx)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("cli.Get output #4: %+v\n", set)
-	specReplicas := set.Replicas
+	specReplicas := wl.Replicas
 	oldUpdatedReplicas := -1
 	oldReadyUnits := -1
 	oldPendingTermination := -1
@@ -530,20 +506,20 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 	var healthcheckTimeout <-chan time.Time
 
 	for {
-		for i := range set.Conditions {
-			c := set.Conditions[i]
+		for i := range wl.Conditions {
+			c := wl.Conditions[i]
 			if c.Type == DeploymentProgressing && c.Reason == deadlineExeceededProgressCond {
-				deadlineExceededEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("deployment %q exceeded its progress deadline", set.Name), processName)
+				deadlineExceededEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("deployment %q exceeded its progress deadline", wl.Name), processName)
 				recorder.AnnotatedEventf(app, deadlineExceededEvent.Annotations, v1.EventTypeWarning, deadlineExceededEvent.Reason, deadlineExceededEvent.Description)
-				return errors.Errorf("deployment %q exceeded its progress deadline", set.Name)
+				return errors.Errorf("deployment %q exceeded its progress deadline", wl.Name)
 			}
 		}
-		if oldUpdatedReplicas != set.UpdatedReplicas {
-			unitsCreatedEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileUpdate, fmt.Sprintf("%d of %d new units created", set.UpdatedReplicas, specReplicas), processName)
+		if oldUpdatedReplicas != wl.UpdatedReplicas {
+			unitsCreatedEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileUpdate, fmt.Sprintf("%d of %d new units created", wl.UpdatedReplicas, specReplicas), processName)
 			recorder.AnnotatedEventf(app, unitsCreatedEvent.Annotations, v1.EventTypeNormal, unitsCreatedEvent.Reason, unitsCreatedEvent.Description)
 		}
 
-		if healthcheckTimeout == nil && set.UpdatedReplicas == specReplicas {
+		if healthcheckTimeout == nil && wl.UpdatedReplicas == specReplicas {
 			err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 			if err == nil {
 				healthcheckTimeout = time.After(maxWaitTimeDuration)
@@ -552,23 +528,23 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 			}
 		}
 
-		readyUnits := set.ReadyReplicas
+		readyUnits := wl.ReadyReplicas
 		if oldReadyUnits != readyUnits && readyUnits >= 0 {
 			unitsReadyEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileUpdate, fmt.Sprintf("%d of %d new units ready", readyUnits, specReplicas), processName)
 			recorder.AnnotatedEventf(app, unitsReadyEvent.Annotations, v1.EventTypeNormal, unitsReadyEvent.Reason, unitsReadyEvent.Description)
 		}
 
-		pendingTermination := set.Replicas - set.UpdatedReplicas
+		pendingTermination := wl.Replicas - wl.UpdatedReplicas
 		if oldPendingTermination != pendingTermination && pendingTermination > 0 {
 			pendingTerminationEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileUpdate, fmt.Sprintf("%d old units pending termination", pendingTermination), processName)
 			recorder.AnnotatedEventf(app, pendingTerminationEvent.Annotations, v1.EventTypeNormal, pendingTerminationEvent.Reason, pendingTerminationEvent.Description)
 		}
 
-		oldUpdatedReplicas = set.UpdatedReplicas
+		oldUpdatedReplicas = wl.UpdatedReplicas
 		oldReadyUnits = readyUnits
 		oldPendingTermination = pendingTermination
 		if readyUnits == specReplicas &&
-			set.Replicas == specReplicas {
+			wl.Replicas == specReplicas {
 			break
 		}
 
@@ -578,7 +554,7 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 			if !isOpen {
 				break
 			}
-			if isDeploymentEvent(msg, set.Name) {
+			if isDeploymentEvent(msg, wl.Name) {
 				appDeploymentEvent := appDeploymentEventFromWatchEvent(msg, app, processName)
 				recorder.AnnotatedEventf(app, appDeploymentEvent.Annotations, v1.EventTypeNormal, ketchv1.AppReconcileUpdate, appDeploymentEvent.Description)
 			}
@@ -596,7 +572,7 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 			return ctx.Err()
 		}
 
-		set, err = cli.Get(ctx)
+		wl, err = cli.Get(ctx)
 		if err != nil {
 			deploymentErrorEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("error getting deployments: %s", err.Error()), processName)
 			recorder.AnnotatedEventf(app, deploymentErrorEvent.Annotations, v1.EventTypeWarning, deploymentErrorEvent.Reason, deploymentErrorEvent.Description)
@@ -604,7 +580,7 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 		}
 	}
 
-	outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: int(set.ReadyReplicas)}
+	outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: wl.ReadyReplicas}
 	outcomeEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileComplete, outcome.String(), processName)
 	recorder.AnnotatedEventf(app, outcomeEvent.Annotations, v1.EventTypeNormal, outcomeEvent.Reason, outcomeEvent.Description)
 	return nil
