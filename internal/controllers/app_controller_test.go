@@ -220,186 +220,264 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 }
 
 func TestWatchDeployEvents(t *testing.T) {
-	process := &ketchv1.ProcessSpec{
-		Name: "test",
-	}
-
-	app := &ketchv1.App{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
+	tt := []struct {
+		name          string
+		appType       string
+		expectedError string
+	}{
+		{
+			name:    "watch deploy events - deployment",
+			appType: "Deployment",
 		},
-		Spec: ketchv1.AppSpec{
-			Deployments: []ketchv1.AppDeploymentSpec{
-				{
-					Image:     "gcr.io/test",
-					Version:   1,
-					Processes: []ketchv1.ProcessSpec{*process},
-				},
-			},
-			Framework: "test",
+		{
+			name:    "watch deploy events - statefulset",
+			appType: "StatefulSet",
 		},
-	}
-	namespace := "ketch-test"
-	replicas := int32(1)
-
-	// wl initial state
-	wl := workload{
-		Name:            "test",
-		UpdatedReplicas: 1,
-		ReadyReplicas:   0,
-		Replicas:        1,
-	}
-
-	// depFetch is the Deployment as returned via Get() in the function's loop
-	depFetch := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "ketch-test",
-		},
-		Status: appsv1.DeploymentStatus{
-			UpdatedReplicas:     1,
-			UnavailableReplicas: 0,
-			Replicas:            1,
-			ReadyReplicas:       1,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
+		{
+			name:          "unknown type",
+			appType:       "TypeThatDoesNotExist",
+			expectedError: "unknown workload type",
 		},
 	}
-
-	recorder := record.NewFakeRecorder(1024)
-	watcher := watch.NewFake()
-	cli := clientFake.NewSimpleClientset(depFetch)
-	timeout := time.After(DefaultPodRunningTimeout)
-	r := AppReconciler{}
-	ctx := context.Background()
-
-	var events []string
-	go func() {
-		for ev := range recorder.Events {
-			events = append(events, ev)
-		}
-	}()
-
-	cleanupIsCalled := false
-	cleanupFn := func() {
-		cleanupIsCalled = true
-	}
-
-	wc := workloadClient{
-		k8sClient:         cli,
-		workloadNamespace: namespace,
-		workloadType:      "Deployment",
-		workloadName:      "test",
-	}
-
-	err := r.watchFunc(ctx, cleanupFn, app, process.Name, recorder, watcher, &wc, &wl, timeout)
-	require.Nil(t, err)
-
-	time.Sleep(time.Millisecond * 100)
-
-	expectedEvents := []string{
-		"Normal AppReconcileUpdate 1 of 1 new units created",
-		"Normal AppReconcileUpdate 0 of 1 new units ready",
-		"Normal AppReconcileUpdate 1 of 1 new units ready",
-		"Normal AppReconcileComplete app test 1 reconcile success",
-	}
-
-EXPECTED:
-	for _, expected := range expectedEvents {
-		for _, ev := range events {
-			if ev == expected {
-				continue EXPECTED
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			process := &ketchv1.ProcessSpec{
+				Name: "test",
 			}
-		}
-		t.Errorf("expected event %s, but it was not found", expected)
-	}
 
-	require.True(t, cleanupIsCalled)
+			app := &ketchv1.App{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: ketchv1.AppSpec{
+					Deployments: []ketchv1.AppDeploymentSpec{
+						{
+							Image:     "gcr.io/test",
+							Version:   1,
+							Processes: []ketchv1.ProcessSpec{*process},
+						},
+					},
+					Framework: "test",
+				},
+			}
+			namespace := "ketch-test"
+			replicas := int32(1)
+
+			// wl initial state
+			wl := workload{
+				Name:            "test",
+				UpdatedReplicas: 1,
+				ReadyReplicas:   0,
+				Replicas:        1,
+			}
+
+			var cli *clientFake.Clientset
+			// details returned via Get() in the function's loop
+			if tc.appType == "Deployment" {
+				cli = clientFake.NewSimpleClientset(&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "ketch-test",
+					},
+					Status: appsv1.DeploymentStatus{
+						UpdatedReplicas:     1,
+						UnavailableReplicas: 0,
+						Replicas:            1,
+						ReadyReplicas:       1,
+					},
+					Spec: appsv1.DeploymentSpec{
+						Replicas: &replicas,
+					},
+				})
+			} else {
+				cli = clientFake.NewSimpleClientset(&appsv1.StatefulSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "ketch-test",
+					},
+					Status: appsv1.StatefulSetStatus{
+						UpdatedReplicas: 1,
+						Replicas:        1,
+						ReadyReplicas:   1,
+					},
+					Spec: appsv1.StatefulSetSpec{
+						Replicas: &replicas,
+					},
+				})
+			}
+
+			recorder := record.NewFakeRecorder(1024)
+			watcher := watch.NewFake()
+			timeout := time.After(DefaultPodRunningTimeout)
+			r := AppReconciler{}
+			ctx := context.Background()
+
+			var events []string
+			go func() {
+				for ev := range recorder.Events {
+					events = append(events, ev)
+				}
+			}()
+
+			cleanupIsCalled := false
+			cleanupFn := func() {
+				cleanupIsCalled = true
+			}
+
+			wc := workloadClient{
+				k8sClient:         cli,
+				workloadNamespace: namespace,
+				workloadType:      tc.appType,
+				workloadName:      "test",
+			}
+
+			err := r.watchFunc(ctx, cleanupFn, app, process.Name, recorder, watcher, &wc, &wl, timeout)
+			if tc.expectedError != "" {
+				require.Equal(t, tc.expectedError, err.Error())
+				return
+			}
+			require.Nil(t, err)
+
+			time.Sleep(time.Millisecond * 100)
+
+			expectedEvents := []string{
+				"Normal AppReconcileUpdate 1 of 1 new units created",
+				"Normal AppReconcileUpdate 0 of 1 new units ready",
+				"Normal AppReconcileUpdate 1 of 1 new units ready",
+				"Normal AppReconcileComplete app test 1 reconcile success",
+			}
+
+		EXPECTED:
+			for _, expected := range expectedEvents {
+				for _, ev := range events {
+					if ev == expected {
+						continue EXPECTED
+					}
+				}
+				t.Errorf("expected event %s, but it was not found", expected)
+			}
+
+			require.True(t, cleanupIsCalled)
+		})
+	}
 }
 
 func TestCancelWatchDeployEvents(t *testing.T) {
-	process := &ketchv1.ProcessSpec{
-		Name: "test",
-	}
-
-	app := &ketchv1.App{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
+	tt := []struct {
+		name    string
+		appType string
+	}{
+		{
+			name:    "cancel watch deploy events - deployment",
+			appType: "Deployment",
 		},
-		Spec: ketchv1.AppSpec{
-			Deployments: []ketchv1.AppDeploymentSpec{
-				{
-					Image:     "gcr.io/test",
-					Version:   1,
-					Processes: []ketchv1.ProcessSpec{*process},
+		{
+			name:    "cancel watch deploy events - statefulset",
+			appType: "StatefulSet",
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			process := &ketchv1.ProcessSpec{
+				Name: "test",
+			}
+
+			app := &ketchv1.App{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
 				},
-			},
-			Framework: "test",
-		},
+				Spec: ketchv1.AppSpec{
+					Deployments: []ketchv1.AppDeploymentSpec{
+						{
+							Image:     "gcr.io/test",
+							Version:   1,
+							Processes: []ketchv1.ProcessSpec{*process},
+						},
+					},
+					Framework: "test",
+				},
+			}
+			namespace := "ketch-test"
+			replicas := int32(1)
+
+			// wl initial state
+			wl := workload{
+				Name:            "test",
+				UpdatedReplicas: 1,
+				ReadyReplicas:   0,
+				Replicas:        1,
+			}
+
+			var cli *clientFake.Clientset
+			// details returned via Get() in the function's loop
+			if tc.appType == "Deployment" {
+				cli = clientFake.NewSimpleClientset(&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "ketch-test",
+					},
+					Status: appsv1.DeploymentStatus{
+						UpdatedReplicas:     1,
+						UnavailableReplicas: 0,
+						Replicas:            1,
+						ReadyReplicas:       1,
+					},
+					Spec: appsv1.DeploymentSpec{
+						Replicas: &replicas,
+					},
+				})
+			} else {
+				cli = clientFake.NewSimpleClientset(&appsv1.StatefulSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "ketch-test",
+					},
+					Status: appsv1.StatefulSetStatus{
+						UpdatedReplicas: 1,
+						Replicas:        1,
+						ReadyReplicas:   1,
+					},
+					Spec: appsv1.StatefulSetSpec{
+						Replicas: &replicas,
+					},
+				})
+			}
+
+			recorder := record.NewFakeRecorder(1024)
+			watcher := watch.NewFake()
+			timeout := time.After(DefaultPodRunningTimeout)
+			r := AppReconciler{}
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			var events []string
+			go func() {
+				for ev := range recorder.Events {
+					cancel() // cancel context after first event received
+					events = append(events, ev)
+				}
+			}()
+
+			wc := workloadClient{
+				k8sClient:         cli,
+				workloadNamespace: namespace,
+				workloadType:      tc.appType,
+				workloadName:      "test",
+			}
+
+			err := r.watchFunc(ctx, func() {}, app, process.Name, recorder, watcher, &wc, &wl, timeout)
+			require.EqualError(t, err, "context canceled")
+
+			// assert that watchFunc() ended early via context cancelation and that not all events were processed.
+			allPossibleEvents := []string{
+				"Normal AppReconcileUpdate 1 of 1 new units created",
+				"Normal AppReconcileUpdate 0 of 1 new units ready",
+				"Normal AppReconcileUpdate 1 of 1 new units ready",
+				"Normal AppReconcileComplete app test 1 reconcile success",
+			}
+			require.True(t, len(events) < len(allPossibleEvents))
+		})
 	}
-	namespace := "ketch-test"
-	replicas := int32(1)
-
-	// wl initial state
-	wl := workload{
-		Name:            "test",
-		UpdatedReplicas: 1,
-		ReadyReplicas:   0,
-		Replicas:        1,
-	}
-
-	// depFetch is the Deployment as returned via Get() in the function's loop
-	depFetch := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "ketch-test",
-		},
-		Status: appsv1.DeploymentStatus{
-			UpdatedReplicas:     1,
-			UnavailableReplicas: 0,
-			Replicas:            1,
-			ReadyReplicas:       1,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-		},
-	}
-
-	recorder := record.NewFakeRecorder(1024)
-	watcher := watch.NewFake()
-	cli := clientFake.NewSimpleClientset(depFetch)
-	timeout := time.After(DefaultPodRunningTimeout)
-	r := AppReconciler{}
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	var events []string
-	go func() {
-		for ev := range recorder.Events {
-			cancel() // cancel context after first event received
-			events = append(events, ev)
-		}
-	}()
-
-	wc := workloadClient{
-		k8sClient:         cli,
-		workloadNamespace: namespace,
-		workloadType:      "Deployment",
-		workloadName:      "test",
-	}
-
-	err := r.watchFunc(ctx, func() {}, app, process.Name, recorder, watcher, &wc, &wl, timeout)
-	require.EqualError(t, err, "context canceled")
-
-	// assert that watchFunc() ended early via context cancelation and that not all events were processed.
-	allPossibleEvents := []string{
-		"Normal AppReconcileUpdate 1 of 1 new units created",
-		"Normal AppReconcileUpdate 0 of 1 new units ready",
-		"Normal AppReconcileUpdate 1 of 1 new units ready",
-		"Normal AppReconcileComplete app test 1 reconcile success",
-	}
-	require.True(t, len(events) < len(allPossibleEvents))
 }
 
 func Test_checkPodStatus(t *testing.T) {
