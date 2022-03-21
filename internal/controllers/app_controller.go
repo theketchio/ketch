@@ -229,6 +229,9 @@ type condition struct {
 	Reason string
 }
 
+// workload contains the needed information for watchDeployEvents logic
+// deployments and statefulsets are both supported so it became necessary
+// to abstract their common properties into a separate type
 type workload struct {
 	Name               string
 	Replicas           int
@@ -246,6 +249,7 @@ type workloadClient struct {
 	k8sClient         kubernetes.Interface
 }
 
+// Get populates workload values based on the workloadType and returns the populated struct
 func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
 	switch cli.workloadType {
 	case "Deployment":
