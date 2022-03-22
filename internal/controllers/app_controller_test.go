@@ -222,7 +222,7 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 func TestWatchDeployEvents(t *testing.T) {
 	tt := []struct {
 		name          string
-		appType       string
+		appType       ketchv1.AppType
 		expectedError string
 	}{
 		{
@@ -365,7 +365,7 @@ func TestWatchDeployEvents(t *testing.T) {
 func TestCancelWatchDeployEvents(t *testing.T) {
 	tt := []struct {
 		name    string
-		appType string
+		appType ketchv1.AppType
 	}{
 		{
 			name:    "cancel watch deploy events - deployment",

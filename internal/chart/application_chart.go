@@ -62,7 +62,7 @@ type app struct {
 	// VolumeClaimTemplates is a list of an app's volumeClaimTemplates
 	VolumeClaimTemplates []ketchv1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
 	// Type specifies whether the app should be a deployment or a statefulset
-	Type string `json:"type"`
+	Type ketchv1.AppType `json:"type"`
 }
 
 type deployment struct {
@@ -127,13 +127,6 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 		return nil, err
 	}
 
-	appType := "Deployment"
-	if application.Spec.Type != nil {
-		if strings.ToLower(*application.Spec.Type) == "statefulset" {
-			appType = "StatefulSet"
-		}
-	}
-
 	values := &values{
 		App: &app{
 			ID:                  application.Spec.ID,
@@ -144,7 +137,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			MetadataLabels:      application.Spec.Labels,
 			MetadataAnnotations: application.Spec.Annotations,
 			ServiceAccountName:  application.Spec.ServiceAccountName,
-			Type:                appType,
+			Type:                application.Spec.GetType(),
 		},
 		IngressController: &framework.Spec.IngressController,
 	}

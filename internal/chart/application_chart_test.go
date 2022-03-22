@@ -257,7 +257,7 @@ func TestNewApplicationChart(t *testing.T) {
 	}
 	setStatefulSet := func(app *ketchv1.App) *ketchv1.App {
 		out := *app
-		appType := "StatefulSet"
+		appType := ketchv1.StatefulSetAppType
 		out.Spec.Type = &appType
 		return &out
 	}

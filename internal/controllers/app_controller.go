@@ -243,7 +243,7 @@ type workload struct {
 }
 
 type workloadClient struct {
-	workloadType      string
+	workloadType      ketchv1.AppType
 	workloadName      string
 	workloadNamespace string
 	k8sClient         kubernetes.Interface
@@ -415,16 +415,11 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 				}
 			}
 
-			appType := "Deployment"
-			if app.Spec.Type != nil {
-				appType = *app.Spec.Type
-			}
-
 			wc := workloadClient{
 				k8sClient:         cli,
 				workloadName:      fmt.Sprintf("%s-%s-%d", app.GetName(), process.Name, latestDeployment.Version),
 				workloadNamespace: framework.Spec.NamespaceName,
-				workloadType:      appType,
+				workloadType:      app.Spec.GetType(),
 			}
 
 			wl, err := wc.Get(ctx)

@@ -248,7 +248,23 @@ type AppSpec struct {
 	VolumeClaimTemplates []PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
 
 	// Type specifies whether an app should be a deployment or a statefulset
-	Type *string `json:"type,omitempty"`
+	// +kubebuilder:validation:default:=Deployment
+	Type *AppType `json:"type,omitempty"`
+}
+
+// +kubebuilder:validation:Enum=Deployment;StatefulSet
+type AppType string
+
+const (
+	DeploymentAppType  AppType = "Deployment"
+	StatefulSetAppType AppType = "StatefulSet"
+)
+
+func (spec AppSpec) GetType() AppType {
+	if spec.Type == nil {
+		return DeploymentAppType
+	}
+	return *spec.Type
 }
 
 type PersistentVolumeClaim struct {
