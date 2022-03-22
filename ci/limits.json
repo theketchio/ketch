@@ -4,7 +4,7 @@
 	"github.com/theketchio/ketch/cmd/ketch/output": 68.3,
 	"github.com/theketchio/ketch/cmd/manager": 0,
 	"github.com/theketchio/ketch/codeprofile/unit_test_coverage": 0,
-	"github.com/theketchio/ketch/internal/api/v1beta1": 32.9,
+	"github.com/theketchio/ketch/internal/api/v1beta1": 32.8,
 	"github.com/theketchio/ketch/internal/api/v1beta1/mocks": 0,
 	"github.com/theketchio/ketch/internal/build": 92.3,
 	"github.com/theketchio/ketch/internal/chart": 67.0,
