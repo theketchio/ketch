@@ -252,7 +252,7 @@ type workloadClient struct {
 // Get populates workload values based on the workloadType and returns the populated struct
 func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
 	switch cli.workloadType {
-	case "Deployment":
+	case ketchv1.DeploymentAppType:
 		o, err := cli.k8sClient.AppsV1().Deployments(cli.workloadNamespace).Get(ctx, cli.workloadName, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
@@ -271,7 +271,7 @@ func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
 			w.Conditions = append(w.Conditions, condition{Type: string(c.Type), Reason: c.Reason})
 		}
 		return &w, nil
-	case "StatefulSet":
+	case ketchv1.StatefulSetAppType:
 		o, err := cli.k8sClient.AppsV1().StatefulSets(cli.workloadNamespace).Get(ctx, cli.workloadName, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
