@@ -1518,3 +1518,32 @@ func TestParseAppReconcileOutcome_Multiple(t *testing.T) {
 		}
 	}
 }
+
+func TestAppType(t *testing.T) {
+	at := AppType("NonExistantType")
+	tt := []struct {
+		name     string
+		appType  *AppType
+		expected AppType
+	}{
+		{
+			name:     "return specified type",
+			appType:  &at,
+			expected: at,
+		},
+		{
+			name:     "type is nil",
+			appType:  nil,
+			expected: DeploymentAppType,
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			as := AppSpec{
+				Type: tc.appType,
+			}
+			appType := as.GetType()
+			require.Equal(t, tc.expected, appType)
+		})
+	}
+}

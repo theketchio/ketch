@@ -21,7 +21,6 @@ type postRender struct {
 }
 
 func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *bytes.Buffer, err error) {
-
 	var configMapList v1.ConfigMapList
 	opts := &client.ListOptions{Namespace: p.namespace}
 	if err := p.cli.List(context.Background(), &configMapList, opts); err != nil {
