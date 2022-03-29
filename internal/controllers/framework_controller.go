@@ -65,11 +65,12 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 	err := r.List(ctx, &frameworks)
 	if err != nil {
 		return ketchv1.FrameworkStatus{
-			Phase:     ketchv1.FrameworkFailed,
-			Message:   "failed to get a list of frameworks",
-			Apps:      framework.Status.Apps,
-			Jobs:      framework.Status.Jobs,
-			Namespace: framework.Status.Namespace,
+			Phase:              ketchv1.FrameworkFailed,
+			Message:            "failed to get a list of frameworks",
+			Apps:               framework.Status.Apps,
+			Jobs:               framework.Status.Jobs,
+			Namespace:          framework.Status.Namespace,
+			ExtensionsStatuses: framework.Status.ExtensionsStatuses,
 		}
 	}
 	namespace := v1.Namespace{}
@@ -82,11 +83,12 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 		}
 		if failures > 10 {
 			return ketchv1.FrameworkStatus{
-				Phase:     ketchv1.FrameworkFailed,
-				Message:   fmt.Sprintf("failed to get %s namespace", framework.Spec.NamespaceName),
-				Apps:      framework.Status.Apps,
-				Jobs:      framework.Status.Jobs,
-				Namespace: framework.Status.Namespace,
+				Phase:              ketchv1.FrameworkFailed,
+				Message:            fmt.Sprintf("failed to get %s namespace", framework.Spec.NamespaceName),
+				Apps:               framework.Status.Apps,
+				Jobs:               framework.Status.Jobs,
+				Namespace:          framework.Status.Namespace,
+				ExtensionsStatuses: framework.Status.ExtensionsStatuses,
 			}
 		}
 		if errors.IsNotFound(err) {
@@ -101,11 +103,12 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 			err = r.Create(ctx, n)
 			if err != nil {
 				return ketchv1.FrameworkStatus{
-					Phase:     ketchv1.FrameworkFailed,
-					Message:   fmt.Sprintf("failed to create %s namespace", framework.Spec.NamespaceName),
-					Apps:      framework.Status.Apps,
-					Jobs:      framework.Status.Jobs,
-					Namespace: framework.Status.Namespace,
+					Phase:              ketchv1.FrameworkFailed,
+					Message:            fmt.Sprintf("failed to create %s namespace", framework.Spec.NamespaceName),
+					Apps:               framework.Status.Apps,
+					Jobs:               framework.Status.Jobs,
+					ExtensionsStatuses: framework.Status.ExtensionsStatuses,
+					Namespace:          framework.Status.Namespace,
 				}
 			}
 			failures += 1
@@ -128,22 +131,24 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 	err = r.Update(ctx, &namespace)
 	if err != nil {
 		return ketchv1.FrameworkStatus{
-			Phase:     ketchv1.FrameworkFailed,
-			Message:   fmt.Sprintf("failed to update namespace annotations: %v", err),
-			Apps:      framework.Status.Apps,
-			Jobs:      framework.Status.Jobs,
-			Namespace: framework.Status.Namespace,
+			Phase:              ketchv1.FrameworkFailed,
+			Message:            fmt.Sprintf("failed to update namespace annotations: %v", err),
+			Apps:               framework.Status.Apps,
+			Jobs:               framework.Status.Jobs,
+			ExtensionsStatuses: framework.Status.ExtensionsStatuses,
+			Namespace:          framework.Status.Namespace,
 		}
 	}
 
 	ref, err := reference.GetReference(r.Scheme, &namespace)
 	if err != nil {
 		return ketchv1.FrameworkStatus{
-			Phase:     ketchv1.FrameworkFailed,
-			Message:   fmt.Sprintf("failed to get a reference to %s namespace", framework.Spec.NamespaceName),
-			Apps:      framework.Status.Apps,
-			Jobs:      framework.Status.Jobs,
-			Namespace: framework.Status.Namespace,
+			Phase:              ketchv1.FrameworkFailed,
+			Message:            fmt.Sprintf("failed to get a reference to %s namespace", framework.Spec.NamespaceName),
+			Apps:               framework.Status.Apps,
+			Jobs:               framework.Status.Jobs,
+			ExtensionsStatuses: framework.Status.ExtensionsStatuses,
+			Namespace:          framework.Status.Namespace,
 		}
 	}
 	for _, p := range frameworks.Items {
@@ -153,19 +158,21 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 		}
 		if p.Status.Namespace.UID == ref.UID && p.Name != framework.Name {
 			return ketchv1.FrameworkStatus{
-				Phase:     ketchv1.FrameworkFailed,
-				Message:   "Target namespace is already used by another framework",
-				Apps:      framework.Status.Apps,
-				Jobs:      framework.Status.Jobs,
-				Namespace: framework.Status.Namespace,
+				Phase:              ketchv1.FrameworkFailed,
+				Message:            "Target namespace is already used by another framework",
+				Apps:               framework.Status.Apps,
+				Jobs:               framework.Status.Jobs,
+				ExtensionsStatuses: framework.Status.ExtensionsStatuses,
+				Namespace:          framework.Status.Namespace,
 			}
 		}
 	}
 	return ketchv1.FrameworkStatus{
-		Namespace: ref,
-		Phase:     ketchv1.FrameworkCreated,
-		Apps:      framework.Status.Apps,
-		Jobs:      framework.Status.Jobs,
+		Namespace:          ref,
+		Phase:              ketchv1.FrameworkCreated,
+		Apps:               framework.Status.Apps,
+		Jobs:               framework.Status.Jobs,
+		ExtensionsStatuses: framework.Status.ExtensionsStatuses,
 	}
 }
 
