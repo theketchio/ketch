@@ -571,11 +571,14 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 			return ctx.Err()
 		}
 
-		wl, err = cli.Get(ctx)
-		if err != nil {
+		newWorkload, err := cli.Get(ctx)
+		if err != nil && !k8sErrors.IsNotFound(err) {
 			deploymentErrorEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("error getting deployments: %s", err.Error()), processName)
 			recorder.AnnotatedEventf(app, deploymentErrorEvent.Annotations, v1.EventTypeWarning, deploymentErrorEvent.Reason, deploymentErrorEvent.Description)
 			return err
+		}
+		if err == nil {
+			wl = newWorkload
 		}
 	}
 
