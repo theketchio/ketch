@@ -12,7 +12,7 @@ spec:
   {{- if $.Values.job.completions }}
   completions: {{ $.Values.job.completions }}
   {{- end }}
-  {{- if $.Values.job.backoffLimit }}
+  {{- if not (kindIs "invalid" $.Values.job.backoffLimit) }}
   backoffLimit: {{ $.Values.job.backoffLimit }}
   {{- end }}
   {{- if $.Values.job.suspend }}

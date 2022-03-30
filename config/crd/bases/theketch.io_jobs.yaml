@@ -41,6 +41,7 @@ spec:
             description: JobSpec defines the desired state of Job
             properties:
               backoffLimit:
+                minimum: 0
                 type: integer
               completions:
                 type: integer

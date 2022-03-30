@@ -23,8 +23,6 @@ Deploy a job.
 const (
 	defaultJobVersion       = "v1"
 	defaultJobParallelism   = 1
-	defaultJobCompletions   = 1
-	defaultJobBackoffLimit  = 6
 	defaultJobRestartPolicy = "Never"
 )
 
@@ -86,9 +84,6 @@ func setJobSpecDefaults(jobSpec *ketchv1.JobSpec) {
 	}
 	if jobSpec.Completions == 0 {
 		jobSpec.Completions = jobSpec.Parallelism
-	}
-	if jobSpec.BackoffLimit == 0 {
-		jobSpec.BackoffLimit = defaultJobBackoffLimit
 	}
 	if jobSpec.Policy.RestartPolicy == "" {
 		jobSpec.Policy.RestartPolicy = defaultJobRestartPolicy
