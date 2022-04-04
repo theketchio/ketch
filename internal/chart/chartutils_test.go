@@ -30,7 +30,7 @@ func TestBufferedFiles(t *testing.T) {
 				Parallelism:  2,
 				Completions:  2,
 				Suspend:      false,
-				BackoffLimit: 4,
+				BackoffLimit: conversions.IntPtr(4),
 				Containers: []ketchv1.Container{
 					{
 						Name:    "test",
@@ -105,7 +105,7 @@ func TestGetValuesMap(t *testing.T) {
 				Parallelism:  2,
 				Completions:  2,
 				Suspend:      false,
-				BackoffLimit: 4,
+				BackoffLimit: conversions.IntPtr(4),
 				Containers: []ketchv1.Container{
 					{
 						Name:    "test",

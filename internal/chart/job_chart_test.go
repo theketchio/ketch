@@ -9,6 +9,7 @@ import (
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 	"github.com/theketchio/ketch/internal/templates"
+	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 var (
@@ -25,7 +26,7 @@ var (
 			Parallelism:  2,
 			Completions:  2,
 			Suspend:      false,
-			BackoffLimit: 4,
+			BackoffLimit: conversions.IntPtr(4),
 			Containers: []ketchv1.Container{
 				{
 					Name:    "test",

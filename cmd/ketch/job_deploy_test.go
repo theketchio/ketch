@@ -12,6 +12,7 @@ import (
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 	"github.com/theketchio/ketch/internal/mocks"
+	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 func TestJobDeploy(t *testing.T) {
@@ -59,7 +60,7 @@ policy:
 				Parallelism:  1,
 				Completions:  1,
 				Suspend:      false,
-				BackoffLimit: 6,
+				BackoffLimit: conversions.IntPtr(6),
 				Containers: []ketchv1.Container{
 					{
 						Name:    "lister",

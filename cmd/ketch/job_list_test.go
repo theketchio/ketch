@@ -11,6 +11,7 @@ import (
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 	"github.com/theketchio/ketch/internal/mocks"
+	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 func TestJobList(t *testing.T) {
@@ -24,7 +25,7 @@ func TestJobList(t *testing.T) {
 			Parallelism:  1,
 			Completions:  1,
 			Suspend:      false,
-			BackoffLimit: 6,
+			BackoffLimit: conversions.IntPtr(6),
 			Containers: []ketchv1.Container{
 				{
 					Name:    "lister",
@@ -80,7 +81,7 @@ func TestJobListNames(t *testing.T) {
 			Parallelism:  1,
 			Completions:  1,
 			Suspend:      false,
-			BackoffLimit: 6,
+			BackoffLimit: conversions.IntPtr(6),
 			Containers: []ketchv1.Container{
 				{
 					Name:    "lister",
@@ -107,6 +108,24 @@ func TestJobListNames(t *testing.T) {
 				CtrlClientObjects:    []runtime.Object{mockJob},
 				DynamicClientObjects: []runtime.Object{},
 			},
+			wantOut: []string{"hello"},
+		},
+		{
+			name: "filter",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects:    []runtime.Object{mockJob},
+				DynamicClientObjects: []runtime.Object{},
+			},
+			filter:  "goodbye",
+			wantOut: []string{},
+		},
+		{
+			name: "filter",
+			cfg: &mocks.Configuration{
+				CtrlClientObjects:    []runtime.Object{mockJob},
+				DynamicClientObjects: []runtime.Object{},
+			},
+			filter:  "hello",
 			wantOut: []string{"hello"},
 		},
 	}
