@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/client-go/tools/record"
 	"testing"
 	"time"
 
@@ -21,6 +20,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clientFake "k8s.io/client-go/kubernetes/fake"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	clientTest "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlFake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -56,6 +57,19 @@ func (h *helm) UpdateChart(tv chart.TemplateValuer, config chart.ChartConfig, op
 func (h *helm) DeleteChart(appName string) error {
 	h.deleteChartCalled = append(h.deleteChartCalled, appName)
 	return nil
+}
+
+type watchReactor struct {
+	action  clientTest.Action
+	watcher watch.Interface
+	err     error
+}
+
+func (w *watchReactor) Handles(action clientTest.Action) bool {
+	return true
+}
+func (w *watchReactor) React(action clientTest.Action) (bool, watch.Interface, error) {
+	return true, w.watcher, w.err
 }
 
 func TestAppReconciler_Reconcile(t *testing.T) {
@@ -217,6 +231,57 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 		})
 	}
 	require.Equal(t, []string{"app-running"}, helmMock.deleteChartCalled)
+}
+
+func TestWatchDeployEventsError(t *testing.T) {
+	process := &ketchv1.ProcessSpec{
+		Name: "test",
+	}
+
+	app := &ketchv1.App{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: ketchv1.AppSpec{
+			Deployments: []ketchv1.AppDeploymentSpec{
+				{
+					Image:     "gcr.io/test",
+					Version:   1,
+					Processes: []ketchv1.ProcessSpec{*process},
+				},
+			},
+			Framework: "test",
+		},
+	}
+	cli := clientFake.NewSimpleClientset()
+	watchReaction := &watchReactor{
+		err: fmt.Errorf("unknown (get events)"),
+	}
+	cli.WatchReactionChain = []clientTest.WatchReactor{watchReaction}
+	wl := &workload{
+		Name:            "test",
+		UpdatedReplicas: 1,
+		ReadyReplicas:   0,
+		Replicas:        1,
+	}
+	wc := &workloadClient{
+		k8sClient: cli,
+	}
+	recorder := record.NewFakeRecorder(1024)
+	r := AppReconciler{
+		CancelMap: NewCancelMap(),
+	}
+	var events []string
+	go func() {
+		for ev := range recorder.Events {
+			events = append(events, ev)
+		}
+	}()
+	err := r.watchDeployEvents(context.Background(), app, wc, wl, process, recorder)
+	require.EqualError(t, err, "assure clusterrole 'manager-role' has 'watch' permissions on event resources: unknown (get events)")
+	time.Sleep(time.Millisecond * 100) // give events time to propagate
+	require.Equal(t, 1, len(events))
+	require.Equal(t, "Warning AppReconcileError error watching deployments for workload test: assure clusterrole 'manager-role' has 'watch' permissions on event resources: unknown (get events)", events[0])
 }
 
 func TestWatchDeployEvents(t *testing.T) {
