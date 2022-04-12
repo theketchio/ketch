@@ -459,6 +459,11 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 	}
 	watcher, err := cli.k8sClient.CoreV1().Events(cli.workloadNamespace).Watch(ctx, opts) // requires "watch" permission on events in clusterrole
 	if err != nil {
+		if strings.Contains(err.Error(), "unknown (get events)") {
+			err = errors.WithMessagef(err, "assure clusterrole 'manager-role' has 'watch' permissions on event resources")
+		}
+		watchErrorEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("error watching deployments for workload %s: %s", wl.Name, err.Error()), process.Name)
+		recorder.AnnotatedEventf(app, watchErrorEvent.Annotations, v1.EventTypeWarning, watchErrorEvent.Reason, watchErrorEvent.Description)
 		return err
 	}
 
