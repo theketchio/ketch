@@ -131,7 +131,7 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 
 	scheduleResult := r.reconcile(ctx, &app, logger)
-	if scheduleResult.isConflictError() {
+	if scheduleResult.isConflictError() || isCanceledError(scheduleResult.err) {
 		// we don't want to create an event with this conflict error and show it to the user.
 		// ketch will eventually reconcile the app.
 		logger.Error(scheduleResult.err, "failed to reconcile app")
@@ -218,6 +218,19 @@ func (r appReconcileResult) isConflictError() bool {
 			return false
 		}
 		if k8sErrors.IsConflict(err) {
+			return true
+		}
+		err = errors.Unwrap(err)
+	}
+}
+
+// isCanceledError returns true if the given error is "context.Canceled" error.
+func isCanceledError(err error) bool {
+	for {
+		if err == nil {
+			return false
+		}
+		if err == context.Canceled {
 			return true
 		}
 		err = errors.Unwrap(err)
@@ -471,6 +484,12 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 	timeout := time.After(DefaultPodRunningTimeout)
 	for wl.ObservedGeneration < wl.Generation {
 		wl, err = cli.Get(ctx)
+		if isCanceledError(err) {
+			// if the context is canceled,
+			// probably, the app CR has been updated and controller-runtime is canceling our operation.
+			// we don't want to emit an event in this case
+			return err
+		}
 		if err != nil {
 			recorder.Eventf(app, v1.EventTypeWarning, ketchv1.AppReconcileError, "error getting deployments: %s", err.Error())
 			return err
@@ -577,6 +596,12 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 		}
 
 		newWorkload, err := cli.Get(ctx)
+		if isCanceledError(err) {
+			// if the context is canceled,
+			// probably, the app CR has been updated and controller-runtime is canceling our operation.
+			// we don't want to emit an event in this case
+			return err
+		}
 		if err != nil && !k8sErrors.IsNotFound(err) {
 			deploymentErrorEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("error getting deployments: %s", err.Error()), processName)
 			recorder.AnnotatedEventf(app, deploymentErrorEvent.Annotations, v1.EventTypeWarning, deploymentErrorEvent.Reason, deploymentErrorEvent.Description)
