@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 )
@@ -177,7 +178,10 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 }
 
 func (r *FrameworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// to avoid re-queueing when framework.status is changed
+	pred := predicate.GenerationChangedPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ketchv1.Framework{}).
+		WithEventFilter(pred).
 		Complete(r)
 }
