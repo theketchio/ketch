@@ -41,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 	"github.com/theketchio/ketch/internal/chart"
@@ -824,7 +825,10 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 }
 
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// to avoid re-queueing when app.status is changed
+	pred := predicate.GenerationChangedPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ketchv1.App{}).
+		WithEventFilter(pred).
 		Complete(r)
 }
