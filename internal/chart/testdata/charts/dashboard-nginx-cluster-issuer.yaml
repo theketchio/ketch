@@ -411,12 +411,12 @@ kind: Ingress
 metadata:
   name: dashboard-0-https-ingress
   annotations:
-    kubernetes.io/ingress.class: "ingress-class"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
+  ingressClassName: "ingress-class"
   tls:
     - hosts:
         - theketch.io
@@ -465,7 +465,6 @@ kind: Ingress
 metadata:
   name: dashboard-1-https-ingress
   annotations:
-    kubernetes.io/ingress.class: "ingress-class"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/canary: "true"
@@ -473,6 +472,7 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
 spec:
+  ingressClassName: "ingress-class"
   tls:
     - hosts:
         - theketch.io
