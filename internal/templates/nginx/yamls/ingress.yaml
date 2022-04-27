@@ -7,9 +7,6 @@ kind: Ingress
 metadata:
   name: {{ $.Values.app.name }}-{{ $i }}-http-ingress
   annotations:
-    {{- if $.Values.ingressController.className }}
-    kubernetes.io/ingress.class: {{ $.Values.ingressController.className | quote }}
-    {{- end }}
     {{- if gt $i 0 }}
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
@@ -19,6 +16,9 @@ metadata:
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
+  {{- if $.Values.ingressController.className }}
+  ingressClassName: {{ $.Values.ingressController.className | quote }}
+  {{- end }}
   rules:
   {{- range $_, $cname := $.Values.app.ingress.http }}
   - host: {{ $cname }}
@@ -50,9 +50,6 @@ kind: Ingress
 metadata:
   name: {{ $.Values.app.name }}-{{ $i }}-https-ingress
   annotations:
-    {{- if $.Values.ingressController.className }}
-    kubernetes.io/ingress.class: {{ $.Values.ingressController.className | quote }}
-    {{- end }}
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     {{- if gt $i 0 }}
@@ -62,6 +59,9 @@ metadata:
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
+  {{- if $.Values.ingressController.className }}
+  ingressClassName: {{ $.Values.ingressController.className | quote }}
+  {{- end }}
   tls:
     {{- range $_, $https := $.Values.app.ingress.https }}
     - hosts:

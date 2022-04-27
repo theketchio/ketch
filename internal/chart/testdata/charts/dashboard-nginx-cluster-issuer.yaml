@@ -361,13 +361,13 @@ kind: Ingress
 metadata:
   name: dashboard-0-http-ingress
   annotations:
-    kubernetes.io/ingress.class: "ingress-class"
     theketch.io/metadata-item-kind: Ingress
     theketch.io/metadata-item-apiVersion: networking.k8s.io/v1
     theketch.io/ingress-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
+  ingressClassName: "ingress-class"
   rules:
   - host: dashboard.10.10.10.10.shipa.cloud
     http:
@@ -385,7 +385,6 @@ kind: Ingress
 metadata:
   name: dashboard-1-http-ingress
   annotations:
-    kubernetes.io/ingress.class: "ingress-class"
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-weight: "70"
     theketch.io/metadata-item-kind: Ingress
@@ -394,6 +393,7 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
 spec:
+  ingressClassName: "ingress-class"
   rules:
   - host: dashboard.10.10.10.10.shipa.cloud
     http:
@@ -411,12 +411,12 @@ kind: Ingress
 metadata:
   name: dashboard-0-https-ingress
   annotations:
-    kubernetes.io/ingress.class: "ingress-class"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
   labels:
     theketch.io/app-name: "dashboard"
 spec:
+  ingressClassName: "ingress-class"
   tls:
     - hosts:
         - theketch.io
@@ -465,7 +465,6 @@ kind: Ingress
 metadata:
   name: dashboard-1-https-ingress
   annotations:
-    kubernetes.io/ingress.class: "ingress-class"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/canary: "true"
@@ -473,6 +472,7 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
 spec:
+  ingressClassName: "ingress-class"
   tls:
     - hosts:
         - theketch.io
