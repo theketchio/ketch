@@ -95,6 +95,10 @@ type Options struct {
 	DockerRegistrySecret string
 	Builder              string
 	BuildPacks           []string
+	Volume               string
+	VolumeMountPath      string
+	VolumeMountOptions   map[string]string
+	FSGroup              int64
 
 	Units   int
 	Version int

@@ -70,6 +70,10 @@ func newAppDeployCmd(cfg config, params *deploy.Services, configDefaultBuilder s
 	cmd.Flags().StringVarP(&options.DockerRegistrySecret, deploy.FlagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the framework.")
 	cmd.Flags().StringVar(&options.Builder, deploy.FlagBuilder, "", "Builder to use when building from source.")
 	cmd.Flags().StringSliceVar(&options.BuildPacks, deploy.FlagBuildPacks, nil, "A list of build packs.")
+	cmd.Flags().StringVar(&options.Volume, "volume", "", "Name of the volume to bind to the application.")
+	cmd.Flags().StringVar(&options.VolumeMountPath, "volume-mount-path", "", "Path to mount a volume.")
+	cmd.Flags().StringToStringVar(&options.VolumeMountOptions, "volume-mount-options", nil, "Options for volume mount.")
+	cmd.Flags().Int64Var(&options.FSGroup, "fs-group", 0, "The fsGroup for pod's security context; root if not set.")
 
 	cmd.Flags().IntVar(&options.Units, deploy.FlagUnits, 1, "Set number of units for deployment.")
 	cmd.Flags().IntVar(&options.Version, deploy.FlagVersion, 1, "Specify version whose units to update. Must be used with units flag!")
