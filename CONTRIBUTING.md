@@ -87,3 +87,19 @@ During development, you may need to utilize some `make` utils to update generate
 
 ## Submission Guidelines
 Ketch follows a lightweight Pull Request process. When submitting a PR, answering a few [basic questions](https://github.com/theketchio/ketch/blob/main/.github/pull_request_template.md) around type of change and steps to test and you are well on your way to a PR approval.   
+
+### Your First Ketch Pull Request
+Please Fork the project and create a branch to make your changes to. Directly commit your changes to your branch and then when 
+ready to merge upstream, feel free to and create a PR. There are quality steps that need to be achieved. 
+
+`git checkout -b add-ketch-feature-of-squash-bug`
+
+#### Running Tests
+Depending where you are contributing e.g Ketch Controller, Ketch CLI, there are included tests to run. 
+
+##### Ketch App CLI
+`./cli_tests/app.sh`
+[Ketch App CLI Tests](https://github.com/theketchio/ketch/blob/main/cli_tests/job.sh#L3-L8)
+
+`./cli_tests/job.sh`
+[Ketch Jobs CLI Tests](https://github.com/theketchio/ketch/blob/main/cli_tests/job.sh#L3-L8)
