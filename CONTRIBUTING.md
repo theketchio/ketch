@@ -88,18 +88,42 @@ During development, you may need to utilize some `make` utils to update generate
 ## Submission Guidelines
 Ketch follows a lightweight Pull Request process. When submitting a PR, answering a few [basic questions](https://github.com/theketchio/ketch/blob/main/.github/pull_request_template.md) around type of change and steps to test and you are well on your way to a PR approval.   
 
-### Your First Ketch Pull Request
+## Your First Ketch Pull Request
 Please Fork the project and create a branch to make your changes to. Directly commit your changes to your branch and then when 
 ready to merge upstream, feel free to and create a PR. There are quality steps that need to be achieved. 
 
 `git checkout -b add-ketch-feature-of-squash-bug`
 
-#### Running Tests
-Depending where you are contributing e.g Ketch Controller, Ketch CLI, there are included tests to run. 
+### Running Tests
+As a good practice, locally running the integration tests is a good idea. Because during the CI Step e.g GitHub Actions, these will be
+run again as a quality gate. 
 
-##### Ketch App CLI
+#### Unit Tests
+Unit test coverage is in place. Running "make test" will run all of the Unit Tests e.g "Go Test". 
+`make test`
+
+Test coverage is represented as files suffixed as "test". A good idea is to include Unit Tests
+with your changes. 
+
+[Example Unit Test](https://github.com/theketchio/ketch/blob/main/internal/controllers/app_controller_test.go)
+
+#### Ketch CLI
+The CLI has integration tests if you are making CLI level changes. These tests will run the
+CLI against a live Ketch Installation. 
+
 `./cli_tests/app.sh`
-[Ketch App CLI Tests](https://github.com/theketchio/ketch/blob/main/cli_tests/job.sh#L3-L8)
+[Ketch App CLI Tests](https://github.com/theketchio/ketch/blob/main/cli_tests/app.sh#L3-L8)
 
 `./cli_tests/job.sh`
 [Ketch Jobs CLI Tests](https://github.com/theketchio/ketch/blob/main/cli_tests/job.sh#L3-L8)
+
+### Submitting PR
+When you commit via GitHub, there will be GitHub Actions that is ran on your behalf. 
+[GitHub Actions Config](https://github.com/theketchio/ketch/blob/main/.github/workflows/deploy.yaml#L50-L89)
+
+The GitHub Actions will create a temporary K3d cluster on the GitHub Actions Agent to run the tests. 
+
+Assuming everything passes in your branch, you are now ready to create a Pull Request and get ready for the merge. 
+
+#### PR Acceptance
+Currently, one Core Contributor will have to accept the Pull Request. Thanks for your PR!
