@@ -560,12 +560,13 @@ func Test_checkPodStatus(t *testing.T) {
 		}
 	}
 	tests := []struct {
-		name       string
-		pods       []runtime.Object
-		appName    string
-		depVersion ketchv1.DeploymentVersion
-		group      string
-		wantErr    string
+		name        string
+		pods        []runtime.Object
+		appName     string
+		depVersion  ketchv1.DeploymentVersion
+		group       string
+		expectedPod string
+		wantErr     string
 	}{
 		{
 			name:       "pod in Pending state",
@@ -575,7 +576,8 @@ func Test_checkPodStatus(t *testing.T) {
 			pods: []runtime.Object{
 				createPod("theketch.io", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
 			},
-			wantErr: `all pods are not running`,
+			expectedPod: "my-app-5",
+			wantErr:     `all pods are not running`,
 		},
 		{
 			name:       "pod in Pending state but group doesn't match",
@@ -591,12 +593,13 @@ func Test_checkPodStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cli := ctrlFake.NewClientBuilder().WithScheme(clientgoscheme.Scheme).WithRuntimeObjects(tt.pods...).Build()
-			err := checkPodStatus(tt.group, cli, tt.appName, tt.depVersion)
+			podName, err := checkPodStatus(tt.group, cli, tt.appName, tt.depVersion)
 			if len(tt.wantErr) > 0 {
 				require.NotNil(t, err)
 				require.Equal(t, tt.wantErr, err.Error())
 				return
 			}
+			require.Equal(t, podName, tt.expectedPod)
 			require.Nil(t, err)
 		})
 	}
@@ -692,12 +695,14 @@ func TestAppDeloymentEvent(t *testing.T) {
 		reason      string
 		desc        string
 		processName string
+		podName     string
 		expected    *ketchv1.AppDeploymentEvent
 	}{
 		{
 			reason:      "test reason",
 			desc:        "test message",
 			processName: "test process",
+			podName:     "test-pod",
 			expected: &ketchv1.AppDeploymentEvent{
 				Name:              app.Name,
 				DeploymentVersion: 2,
@@ -710,13 +715,14 @@ func TestAppDeloymentEvent(t *testing.T) {
 					ketchv1.DeploymentAnnotationEventName:          "test reason",
 					ketchv1.DeploymentAnnotationDescription:        "test message",
 					ketchv1.DeploymentAnnotationProcessName:        "test process",
+					ketchv1.DeploymentAnnotationPodErrorName:       "test-pod",
 				},
 			},
 		},
 	}
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
-			ev := newAppDeploymentEvent(app, tc.reason, tc.desc, tc.processName)
+			ev := newAppDeploymentEvent(app, tc.reason, tc.desc, tc.processName, tc.podName)
 			require.Equal(t, tc.expected, ev)
 		})
 	}

@@ -1009,7 +1009,8 @@ const (
 	DeploymentAnnotationInvolvedObjectName      = "deployment.shipa.io/involved-object-name"
 	DeploymentAnnotationInvolvedObjectFieldPath = "deployment.shipa.io/involved-object-field-path"
 	DeploymentAnnotationSourceHost              = "deployment.shipa.io/source-host"
-	DeploymentAnnotationSourceComponent         = "deployment.shipa.io/cource-component"
+	DeploymentAnnotationSourceComponent         = "deployment.shipa.io/source-component"
+	DeploymentAnnotationPodErrorName            = "deployment.shipa.io/pod-error-name"
 
 	AppReconcileStarted  = "AppReconcileStarted"
 	AppReconcileComplete = "AppReconcileComplete"
@@ -1036,6 +1037,7 @@ type AppDeploymentEvent struct {
 	// Source is the source of an incoming event
 	SourceHost      string
 	SourceComponent string
+	PodErrorName    string
 }
 
 func AppDeploymentEventFromAnnotations(annotations map[string]string) *AppDeploymentEvent {
