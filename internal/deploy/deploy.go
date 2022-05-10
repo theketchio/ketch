@@ -387,8 +387,13 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 				Cmd:  cmd,
 			}
 
-			ps.Volumes = args.volumes
-			ps.VolumeMounts = args.volumeMounts
+			if args.process == "" {
+				ps.Volumes = args.volumes
+				ps.VolumeMounts = args.volumeMounts
+			} else if args.process == processName {
+				ps.Volumes = args.volumes
+				ps.VolumeMounts = args.volumeMounts
+			}
 
 			if usePreviousDeploymentSpecs {
 				for _, previousProcess := range updated.Spec.Deployments[0].Processes {
