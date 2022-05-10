@@ -408,7 +408,14 @@ func (c *ChangeSet) getVolumes() ([]v1.Volume, error) {
 	if err != nil {
 		return nil, err
 	}
-	volume := []v1.Volume{{Name: volumeName}}
+	volume := []v1.Volume{{
+		Name: volumeName,
+		VolumeSource: v1.VolumeSource{
+			PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+				ClaimName: volumeName,
+			},
+		},
+	}}
 	return volume, nil
 }
 
