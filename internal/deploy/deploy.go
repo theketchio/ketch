@@ -9,6 +9,7 @@ import (
 	"time"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -162,6 +163,30 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 			return err
 		}
 
+		runAsUser, err := cs.getRunAsUser()
+		if err := assign(err, func() error {
+			if app.Spec.SecurityContext == nil {
+				app.Spec.SecurityContext = &v1.PodSecurityContext{}
+			}
+			app.Spec.SecurityContext.RunAsUser = &runAsUser
+			changed = true
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		fsGroup, err := cs.getFSGroup()
+		if err := assign(err, func() error {
+			if app.Spec.SecurityContext == nil {
+				app.Spec.SecurityContext = &v1.PodSecurityContext{}
+			}
+			app.Spec.SecurityContext.FSGroup = &fsGroup
+			changed = true
+			return nil
+		}); err != nil {
+			return err
+		}
+
 		secret, err := cs.getDockerRegistrySecret()
 		if err := assign(err, func() error {
 			app.Spec.DockerRegistry.SecretName = secret
@@ -230,28 +255,39 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	if err != nil {
 		return err
 	}
-	var updateRequest updateAppCRDRequest
-	updateRequest.appVersion = params.appVersion
-	updateRequest.image = image
+
 	steps, _ := params.getSteps()
-	updateRequest.steps = steps
 	stepWeight, _ := params.getStepWeight()
-	updateRequest.stepWeight = stepWeight
-	updateRequest.procFile = procfile
-	updateRequest.fromSource = fromSource
-	updateRequest.ketchYaml = ketchYaml
-	updateRequest.configFile = imgConfig
 	interval, _ := params.getStepInterval()
-	updateRequest.stepTimeInterval = interval
-	updateRequest.nextScheduledTime = time.Now().Add(interval)
-	updateRequest.started = time.Now()
 	units, _ := params.getUnits()
-	updateRequest.units = units
 	version, _ := params.getVersion()
-	updateRequest.version = version
 	process, _ := params.getProcess()
-	updateRequest.process = process
-	updateRequest.processes = params.processes
+	volume, _ := params.getVolumeName()
+	volumes, _ := params.getVolumes()
+	volumeMounts, _ := params.getVolumeMounts()
+
+	currentTime := time.Now()
+
+	updateRequest := updateAppCRDRequest{
+		appVersion:        params.appVersion,
+		image:             image,
+		steps:             steps,
+		stepWeight:        stepWeight,
+		procFile:          procfile,
+		fromSource:        fromSource,
+		ketchYaml:         ketchYaml,
+		configFile:        imgConfig,
+		stepTimeInterval:  interval,
+		nextScheduledTime: currentTime.Add(interval),
+		started:           currentTime,
+		units:             units,
+		version:           version,
+		process:           process,
+		processes:         params.processes,
+		volume:            volume,
+		volumes:           volumes,
+		volumeMounts:      volumeMounts,
+	}
 
 	if app, err = updateAppCRD(ctx, svc, params.appName, updateRequest); err != nil {
 		deploymentType := "image"
@@ -305,6 +341,9 @@ type updateAppCRDRequest struct {
 	version           int
 	process           string
 	processes         *[]ketchv1.ProcessSpec
+	volume            string
+	volumes           []v1.Volume
+	volumeMounts      []v1.VolumeMount
 }
 
 func updateAppCRD(ctx context.Context, svc *Services, appName string, args updateAppCRDRequest) (*ketchv1.App, error) {
@@ -347,6 +386,9 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 				Name: processName,
 				Cmd:  cmd,
 			}
+
+			ps.Volumes = args.volumes
+			ps.VolumeMounts = args.volumeMounts
 
 			if usePreviousDeploymentSpecs {
 				for _, previousProcess := range updated.Spec.Deployments[0].Processes {

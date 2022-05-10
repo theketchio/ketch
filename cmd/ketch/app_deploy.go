@@ -74,6 +74,7 @@ func newAppDeployCmd(cfg config, params *deploy.Services, configDefaultBuilder s
 	cmd.Flags().StringVar(&options.VolumeMountPath, "volume-mount-path", "", "Path to mount a volume.")
 	cmd.Flags().StringToStringVar(&options.VolumeMountOptions, "volume-mount-options", nil, "Options for volume mount.")
 	cmd.Flags().Int64Var(&options.FSGroup, "fs-group", 0, "The fsGroup for pod's security context; root if not set.")
+	cmd.Flags().Int64Var(&options.RunAsUser, "run-as-user", 0, "The user to use for running pod's processes; root if not set.")
 
 	cmd.Flags().IntVar(&options.Units, deploy.FlagUnits, 1, "Set number of units for deployment.")
 	cmd.Flags().IntVar(&options.Version, deploy.FlagVersion, 1, "Specify version whose units to update. Must be used with units flag!")
