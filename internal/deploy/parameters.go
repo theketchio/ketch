@@ -441,7 +441,8 @@ func (c *ChangeSet) getVolumeMounts() ([]v1.VolumeMount, error) {
 		if value, ok := (*c.volumeMountOptions)["readOnly"]; ok {
 			parsed, err := strconv.ParseBool(value)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("%w readOnly must be either true or false",
+					newInvalidUsageError(FlagVolumeMountOptions))
 			}
 			volumeMount.ReadOnly = parsed
 		}
@@ -468,7 +469,7 @@ func (c *ChangeSet) getFSGroup() (int64, error) {
 }
 
 func (c *ChangeSet) getRunAsUser() (int64, error) {
-	if c.fsGroup == nil {
+	if c.runAsUser == nil {
 		return 0, nil
 	}
 	if *c.runAsUser < 0 {

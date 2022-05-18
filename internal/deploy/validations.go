@@ -118,6 +118,45 @@ func validateDeploy(cs *ChangeSet, app *ketchv1.App) error {
 		}
 	}
 
+	// Volume Validations
+
+	_, err = cs.getVolumeName()
+	if !isMissing(err) {
+		if !isValid(err) {
+			return err
+		}
+	}
+
+	_, err = cs.getVolumes()
+	if !isMissing(err) {
+		if !isValid(err) {
+			return err
+		}
+	}
+
+	_, err = cs.getVolumeMounts()
+	if !isMissing(err) {
+		if !isValid(err) {
+			return err
+		}
+	}
+
+	// SecurityContext Validations
+
+	_, err = cs.getRunAsUser()
+	if !isMissing(err) {
+		if !isValid(err) {
+			return err
+		}
+	}
+
+	_, err = cs.getFSGroup()
+	if !isMissing(err) {
+		if !isValid(err) {
+			return err
+		}
+	}
+
 	wait, err := cs.getWait()
 	if !isMissing(err) {
 		if wait {
