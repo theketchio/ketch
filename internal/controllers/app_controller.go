@@ -271,7 +271,6 @@ func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("...workload status", o.Status)
 		w := workload{
 			Name:               o.Name,
 			UpdatedReplicas:    int(o.Status.UpdatedReplicas),
@@ -373,7 +372,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 
 		// retry until all pods for canary deployment comes to running state.
-		if _, err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
+		if _, err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[1].Version); len(app.Spec.Deployments) > 1 && err != nil {
 
 			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
 				return appReconcileResult{
@@ -689,7 +688,6 @@ func createDeployTimeoutError(ctx context.Context, cli kubernetes.Interface, app
 		deploymentVersion = int(app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 	}
 	opts := metav1.ListOptions{
-		//FieldSelector: "involvedObject.kind=Pod",
 		LabelSelector: fmt.Sprintf("%s/app-name=%s,%s/app-deployment-version=%d", group, app.Name, group, deploymentVersion),
 	}
 	pods, err := cli.CoreV1().Pods(app.GetNamespace()).List(ctx, opts)
