@@ -372,7 +372,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 
 		// retry until all pods for canary deployment comes to running state.
-		if _, err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[1].Version); len(app.Spec.Deployments) > 1 && err != nil {
+		if _, err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
 
 			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
 				return appReconcileResult{
