@@ -7,9 +7,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/spf13/pflag"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -22,23 +24,28 @@ import (
 
 // Command line flags
 const (
-	FlagApp            = "app"
-	FlagImage          = "image"
-	FlagKetchYaml      = "ketch-yaml"
-	FlagStrict         = "strict"
-	FlagSteps          = "steps"
-	FlagStepInterval   = "step-interval"
-	FlagWait           = "wait"
-	FlagTimeout        = "timeout"
-	FlagDescription    = "description"
-	FlagEnvironment    = "env"
-	FlagFramework      = "framework"
-	FlagRegistrySecret = "registry-secret"
-	FlagBuilder        = "builder"
-	FlagBuildPacks     = "build-packs"
-	FlagUnits          = "units"
-	FlagVersion        = "unit-version"
-	FlagProcess        = "unit-process"
+	FlagApp                = "app"
+	FlagImage              = "image"
+	FlagKetchYaml          = "ketch-yaml"
+	FlagStrict             = "strict"
+	FlagSteps              = "steps"
+	FlagStepInterval       = "step-interval"
+	FlagWait               = "wait"
+	FlagTimeout            = "timeout"
+	FlagDescription        = "description"
+	FlagEnvironment        = "env"
+	FlagFramework          = "framework"
+	FlagRegistrySecret     = "registry-secret"
+	FlagBuilder            = "builder"
+	FlagBuildPacks         = "build-packs"
+	FlagVolume             = "volume"
+	FlagVolumeMountPath    = "volume-mount-path"
+	FlagVolumeMountOptions = "volume-mount-options"
+	FlagFSGroup            = "fs-group"
+	FlagRunAsUser          = "run-as-user"
+	FlagUnits              = "units"
+	FlagVersion            = "unit-version"
+	FlagProcess            = "unit-process"
 
 	FlagAppShort         = "a"
 	FlagImageShort       = "i"
@@ -91,6 +98,11 @@ type Options struct {
 	DockerRegistrySecret string
 	Builder              string
 	BuildPacks           []string
+	Volume               string
+	VolumeMountPath      string
+	VolumeMountOptions   map[string]string
+	FSGroup              int64
+	RunAsUser            int64
 
 	Units   int
 	Version int
@@ -114,14 +126,20 @@ type ChangeSet struct {
 	dockerRegistrySecret *string
 	builder              *string
 	buildPacks           *[]string
-	appVersion           *string
-	appType              *string
-	processes            *[]ketchv1.ProcessSpec
-	ketchYamlData        *ketchv1.KetchYamlData
-	cname                *ketchv1.CnameList
-	units                *int
-	version              *int
-	process              *string
+	volume               *string
+	volumeMountPath      *string
+	volumeMountOptions   *map[string]string
+	fsGroup              *int64
+	runAsUser            *int64
+
+	appVersion    *string
+	appType       *string
+	processes     *[]ketchv1.ProcessSpec
+	ketchYamlData *ketchv1.KetchYamlData
+	cname         *ketchv1.CnameList
+	units         *int
+	version       *int
+	process       *string
 }
 
 func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
@@ -171,6 +189,21 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		},
 		FlagBuildPacks: func(c *ChangeSet) {
 			c.buildPacks = &o.BuildPacks
+		},
+		FlagVolume: func(c *ChangeSet) {
+			c.volume = &o.Volume
+		},
+		FlagVolumeMountPath: func(c *ChangeSet) {
+			c.volumeMountPath = &o.VolumeMountPath
+		},
+		FlagVolumeMountOptions: func(c *ChangeSet) {
+			c.volumeMountOptions = &o.VolumeMountOptions
+		},
+		FlagFSGroup: func(c *ChangeSet) {
+			c.fsGroup = &o.FSGroup
+		},
+		FlagRunAsUser: func(c *ChangeSet) {
+			c.runAsUser = &o.RunAsUser
 		},
 		FlagUnits: func(c *ChangeSet) {
 			c.units = &o.Units
@@ -361,6 +394,89 @@ func (c *ChangeSet) getProcess() (string, error) {
 			newInvalidUsageError(FlagProcess), FlagProcess, FlagUnits)
 	}
 	return *c.process, nil
+}
+
+func (c *ChangeSet) getVolumeName() (string, error) {
+	if c.volume == nil {
+		return "", newMissingError(FlagVolume)
+	}
+	return *c.volume, nil
+}
+
+func (c *ChangeSet) getVolumes() ([]v1.Volume, error) {
+	volumeName, err := c.getVolumeName()
+	if err != nil {
+		return nil, err
+	}
+	volume := []v1.Volume{{
+		Name: volumeName,
+		VolumeSource: v1.VolumeSource{
+			PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+				ClaimName: volumeName,
+			},
+		},
+	}}
+	return volume, nil
+}
+
+func (c *ChangeSet) getVolumeMounts() ([]v1.VolumeMount, error) {
+	volumeMount := v1.VolumeMount{}
+
+	// set volume mount path if exists
+	if c.volumeMountPath != nil {
+		if c.volume == nil {
+			return nil, fmt.Errorf("%w %s must be used with %s flag",
+				newInvalidUsageError(FlagVolumeMountPath), FlagVolumeMountPath, FlagVolume)
+		}
+		volumeMount.MountPath = *c.volumeMountPath
+	}
+
+	// set volume mount options if exists
+	if c.volumeMountOptions != nil {
+		if c.volume == nil {
+			return nil, fmt.Errorf("%w %s must be used with %s flag",
+				newInvalidUsageError(FlagVolumeMountOptions), FlagVolumeMountOptions, FlagVolume)
+		}
+
+		if value, ok := (*c.volumeMountOptions)["readOnly"]; ok {
+			parsed, err := strconv.ParseBool(value)
+			if err != nil {
+				return nil, fmt.Errorf("%w readOnly must be either true or false",
+					newInvalidUsageError(FlagVolumeMountOptions))
+			}
+			volumeMount.ReadOnly = parsed
+		}
+	}
+
+	// if empty, no mount paths or options were set
+	if volumeMount == (v1.VolumeMount{}) {
+		return nil, nil
+	}
+
+	volumeMount.Name = *c.volume
+	return []v1.VolumeMount{volumeMount}, nil
+}
+
+func (c *ChangeSet) getFSGroup() (int64, error) {
+	if c.fsGroup == nil {
+		return 0, nil
+	}
+	if *c.fsGroup <= 0 {
+		return 0, fmt.Errorf("%w %s must be 1 or greater",
+			newInvalidValueError(FlagFSGroup), FlagFSGroup)
+	}
+	return *c.fsGroup, nil
+}
+
+func (c *ChangeSet) getRunAsUser() (int64, error) {
+	if c.runAsUser == nil {
+		return 0, nil
+	}
+	if *c.runAsUser < 0 {
+		return 0, fmt.Errorf("%w %s must be 0 or greater",
+			newInvalidValueError(FlagRunAsUser), FlagRunAsUser)
+	}
+	return *c.runAsUser, nil
 }
 
 func (c *ChangeSet) getBuildPacks() ([]string, error) {
