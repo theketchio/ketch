@@ -194,11 +194,6 @@ func TestChangeSet_getVolumeMounts(t *testing.T) {
 			wantErr: `"volume-mount-options" used improperly readOnly must be either true or false`,
 		},
 		{
-			name:    "volume mount path set with invalid readOnly value",
-			set:     ChangeSet{volume: stringRef("pvc-1"), volumeMountOptions: &map[string]string{"readOnly": "asdf"}},
-			wantErr: `"volume-mount-options" used improperly readOnly must be either true or false`,
-		},
-		{
 			name: "valid volume mount with options and path",
 			set: ChangeSet{
 				volume:             stringRef("pvc-1"),

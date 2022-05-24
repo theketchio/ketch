@@ -358,6 +358,12 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 			return errors.New("cannot have more than one deployment per app, unless canary")
 		}
 
+		// if first deployment and volume exists, create StatefulSet rather than Deployment
+		if len(updated.Spec.Deployments) == 0 && args.volume != "" {
+			deploymentType := ketchv1.StatefulSetAppType
+			updated.Spec.Type = &deploymentType
+		}
+
 		// allow user to update units on canary deployments
 		if updated.Spec.Canary.Active {
 			if args.units > 0 {
@@ -387,10 +393,7 @@ func updateAppCRD(ctx context.Context, svc *Services, appName string, args updat
 				Cmd:  cmd,
 			}
 
-			if args.process == "" {
-				ps.Volumes = args.volumes
-				ps.VolumeMounts = args.volumeMounts
-			} else if args.process == processName {
+			if args.process == "" || args.process == processName {
 				ps.Volumes = args.volumes
 				ps.VolumeMounts = args.volumeMounts
 			}
