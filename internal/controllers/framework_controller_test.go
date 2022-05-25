@@ -76,7 +76,8 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 			},
 			wantStatusPhase: ketchv1.FrameworkCreated,
 			wantNamespaceLabels: map[string]string{
-				"istio-injection": "enabled",
+				"istio-injection":             "enabled",
+				"kubernetes.io/metadata.name": "another-namespace-3",
 			},
 		},
 		{
@@ -95,7 +96,8 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 			},
 			wantStatusPhase: ketchv1.FrameworkCreated,
 			wantNamespaceLabels: map[string]string{
-				"istio-injection": "disabled",
+				"istio-injection":             "disabled",
+				"kubernetes.io/metadata.name": "another-namespace-4",
 			},
 		},
 		{
@@ -114,7 +116,8 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 			},
 			wantStatusPhase: ketchv1.FrameworkCreated,
 			wantNamespaceLabels: map[string]string{
-				"istio-injection": "disabled",
+				"istio-injection":             "disabled",
+				"kubernetes.io/metadata.name": "another-namespace-5",
 			},
 		},
 	}
