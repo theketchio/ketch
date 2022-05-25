@@ -23,11 +23,11 @@ stack traces, the command(s) that caused the bug and so on.
 > `arm64 / darwin` for example does not have the necessary binaries.
 > 
 > The following assets are required:
-> 1. `/usr/local/etcd`:
->    1. Build from source: `git clone` , `make build`, `./bin/etcd version`, `sudo cp ./bin/etcd /usr/local`
-> 2. `/usr/local/kubebuilder`
+> 1. `/usr/local/kubebuilder/bin/etcd`:
+>    1. Build from source: `git clone` , `make build`, `./bin/etcd version`, `sudo cp ./bin/etcd /usr/local/kubebuilder/bin`
+> 2. `/usr/local/kubebuilder/bin/kubebuilder`
 >    1. Build from source: [Instructions](https://github.com/kubernetes/community/blob/master/contributors/devel/development.md
-        ) `git clone https://github.com/kubernetes/kubernetes.git`, `make WHAT=cmd/kube-apiserver`, `sudo mv ./_output/bin/kube-apiserver /usr/local`
+        ) `git clone https://github.com/kubernetes/kubernetes.git`, `make WHAT=cmd/kube-apiserver`, `sudo mv ./_output/bin/kube-apiserver /usr/local/kubebuilder/bin`
 > 3. `kubebuilder` is contained in $PATH
 
 [Kustomize](https://github.com/kubernetes-sigs/kustomize) Install with `make install-kustomize`.
