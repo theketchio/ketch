@@ -425,6 +425,7 @@ func (app *App) Start(selector Selector) error {
 			for i, processSpec := range deploymentSpec.Processes {
 				if processSpec.Name == *selector.Process && (processSpec.Units == nil || *processSpec.Units == 0) {
 					deploymentSpec.Processes[i].Units = &units
+					deploymentFound = true
 				}
 			}
 		} else {
@@ -433,11 +434,11 @@ func (app *App) Start(selector Selector) error {
 					continue
 				}
 				deploymentSpec.Processes[i].Units = &units
+				deploymentFound = true
 			}
 		}
-		deploymentFound = true
 	}
-	if selector.DeploymentVersion != nil && !deploymentFound {
+	if (selector.DeploymentVersion != nil || selector.Process != nil) && !deploymentFound {
 		return ErrDeploymentNotFound
 	}
 	return nil
