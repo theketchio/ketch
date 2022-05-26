@@ -16,12 +16,11 @@ jobs:
       - name: Unit Tests
         run: |
           make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder/bin
+          sudo chmod -R 777 /tmp/kubebuilder
           
           curl -L -o /tmp/kubebuilder/bin/kube-apiserver https://dl.k8s.io/v1.24.1/bin/linux/amd64/kube-apiserver
           export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
-          
-          ls /tmp/kubebuilder/bin
-          
+                    
           curl -L -o /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64 https://github.com/etcd-io/etcd/releases/download/v3.5.4/etcd-v3.5.4-linux-amd64.tar.gz
           tar -xzvf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
           mv /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64/etcd /tmp/kubebuilder/bin
@@ -58,7 +57,8 @@ jobs:
         run: |
           # kubebuilder
           make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder/bin
-          
+          sudo chmod -R 777 /tmp/kubebuilder
+
           # kube-apiserver
           curl -L -o /tmp/kubebuilder/bin/kube-apiserver https://dl.k8s.io/v1.24.1/bin/linux/amd64/kube-apiserver
           export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
