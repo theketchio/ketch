@@ -56,7 +56,7 @@ func appStart(ctx context.Context, cfg config, options appStartOptions, out io.W
 	}
 	s := ketchv1.NewSelector(options.deploymentVersion, options.processName)
 	if err := app.Start(s); err != nil {
-		return fmt.Errorf("failed to stop app: %w", err)
+		return fmt.Errorf("failed to start app: %w", err)
 	}
 	if err := cfg.Client().Update(ctx, &app); err != nil {
 		return fmt.Errorf("failed to update app: %w", err)
