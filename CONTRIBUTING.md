@@ -32,7 +32,7 @@ In this example we build and install Ketch. Clone the project. From the project 
 >       2. Build from source: `git clone https://github.com/etcd-io/etcd.git`, `make build`, `./bin/etcd version`, `sudo cp ./bin/etcd /usr/local/kubebuilder/bin`
 > 2. `/usr/local/kubebuilder/bin/kube-apiserver`
 >    1. Options:
->       1. Download via https://www.downloadkubernetes.com/
+>       1. Download via https://www.downloadkubernetes.com/ (v1.24.1)
 >       2. Build from source: [Instructions](https://github.com/kubernetes/community/blob/master/contributors/devel/development.md
                 ) `git clone https://github.com/kubernetes/kubernetes.git`, `make WHAT=cmd/kube-apiserver`, `sudo mv ./_output/bin/kube-apiserver /usr/local/kubebuilder/bin`
 > 3. `kube-apiserver` is contained in $PATH
