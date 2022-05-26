@@ -14,9 +14,9 @@ endif
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 
-KUBEBUILDER_VERSION="2.3.0"
-KUBEBUILDER_INSTALL_DIR ?= "/usr/local"
-KUBEBUILDER_RELEASE="kubebuilder_${KUBEBUILDER_VERSION}_${GOOS}_${GOARCH}"
+KUBEBUILDER_VERSION=3.4.1
+KUBEBUILDER_INSTALL_DIR ?= "/usr/local/kubebuilder/bin"
+KUBEBUILDER_RELEASE=kubebuilder_${GOOS}_${GOARCH}
 
 KUSTOMIZE ?= $(shell which kustomize)
 KUSTOMIZE_INSTALL_DIR ?= "/usr/local/bin"
@@ -56,15 +56,15 @@ install: manifests
 
 .PHONY: install-kubebuilder
 install-kubebuilder:
-	curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/${KUBEBUILDER_RELEASE}.tar.gz"
-	tar -zxvf ${KUBEBUILDER_RELEASE}.tar.gz
-	mv ${KUBEBUILDER_RELEASE} kubebuilder && sudo mv kubebuilder ${KUBEBUILDER_INSTALL_DIR}
-	rm ${KUBEBUILDER_RELEASE}.tar.gz
+	curl -L -o kubebuilder "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/${KUBEBUILDER_RELEASE}"
+	chmod a+x kubebuilder
+	sudo mkdir -p ${KUBEBUILDER_INSTALL_DIR}
+	sudo mv kubebuilder ${KUBEBUILDER_INSTALL_DIR}
 
 .PHONY: install-kustomize
 install-kustomize:
-	curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -s 3.8.6
-	mv kustomize ${KUSTOMIZE_INSTALL_DIR}/
+	curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -s 4.5.5
+	sudo mv kustomize ${KUSTOMIZE_INSTALL_DIR}/
 
 # Uninstall CRDs from a cluster
 .PHONY: uninstall
