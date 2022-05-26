@@ -58,7 +58,8 @@ install: manifests
 install-kubebuilder:
 	curl -L -o kubebuilder "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/${KUBEBUILDER_RELEASE}"
 	chmod a+x kubebuilder
-	sudo mkdir -p ${KUBEBUILDER_INSTALL_DIR}; sudo mv kubebuilder ${KUBEBUILDER_INSTALL_DIR}
+	sudo mkdir -p ${KUBEBUILDER_INSTALL_DIR}
+	sudo mv kubebuilder ${KUBEBUILDER_INSTALL_DIR}
 
 .PHONY: install-kustomize
 install-kustomize:
