@@ -15,11 +15,12 @@ jobs:
           go-version: '1.17'
       - name: Unit Tests
         run: |
-          mkdir -p /tmp/kubebuilder/bin
           make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder/bin
           
           curl -L -o /tmp/kubebuilder/bin/kube-apiserver https://dl.k8s.io/v1.24.1/bin/linux/amd64/kube-apiserver
           export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
+          
+          ls /tmp/kubebuilder/bin
           
           curl -L -o /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64 https://github.com/etcd-io/etcd/releases/download/v3.5.4/etcd-v3.5.4-linux-amd64.tar.gz
           tar -xzvf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
