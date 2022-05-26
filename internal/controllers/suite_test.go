@@ -55,7 +55,7 @@ func verifyKubeApiServerVersion() error {
 		return err
 	}
 	version := strings.TrimSpace(strings.TrimLeft(string(b), "Kubernetes"))
-	if semver.Compare(version, "v1.16.0") < 0 {
+	if semver.Compare(version, "v1.24.0") < 0 {
 		return fmt.Errorf("kube-apiserver --version must be >= 1.16, got %s", version)
 	}
 	return nil
