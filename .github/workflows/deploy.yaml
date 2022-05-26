@@ -19,12 +19,13 @@ jobs:
           sudo chmod -R 777 /tmp/kubebuilder
           
           curl -L -o /tmp/kubebuilder/bin/kube-apiserver https://dl.k8s.io/v1.24.1/bin/linux/amd64/kube-apiserver
+          cp /tmp/kubebuilder/bin/kube-apiserver /usr/local/bin/kube-apiserver
           export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
-                    
-          curl -L -o /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64 https://github.com/etcd-io/etcd/releases/download/v3.5.4/etcd-v3.5.4-linux-amd64.tar.gz
-          tar -xzvf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
-          mv /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64/etcd /tmp/kubebuilder/bin
-          rm -rf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
+          
+          curl -L -o /tmp/etcd-v3.5.4-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/v3.5.4/etcd-v3.5.4-linux-amd64.tar.gz
+          tar -xzvf /tmp/etcd-v3.5.4-linux-amd64.tar.gz -C /tmp/
+          mv /tmp/etcd-v3.5.4-linux-amd64/etcd /tmp/kubebuilder/bin
+          rm -rf /tmp/etcd-v3.5.4-linux-amd64*
           export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
           
           make test
@@ -61,13 +62,14 @@ jobs:
 
           # kube-apiserver
           curl -L -o /tmp/kubebuilder/bin/kube-apiserver https://dl.k8s.io/v1.24.1/bin/linux/amd64/kube-apiserver
+          cp /tmp/kubebuilder/bin/kube-apiserver /usr/local/bin/kube-apiserver
           export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
           
           # etcd
-          curl -L -o /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64 https://github.com/etcd-io/etcd/releases/download/v3.5.4/etcd-v3.5.4-linux-amd64.tar.gz
-          tar -xzvf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
-          mv /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64/etcd /tmp/kubebuilder/bin
-          rm -rf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
+          curl -L -o /tmp/etcd-v3.5.4-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/v3.5.4/etcd-v3.5.4-linux-amd64.tar.gz
+          tar -xzvf /tmp/etcd-v3.5.4-linux-amd64.tar.gz -C /tmp/
+          mv /tmp/etcd-v3.5.4-linux-amd64/etcd /tmp/kubebuilder/bin
+          rm -rf /tmp/etcd-v3.5.4-linux-amd64*
           export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
 
           # kustomize
