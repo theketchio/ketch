@@ -15,10 +15,18 @@ jobs:
           go-version: '1.17'
       - name: Unit Tests
         run: |
-          make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
-          export TEST_ASSET_KUBECTL=/tmp/kubebuilder/bin/kubectl
+          mkdir -p /tmp/kubebuilder/bin
+          make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder/bin
+          
+          curl -L -o /tmp/kubebuilder/bin/kube-apiserver https://dl.k8s.io/v1.24.1/bin/linux/amd64/kube-apiserver
           export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
+          
+          curl -L -o /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64 https://github.com/etcd-io/etcd/releases/download/v3.5.4/etcd-v3.5.4-linux-amd64.tar.gz
+          tar -xzvf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
+          mv /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64/etcd /tmp/kubebuilder/bin
+          rm -rf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
           export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
+          
           make test
       - name: Checkout unit-test-coverage
         uses: actions/checkout@v2
@@ -48,7 +56,19 @@ jobs:
       - name: Install Integration Test Dependencies
         run: |
           # kubebuilder
-          make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder
+          mkdir -p /tmp/kubebuilder/bin
+          make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder/bin
+          
+          # kube-apiserver
+          curl -L -o /tmp/kubebuilder/bin/kube-apiserver https://dl.k8s.io/v1.24.1/bin/linux/amd64/kube-apiserver
+          export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
+          
+          # etcd
+          curl -L -o /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64 https://github.com/etcd-io/etcd/releases/download/v3.5.4/etcd-v3.5.4-linux-amd64.tar.gz
+          tar -xzvf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
+          mv /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64/etcd /tmp/kubebuilder/bin
+          rm -rf /tmp/kubebuilder/bin/etcd-v3.5.4-linux-amd64
+          export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
 
           # kustomize
           make install-kustomize KUSTOMIZE_INSTALL_DIR=/tmp
