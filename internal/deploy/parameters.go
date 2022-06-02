@@ -8,12 +8,14 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
 
@@ -400,6 +402,11 @@ func (c *ChangeSet) getVolumeName() (string, error) {
 	if c.volume == nil {
 		return "", newMissingError(FlagVolume)
 	}
+	if errs := validation.IsDNS1123Label(*c.volume); len(errs) > 0 {
+		return "", fmt.Errorf("%w %s, %s",
+			newInvalidValueError(FlagVolume), FlagVolume, strings.Join(errs[:], ","))
+	}
+
 	return *c.volume, nil
 }
 
