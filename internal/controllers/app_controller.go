@@ -443,12 +443,14 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 				}
 			}
 
-			err = r.watchDeployEvents(ctx, app, &wc, wl, &process, r.Recorder)
+			watcher, err := initWatcher(ctx, app, &wc, wl, &process, r.Recorder)
 			if err != nil {
 				return appReconcileResult{
 					err: fmt.Errorf("failed to get deploy events: %w", err),
 				}
 			}
+			go r.watchDeployEvents(ctx, app, &wc, wl, &process, r.Recorder, watcher)
+
 		}
 		// We useTimeout here to set reconcile.ReququeAfter in the Reconciler
 		// in order to ensure events actually get sent. It seems the lazyRecorder we use
@@ -464,9 +466,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 	}
 }
 
-// watchDeployEvents watches a namespace for events and, after a deployment has started updating, records events
-// with updated deployment status and/or healthcheck and timeout failures
-func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App, cli *workloadClient, wl *workload, process *ketchv1.ProcessSpec, recorder record.EventRecorder) error {
+func initWatcher(ctx context.Context, app *ketchv1.App, cli *workloadClient, wl *workload, process *ketchv1.ProcessSpec, recorder record.EventRecorder) (watch.Interface, error) {
 	opts := metav1.ListOptions{
 		FieldSelector: "involvedObject.kind=Pod",
 		Watch:         true,
@@ -478,9 +478,15 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 		}
 		watchErrorEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("error watching deployments for workload %s: %s", wl.Name, err.Error()), process.Name, "")
 		recorder.AnnotatedEventf(app, watchErrorEvent.Annotations, v1.EventTypeWarning, watchErrorEvent.Reason, watchErrorEvent.Description)
-		return err
+		return nil, err
 	}
+	return watcher, nil
+}
 
+// watchDeployEvents watches a namespace for events and, after a deployment has started updating, records events
+// with updated deployment status and/or healthcheck and timeout failures
+func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App, cli *workloadClient, wl *workload, process *ketchv1.ProcessSpec, recorder record.EventRecorder, watcher watch.Interface) error {
+	var err error
 	// wait for Deployment Generation
 	timeout := time.After(DefaultPodRunningTimeout)
 	for wl.ObservedGeneration < wl.Generation {
@@ -511,8 +517,7 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 
 	reconcileStartedEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileStarted, fmt.Sprintf("Updating units [%s]", process.Name), process.Name, "")
 	recorder.AnnotatedEventf(app, reconcileStartedEvent.Annotations, v1.EventTypeNormal, reconcileStartedEvent.Reason, reconcileStartedEvent.Description)
-	go r.watchFunc(ctx, cleanup, app, process.Name, recorder, watcher, cli, wl, timeout)
-	return nil
+	return r.watchFunc(ctx, cleanup, app, process.Name, recorder, watcher, cli, wl, timeout)
 }
 
 func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app *ketchv1.App, processName string, recorder record.EventRecorder, watcher watch.Interface, cli *workloadClient, wl *workload, timeout <-chan time.Time) error {

@@ -233,7 +233,7 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 	require.Equal(t, []string{"app-running"}, helmMock.deleteChartCalled)
 }
 
-func TestWatchDeployEventsError(t *testing.T) {
+func TestInitWatcherError(t *testing.T) {
 	process := &ketchv1.ProcessSpec{
 		Name: "test",
 	}
@@ -268,16 +268,14 @@ func TestWatchDeployEventsError(t *testing.T) {
 		k8sClient: cli,
 	}
 	recorder := record.NewFakeRecorder(1024)
-	r := AppReconciler{
-		CancelMap: NewCancelMap(),
-	}
+
 	var events []string
 	go func() {
 		for ev := range recorder.Events {
 			events = append(events, ev)
 		}
 	}()
-	err := r.watchDeployEvents(context.Background(), app, wc, wl, process, recorder)
+	_, err := initWatcher(context.Background(), app, wc, wl, process, recorder)
 	require.EqualError(t, err, "assure clusterrole 'manager-role' has 'watch' permissions on event resources: unknown (get events)")
 	time.Sleep(time.Millisecond * 100) // give events time to propagate
 	require.Equal(t, 1, len(events))
