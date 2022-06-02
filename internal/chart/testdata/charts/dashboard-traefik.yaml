@@ -367,6 +367,7 @@ metadata:
     theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
 spec:
   entryPoints:
     - web

@@ -370,6 +370,7 @@ metadata:
     theketch.io/ingress-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "3"
 spec:
   ingressClassName: "gke"
   rules:
@@ -423,6 +424,7 @@ metadata:
     theketch.io/ingress-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
 spec:
   ingressClassName: "gke"
   rules:

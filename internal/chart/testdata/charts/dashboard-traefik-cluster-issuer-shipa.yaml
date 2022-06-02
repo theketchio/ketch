@@ -362,6 +362,7 @@ metadata:
   name: "dashboard-cname-theketch-io"
   labels:
     shipa.io/app-name: "dashboard"
+    shipa.io/app-deployment-version: "4"
 spec:
   secretName: "dashboard-cname-theketch-io"
   secretTemplate:
@@ -380,6 +381,7 @@ metadata:
   name: "dashboard-cname-app-theketch-io"
   labels:
     shipa.io/app-name: "dashboard"
+    shipa.io/app-deployment-version: "4"
 spec:
   secretName: "dashboard-cname-app-theketch-io"
   secretTemplate:
@@ -404,6 +406,7 @@ metadata:
     theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
+    shipa.io/app-deployment-version: "4"
 spec:
   entryPoints:
     - web
@@ -431,6 +434,7 @@ metadata:
     theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
+    shipa.io/app-deployment-version: "4"
 spec:
   entryPoints:
     - websecure
@@ -460,6 +464,7 @@ metadata:
     theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
+    shipa.io/app-deployment-version: "4"
 spec:
   entryPoints:
     - web
@@ -489,6 +494,7 @@ metadata:
     theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
+    shipa.io/app-deployment-version: "4"
 spec:
   entryPoints:
     - websecure
@@ -518,6 +524,7 @@ metadata:
     theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
+    shipa.io/app-deployment-version: "4"
 spec:
   entryPoints:
     - web
@@ -547,6 +554,7 @@ metadata:
     theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
+    shipa.io/app-deployment-version: "4"
 spec:
   entryPoints:
     - websecure
@@ -576,6 +584,7 @@ metadata:
     theketch.io/ingress-route-annotation: "test-ingress"
   labels:
     shipa.io/app-name: "dashboard"
+    shipa.io/app-deployment-version: "4"
 spec:
   entryPoints:
     - web

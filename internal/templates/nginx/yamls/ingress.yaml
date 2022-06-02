@@ -15,6 +15,7 @@ metadata:
     {{- include "ketch.renderMetadata" $data | nindent 4 }}
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
+    {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
 spec:
   {{- if $.Values.ingressController.className }}
   ingressClassName: {{ $.Values.ingressController.className | quote }}

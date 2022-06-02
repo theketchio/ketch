@@ -375,6 +375,7 @@ metadata:
   namespace: istio-system
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
 spec:
   secretName: dashboard-cname-theketch-io
   secretTemplate:
@@ -394,6 +395,7 @@ metadata:
   namespace: istio-system
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
 spec:
   secretName: dashboard-cname-app-theketch-io
   secretTemplate:
@@ -412,6 +414,7 @@ metadata:
   name: shipa-dashboard-rule-3
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "3"
 spec:
   host: dashboard-web-3
   subsets:
@@ -427,6 +430,7 @@ metadata:
   name: shipa-dashboard-rule-4
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
 spec:
   host: dashboard-web-4
   subsets:
@@ -441,6 +445,7 @@ kind: Gateway
 metadata:
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
   name: dashboard-http-gateway
   annotations:
     theketch.io/metadata-item-kind: Gateway
@@ -573,6 +578,7 @@ metadata:
     kubernetes.io/ingress.class: "ingress-class"
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
   name: dashboard-http
 spec:
     hosts:
