@@ -233,10 +233,11 @@ appVersion: {{ .AppVersion }}
 
 // ChartConfig contains data used to render the helm chart's "Chart.yaml" file.
 type ChartConfig struct {
-	Version     string
-	Description string
-	AppName     string
-	AppVersion  string
+	Version           string
+	Description       string
+	AppName           string
+	AppVersion        string
+	DeploymentVersion int
 }
 
 // NewChartConfig returns a ChartConfig instance based on the given application.
@@ -247,11 +248,20 @@ func NewChartConfig(app ketchv1.App) ChartConfig {
 		version = *app.Spec.Version
 	}
 	return ChartConfig{
-		Version:     chartVersion,
-		Description: app.Spec.Description,
-		AppName:     app.Name,
-		AppVersion:  version,
+		Version:           chartVersion,
+		Description:       app.Spec.Description,
+		AppName:           app.Name,
+		AppVersion:        version,
+		DeploymentVersion: targetDeploymentVersion(app),
 	}
+}
+
+// targetDeploymentVersion is last deployment in app deployments
+func targetDeploymentVersion(appCR ketchv1.App) int {
+	if len(appCR.Spec.Deployments) == 0 {
+		return 0
+	}
+	return int(appCR.Spec.Deployments[len(appCR.Spec.Deployments)-1].Version)
 }
 
 func (config ChartConfig) render() ([]byte, error) {

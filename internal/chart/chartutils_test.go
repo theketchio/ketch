@@ -11,10 +11,11 @@ import (
 
 func TestBufferedFiles(t *testing.T) {
 	chartConfig := ChartConfig{
-		Version:     "v0.0.1",
-		Description: "test config",
-		AppName:     "test app",
-		AppVersion:  "v1",
+		Version:           "v0.0.1",
+		Description:       "test config",
+		AppName:           "test app",
+		AppVersion:        "v1",
+		DeploymentVersion: 1,
 	}
 	templates := map[string]string{
 		"test.yaml": "name: {{ App.spec.name }}",

@@ -3,6 +3,7 @@ package chart
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 
 	"helm.sh/helm/v3/pkg/postrender"
@@ -16,8 +17,10 @@ import (
 var _ postrender.PostRenderer = &postRender{}
 
 type postRender struct {
-	cli       client.Client
-	namespace string
+	cli               client.Client
+	appName           string
+	deploymentVersion int
+	namespace         string
 }
 
 func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *bytes.Buffer, err error) {
@@ -27,51 +30,61 @@ func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *by
 		return nil, err
 	}
 
-	fs := filesys.MakeFsInMemory()
-	if err := fs.Mkdir(p.namespace); err != nil {
-		return nil, err
-	}
-
-	var postrenderFound bool
+	finalBuffer := renderedManifests
 	for _, cm := range configMapList.Items {
-		if !strings.HasSuffix(cm.Name, "-postrender") {
+		fwPatch := strings.HasSuffix(cm.Name, "-postrender")
+		appPatch := strings.HasPrefix(cm.Name, fmt.Sprintf("%s-%d-app-post-render", p.appName, p.deploymentVersion))
+
+		if !fwPatch && !appPatch {
 			continue
 		}
-		postrenderFound = true
+
+		fs := filesys.MakeFsInMemory()
+		localPath := p.localPath(fwPatch, p.appName)
+		if !fs.Exists(localPath) {
+			if err := fs.Mkdir(localPath); err != nil {
+				return nil, err
+			}
+		}
 
 		for k, v := range cm.Data {
-			fileName := p.namespace + "/" + k
+			fileName := localPath + "/" + k
 			if err := fs.WriteFile(fileName, []byte(v)); err != nil {
 				return nil, err
 			}
 		}
-	}
-
-	// return original manifests, otherwise begin postrender
-	if !postrenderFound {
-		return renderedManifests, nil
-	}
-
-	if err := fs.WriteFile(p.namespace+"/app.yaml", renderedManifests.Bytes()); err != nil {
-		return nil, err
-	}
-
-	kustomizer := krusty.MakeKustomizer(&krusty.Options{
-		PluginConfig: &kTypes.PluginConfig{
-			HelmConfig: kTypes.HelmConfig{
-				Enabled: true,
-				Command: "helm",
+		if err := fs.WriteFile(localPath+"/app.yaml", finalBuffer.Bytes()); err != nil {
+			return nil, err
+		}
+		kustomizer := krusty.MakeKustomizer(&krusty.Options{
+			PluginConfig: &kTypes.PluginConfig{
+				HelmConfig: kTypes.HelmConfig{
+					Enabled: true,
+					Command: "helm",
+				},
 			},
-		},
-	})
+		})
 
-	result, err := kustomizer.Run(fs, p.namespace)
-	if err != nil {
-		return nil, err
+		result, err := kustomizer.Run(fs, localPath)
+		if err != nil {
+			return nil, err
+		}
+		y, err := result.AsYaml()
+		if err != nil {
+			return nil, err
+		}
+		finalBuffer = bytes.NewBuffer(y)
+		if err := fs.WriteFile(localPath+"/app.yaml", finalBuffer.Bytes()); err != nil {
+			return nil, err
+		}
 	}
-	y, err := result.AsYaml()
-	if err != nil {
-		return nil, err
+
+	return finalBuffer, nil
+}
+
+func (p postRender) localPath(fwPatch bool, name string) string {
+	if fwPatch {
+		return p.namespace
 	}
-	return bytes.NewBuffer(y), nil
+	return p.appName
 }
