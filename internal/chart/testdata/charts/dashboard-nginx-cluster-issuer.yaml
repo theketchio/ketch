@@ -366,6 +366,7 @@ metadata:
     theketch.io/ingress-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "3"
 spec:
   ingressClassName: "ingress-class"
   rules:
@@ -392,6 +393,7 @@ metadata:
     theketch.io/ingress-annotation: "test-ingress"
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
 spec:
   ingressClassName: "ingress-class"
   rules:
@@ -522,6 +524,7 @@ metadata:
   name: "dashboard-cname-theketch-io"
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
 spec:
   secretName: "dashboard-cname-theketch-io"
   secretTemplate:
@@ -540,6 +543,7 @@ metadata:
   name: "dashboard-cname-app-theketch-io"
   labels:
     theketch.io/app-name: "dashboard"
+    theketch.io/app-deployment-version: "4"
 spec:
   secretName: "dashboard-cname-app-theketch-io"
   secretTemplate:

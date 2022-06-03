@@ -5,6 +5,9 @@ kind: Gateway
 metadata:
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
+    {{- with (last $.Values.app.deployments) }}
+    {{ $.Values.app.group }}/app-deployment-version: {{ .version | quote }}
+    {{- end }}
   name: {{ $.Values.app.name }}-http-gateway
   {{- $data := dict "kind" "Gateway" "apiVersion" "networking.istio.io/v1alpha3" "metadataItems" $.Values.app.metadataAnnotations }}
   annotations: {{- include "ketch.renderMetadata" $data | nindent 4 }}

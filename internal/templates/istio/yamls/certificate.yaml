@@ -7,6 +7,9 @@ metadata:
   namespace: istio-system
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
+    {{- with (last $.Values.app.deployments) }}
+    {{ $.Values.app.group }}/app-deployment-version: {{ .version | quote }}
+    {{- end }}
 spec:
   secretName: {{ $https.secretName }}
   secretTemplate:
