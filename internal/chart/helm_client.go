@@ -100,10 +100,11 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 		clientInstall.ReleaseName = appName
 		clientInstall.Namespace = c.namespace
 		clientInstall.PostRenderer = &postRender{
-			namespace:         c.namespace,
-			cli:               c.c,
-			appName:           config.AppName,
-			deploymentVersion: config.DeploymentVersion,
+			log:                c.log,
+			cli:                c.c,
+			namespace:          c.namespace,
+			appName:            config.AppName,
+			deploymentVersions: config.DeploymentVersions,
 		}
 		for _, opt := range opts {
 			opt(clientInstall)
@@ -121,10 +122,11 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	// Let's set it to minimal to disable "helm rollback".
 	updateClient.MaxHistory = 1
 	updateClient.PostRenderer = &postRender{
-		namespace:         c.namespace,
-		cli:               c.c,
-		appName:           config.AppName,
-		deploymentVersion: config.DeploymentVersion,
+		cli:                c.c,
+		log:                c.log,
+		namespace:          c.namespace,
+		appName:            config.AppName,
+		deploymentVersions: config.DeploymentVersions,
 	}
 	shouldUpdate, err := c.isHelmChartStatusActionable(c.statusFunc, appName, helmStatusActionMapUpdate)
 	if err != nil || !shouldUpdate {

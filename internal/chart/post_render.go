@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"helm.sh/helm/v3/pkg/postrender"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,10 +18,12 @@ import (
 var _ postrender.PostRenderer = &postRender{}
 
 type postRender struct {
-	cli               client.Client
-	appName           string
-	deploymentVersion int
-	namespace         string
+	log logr.Logger
+	cli client.Client
+
+	appName            string
+	deploymentVersions []int
+	namespace          string
 }
 
 func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *bytes.Buffer, err error) {
@@ -33,11 +36,18 @@ func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *by
 	finalBuffer := renderedManifests
 	for _, cm := range configMapList.Items {
 		fwPatch := strings.HasSuffix(cm.Name, "-postrender")
-		appPatch := strings.HasPrefix(cm.Name, fmt.Sprintf("%s-%d-app-post-render", p.appName, p.deploymentVersion))
+		var appPatch bool
+		for _, dv := range p.deploymentVersions {
+			appPatch = strings.HasPrefix(cm.Name, fmt.Sprintf("%s-%d-app-post-render", p.appName, dv))
+			if appPatch {
+				break
+			}
+		}
 
 		if !fwPatch && !appPatch {
 			continue
 		}
+		p.log.Info(fmt.Sprintf("including post renderer patch: appPatch: %t, fwPatch %t, %s ", appPatch, fwPatch, cm.Name))
 
 		fs := filesys.MakeFsInMemory()
 		localPath := p.localPath(fwPatch, p.appName)

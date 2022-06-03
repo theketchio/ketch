@@ -394,9 +394,9 @@ func TestNewApplicationChart(t *testing.T) {
 			actualFilename := filepath.Join(chartDirectory, fmt.Sprintf("%s.output.yaml", tt.wantYamlsFilename))
 
 			chartConfig := ChartConfig{
-				Version:           "0.0.1",
-				AppName:           tt.application.Name,
-				DeploymentVersion: targetDeploymentVersion(*tt.application),
+				Version:            "0.0.1",
+				AppName:            tt.application.Name,
+				DeploymentVersions: deploymentVersions(*tt.application),
 			}
 
 			client := HelmClient{cfg: &action.Configuration{KubeClient: &fake.PrintingKubeClient{}, Releases: storage.Init(driver.NewMemory())}, namespace: tt.framework.Spec.NamespaceName, c: clientfake.NewClientBuilder().Build()}

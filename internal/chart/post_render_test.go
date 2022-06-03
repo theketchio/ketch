@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 //go:embed testdata/render_yamls/prerendered-manifests.yaml
@@ -82,8 +83,8 @@ func TestPostRenderRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := fake.NewClientBuilder()
 			client.WithObjects(&tt.configmap)
-
 			pr := postRender{
+				log:       log.NullLogger{},
 				namespace: "fake",
 				cli:       client.Build(),
 			}

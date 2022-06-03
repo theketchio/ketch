@@ -48,11 +48,11 @@ func NewJobChartConfig(job ketchv1.Job) ChartConfig {
 		version = job.Spec.Version
 	}
 	return ChartConfig{
-		Version:           chartVersion,
-		Description:       job.Spec.Description,
-		AppName:           job.Spec.Name,
-		AppVersion:        version,
-		DeploymentVersion: int(job.ObjectMeta.Generation),
+		Version:            chartVersion,
+		Description:        job.Spec.Description,
+		AppName:            job.Spec.Name,
+		AppVersion:         version,
+		DeploymentVersions: []int{int(job.ObjectMeta.Generation)},
 	}
 }
 
