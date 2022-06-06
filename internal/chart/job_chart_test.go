@@ -62,10 +62,11 @@ func TestNewJobChart(t *testing.T) {
 
 func TestNewJobChartConfig(t *testing.T) {
 	expected := ChartConfig{
-		Version:     fmt.Sprintf("v0.0.%v", testJob.ObjectMeta.Generation),
-		Description: testJob.Spec.Description,
-		AppName:     testJob.Spec.Name,
-		AppVersion:  testJob.Spec.Version,
+		Version:            fmt.Sprintf("v0.0.%v", testJob.ObjectMeta.Generation),
+		Description:        testJob.Spec.Description,
+		AppName:            testJob.Spec.Name,
+		AppVersion:         testJob.Spec.Version,
+		DeploymentVersions: []int{int(testJob.ObjectMeta.Generation)},
 	}
 	chartConfig := NewJobChartConfig(*testJob)
 	require.Equal(t, expected, chartConfig)
