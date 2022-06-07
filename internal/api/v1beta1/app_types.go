@@ -234,6 +234,9 @@ type AppSpec struct {
 	// Annotations is a list of annotations that will be applied to Services/Deployments/Pods/Gateways/Ingresses/IngressRoutes.
 	Annotations []MetadataItem `json:"annotations,omitempty"`
 
+	// Namespace overrides the App's Framework's Namespace
+	Namespace string `json:"namespace,omitempty"`
+
 	// ServiceAccountName specifies a service account name to be used for this application.
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
@@ -662,6 +665,34 @@ func (app *App) DoRollback() {
 	app.Spec.Deployments[0].RoutingSettings.Weight = 100
 	app.Spec.Deployments[1].RoutingSettings.Weight = 0
 	app.Spec.Canary.Active = false
+}
+
+// AddLabel adds a label to an app's deployments' processes. It will remove labels with matching keys and targets.
+func (app *App) AddLabel(label map[string]string, target Target) {
+	// clean up labels
+	for i := len(app.Spec.Labels) - 1; i >= 0; i-- {
+		if app.Spec.Labels[i].Target != target {
+			continue
+		}
+		for key := range app.Spec.Labels[i].Apply {
+			delete(app.Spec.Labels[i].Apply, key)
+		}
+		if len(app.Spec.Labels[i].Apply) == 0 {
+			app.Spec.Labels = append(app.Spec.Labels[:i], app.Spec.Labels[i+1:]...)
+		}
+	}
+
+	// add labels
+	for _, deployment := range app.Spec.Deployments {
+		for _, process := range deployment.Processes {
+			app.Spec.Labels = append(app.Spec.Labels, MetadataItem{
+				Target:            target,
+				ProcessName:       process.Name,
+				DeploymentVersion: int(deployment.Version),
+				Apply:             label,
+			})
+		}
+	}
 }
 
 // PodState describes the simplified state of a pod in the cluster

@@ -874,3 +874,170 @@ func Test_appReconcileResult_isConflictError(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
+	defaultObjects := []client.Object{
+		&ketchv1.Framework{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "istio-framework",
+			},
+			Spec: ketchv1.FrameworkSpec{
+				NamespaceName: "hello",
+				AppQuotaLimit: conversions.IntPtr(100),
+				IngressController: ketchv1.IngressControllerSpec{
+					IngressType: ketchv1.IstioIngressControllerType,
+				},
+			},
+		},
+		&ketchv1.Framework{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "traefik-framework",
+			},
+			Spec: ketchv1.FrameworkSpec{
+				NamespaceName: "second-namespace",
+				AppQuotaLimit: conversions.IntPtr(1),
+				IngressController: ketchv1.IngressControllerSpec{
+					IngressType: ketchv1.TraefikIngressControllerType,
+				},
+			},
+		},
+	}
+	helmMock := &helm{
+		updateChartResults: map[string]error{
+			"app-update-chart-failed": errors.New("render error"),
+		},
+	}
+	readerMock := &templateReader{
+		templatesErrors: map[string]error{
+			"templates-failed": errors.New("no templates"),
+		},
+	}
+	ctx, err := setup(readerMock, helmMock, defaultObjects)
+	require.Nil(t, err)
+	require.NotNil(t, ctx)
+	defer teardown(ctx)
+
+	r := &AppReconciler{
+		Client: ctx.k8sClient,
+	}
+
+	tests := []struct {
+		description       string
+		app               *ketchv1.App
+		namespace         *v1.Namespace
+		expectedLabels    map[string]string
+		expectedAppLabels []ketchv1.MetadataItem
+		expectedError     string
+	}{
+		{
+			description: "istio",
+			app: &ketchv1.App{
+				Spec: ketchv1.AppSpec{
+					Namespace: "test-1",
+					Framework: "istio-framework",
+					Deployments: []ketchv1.AppDeploymentSpec{{
+						Version: 1,
+						Processes: []ketchv1.ProcessSpec{{
+							Name: "process-1",
+						}},
+					}},
+				},
+				ObjectMeta: metav1.ObjectMeta{Name: "app-1", Namespace: "test-1"},
+			},
+			namespace:      &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-1"}},
+			expectedLabels: map[string]string{"istio-injection": "enabled", "kubernetes.io/metadata.name": "test-1"},
+			expectedAppLabels: []ketchv1.MetadataItem{{
+				Apply:             map[string]string{"sidecar.istio.io/inject": "true"},
+				DeploymentVersion: 1,
+				Target:            ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+				ProcessName:       "process-1",
+			}},
+		},
+		{
+			description: "non-istio",
+			app: &ketchv1.App{
+				Spec: ketchv1.AppSpec{
+					Namespace: "test-2",
+					Framework: "traefik-framework",
+					Deployments: []ketchv1.AppDeploymentSpec{{
+						Version: 1,
+						Processes: []ketchv1.ProcessSpec{{
+							Name: "process-1",
+						}},
+					}},
+				},
+				ObjectMeta: metav1.ObjectMeta{Name: "app-2", Namespace: "test-2"},
+			},
+			namespace:      &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-2"}},
+			expectedLabels: map[string]string{"kubernetes.io/metadata.name": "test-2"},
+			expectedAppLabels: []ketchv1.MetadataItem{{
+				Apply:             map[string]string{"sidecar.istio.io/inject": "false"},
+				DeploymentVersion: 1,
+				Target:            ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+				ProcessName:       "process-1",
+			}},
+		},
+		{
+			description: "non-istio - clean up old labels",
+			app: &ketchv1.App{
+				Spec: ketchv1.AppSpec{
+					Namespace: "test-3",
+					Framework: "traefik-framework",
+					Deployments: []ketchv1.AppDeploymentSpec{{
+						Version: 1,
+						Processes: []ketchv1.ProcessSpec{{
+							Name: "process-1",
+						}},
+					}},
+					Labels: []ketchv1.MetadataItem{{
+						Target: ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+						Apply:  map[string]string{"sidecar.istio.io/inject": "true"},
+					}},
+				},
+				ObjectMeta: metav1.ObjectMeta{Name: "app-3", Namespace: "test-3"},
+			},
+			namespace:      &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-3", Labels: map[string]string{"istio-injection": "enabled"}}},
+			expectedLabels: map[string]string{"kubernetes.io/metadata.name": "test-3"},
+			expectedAppLabels: []ketchv1.MetadataItem{{
+				Apply:             map[string]string{"sidecar.istio.io/inject": "false"},
+				DeploymentVersion: 1,
+				Target:            ketchv1.Target{Kind: "Pod", APIVersion: "v1"},
+				ProcessName:       "process-1",
+			}},
+		},
+		{
+			description: "non-existent namespace",
+			app: &ketchv1.App{
+				Spec: ketchv1.AppSpec{
+					Namespace: "test-3",
+					Framework: "nonexistent-framework",
+				},
+				ObjectMeta: metav1.ObjectMeta{Name: "app-4", Namespace: "test-10000000"},
+			},
+			namespace:     &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-4"}},
+			expectedError: "frameworks.theketch.io \"nonexistent-framework\" not found",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.description, func(t *testing.T) {
+			err = ctx.k8sClient.Create(ctx, tc.namespace)
+			require.Nil(t, err)
+			defer ctx.k8sClient.Delete(ctx, tc.namespace)
+
+			err = r.UpdateAppNamespaceLabelsForIngress(ctx, tc.app)
+			if tc.expectedError == "" {
+				require.Nil(t, err)
+			} else {
+				require.EqualError(t, err, tc.expectedError)
+				return
+			}
+
+			var resultNamespace v1.Namespace
+			err = ctx.k8sClient.Get(context.Background(), types.NamespacedName{Namespace: tc.namespace.Namespace, Name: tc.namespace.Name}, &resultNamespace)
+			require.Nil(t, err)
+			require.Equal(t, tc.expectedLabels, resultNamespace.Labels)
+			require.Equal(t, tc.expectedAppLabels, tc.app.Spec.Labels)
+		})
+	}
+}

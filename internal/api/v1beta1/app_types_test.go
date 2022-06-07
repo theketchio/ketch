@@ -1249,6 +1249,90 @@ func TestApp_DoCanary(t *testing.T) {
 	}
 }
 
+func TestAppAddLabel(t *testing.T) {
+	tests := []struct {
+		description string
+		app         *App
+		labels      map[string]string
+		target      Target
+		expected    []MetadataItem
+	}{
+		{
+			description: "add label",
+			app: &App{
+				Spec: AppSpec{
+					Deployments: []AppDeploymentSpec{{
+						Version: 1,
+						Processes: []ProcessSpec{{
+							Name: "process-1",
+						}},
+					}},
+				},
+			},
+			labels: map[string]string{"mykey": "myvalue"},
+			target: Target{Kind: "Pod", APIVersion: "v1"},
+			expected: []MetadataItem{{
+				Apply:             map[string]string{"mykey": "myvalue"},
+				DeploymentVersion: 1,
+				Target:            Target{Kind: "Pod", APIVersion: "v1"},
+				ProcessName:       "process-1",
+			}},
+		},
+		{
+			description: "replace label",
+			app: &App{
+				Spec: AppSpec{
+					Deployments: []AppDeploymentSpec{{
+						Version: 1,
+						Processes: []ProcessSpec{{
+							Name: "process-1",
+						}},
+					}},
+					Labels: []MetadataItem{
+						{
+							Apply:             map[string]string{"mykey": "myOLDvalue"},
+							DeploymentVersion: 1,
+							Target:            Target{Kind: "Pod", APIVersion: "v1"},
+							ProcessName:       "process-1",
+						},
+						{
+							Apply:             map[string]string{"mykey": "myDEPLOYMENTvalue"},
+							DeploymentVersion: 1,
+							Target:            Target{Kind: "Deployment", APIVersion: "v1"},
+							ProcessName:       "process-1",
+						},
+					},
+				},
+			},
+			labels: map[string]string{"mykey": "myvalue"},
+			target: Target{Kind: "Pod", APIVersion: "v1"},
+			expected: []MetadataItem{
+				{
+					Apply:             map[string]string{"mykey": "myDEPLOYMENTvalue"},
+					DeploymentVersion: 1,
+					Target:            Target{Kind: "Deployment", APIVersion: "v1"},
+					ProcessName:       "process-1",
+				},
+				{
+					Apply:             map[string]string{"mykey": "myvalue"},
+					DeploymentVersion: 1,
+					Target:            Target{Kind: "Pod", APIVersion: "v1"},
+					ProcessName:       "process-1",
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.description, func(t *testing.T) {
+			tc.app.AddLabel(tc.labels, tc.target)
+			fmt.Println(tc.expected)
+			fmt.Println(tc.app.Spec.Labels)
+			require.EqualValues(t, tc.expected, tc.app.Spec.Labels)
+
+		})
+	}
+}
+
 func TestValidateMetadataItem(t *testing.T) {
 	tests := []struct {
 		description  string

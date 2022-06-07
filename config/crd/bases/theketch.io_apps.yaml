@@ -2385,6 +2385,9 @@ spec:
                       type: object
                   type: object
                 type: array
+              namespace:
+                description: Namespace overrides the App's Framework's Namespace
+                type: string
               securityContext:
                 description: SecurityContext specifies security settings for a pod/app,
                   which get applied to all containers.
