@@ -320,9 +320,9 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 	if err != nil {
 		return appReconcileResult{err: err}
 	}
-	if framework.Status.Namespace == nil {
+	if framework.Status.Namespace == nil && app.Namespace == "" {
 		return appReconcileResult{
-			err: fmt.Errorf(`framework "%s" is not linked to a kubernetes namespace`, framework.Name),
+			err: fmt.Errorf(`framework "%s" or app "%s" must be linked to a kubernetes namespace`, framework.Name, app.Name),
 		}
 	}
 	tpls, err := r.TemplateReader.Get(templates.IngressConfigMapName(framework.Spec.IngressController.IngressType.String()))
@@ -354,7 +354,11 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 			}
 		}
 	}
+	// Override framework.namespace if app.namespace is set
 	targetNamespace := framework.Status.Namespace.Name
+	if app.Spec.Namespace != "" {
+		targetNamespace = app.Spec.Namespace
+	}
 	helmClient, err := r.HelmFactoryFn(targetNamespace)
 	if err != nil {
 		return appReconcileResult{err: err}
@@ -428,11 +432,14 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 					err: err,
 				}
 			}
-
+			namespace := framework.Spec.NamespaceName
+			if app.Spec.Namespace != "" {
+				namespace = app.Spec.Namespace
+			}
 			wc := workloadClient{
 				k8sClient:         cli,
 				workloadName:      fmt.Sprintf("%s-%s-%d", app.GetName(), process.Name, latestDeployment.Version),
-				workloadNamespace: framework.Spec.NamespaceName,
+				workloadNamespace: namespace,
 				workloadType:      app.Spec.GetType(),
 			}
 
@@ -795,7 +802,12 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 		}
 
 		if uninstallHelmChart(r.Group, app.Annotations) {
-			helmClient, err := r.HelmFactoryFn(framework.Spec.NamespaceName)
+			// Override framework.namespace if app.namespace is set
+			targetNamespace := framework.Status.Namespace.Name
+			if app.Spec.Namespace != "" {
+				targetNamespace = app.Spec.Namespace
+			}
+			helmClient, err := r.HelmFactoryFn(targetNamespace)
 			if err != nil {
 				return err
 			}

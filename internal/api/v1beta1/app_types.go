@@ -234,6 +234,9 @@ type AppSpec struct {
 	// Annotations is a list of annotations that will be applied to Services/Deployments/Pods/Gateways/Ingresses/IngressRoutes.
 	Annotations []MetadataItem `json:"annotations,omitempty"`
 
+	// Namespace overrides the App's Framework's Namespace
+	Namespace string `json:"namespace,omitempty"`
+
 	// ServiceAccountName specifies a service account name to be used for this application.
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
