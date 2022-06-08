@@ -296,7 +296,9 @@ func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
 			return nil, err
 		}
 		for _, e := range e.Items {
-			w.Events = append(w.Events, eventCondition{Type: e.Type, Reason: e.Reason, Message: e.Message})
+			if e.FirstTimestamp == o.ObjectMeta.CreationTimestamp {
+				w.Events = append(w.Events, eventCondition{Type: e.Type, Reason: e.Reason, Message: e.Message})
+			}
 		}
 		return &w, nil
 	case ketchv1.StatefulSetAppType:
