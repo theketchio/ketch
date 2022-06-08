@@ -243,6 +243,12 @@ type condition struct {
 	Reason string
 }
 
+type eventCondition struct {
+	Type    string
+	Reason  string
+	Message string
+}
+
 // workload contains the needed information for watchDeployEvents logic
 // deployments and statefulsets are both supported so it became necessary
 // to abstract their common properties into a separate type
@@ -254,6 +260,7 @@ type workload struct {
 	Generation         int
 	ObservedGeneration int
 	Conditions         []condition
+	Events             []eventCondition
 }
 
 type workloadClient struct {
@@ -284,6 +291,13 @@ func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
 		for _, c := range o.Status.Conditions {
 			w.Conditions = append(w.Conditions, condition{Type: string(c.Type), Reason: c.Reason})
 		}
+		e, err := cli.k8sClient.CoreV1().Events(cli.workloadNamespace).List(ctx, metav1.ListOptions{FieldSelector: "involvedObject.name=" + o.Name, TypeMeta: metav1.TypeMeta{Kind: "Pod"}})
+		if err != nil {
+			return nil, err
+		}
+		for _, e := range e.Items {
+			w.Events = append(w.Events, eventCondition{Type: e.Type, Reason: e.Reason, Message: e.Message})
+		}
 		return &w, nil
 	case ketchv1.StatefulSetAppType:
 		o, err := cli.k8sClient.AppsV1().StatefulSets(cli.workloadNamespace).Get(ctx, cli.workloadName, metav1.GetOptions{})
@@ -302,6 +316,13 @@ func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
 		}
 		for _, c := range o.Status.Conditions {
 			w.Conditions = append(w.Conditions, condition{Type: string(c.Type), Reason: c.Reason})
+		}
+		e, err := cli.k8sClient.CoreV1().Events(cli.workloadNamespace).List(ctx, metav1.ListOptions{FieldSelector: "involvedObject.name=" + o.Name, TypeMeta: metav1.TypeMeta{Kind: "StatefulSet"}})
+		if err != nil {
+			return nil, err
+		}
+		for _, e := range e.Items {
+			w.Events = append(w.Events, eventCondition{Type: e.Type, Reason: e.Reason, Message: e.Message})
 		}
 		return &w, nil
 	}
@@ -495,6 +516,9 @@ func (r *AppReconciler) watchDeployEvents(ctx context.Context, app *ketchv1.App,
 			recorder.Eventf(app, v1.EventTypeWarning, ketchv1.AppReconcileError, "error getting deployments: %s", err.Error())
 			return err
 		}
+		if err := checkWorkloadEvent(wl); err != nil {
+			return err
+		}
 		select {
 		case <-time.After(100 * time.Millisecond):
 		case <-timeout:
@@ -679,6 +703,15 @@ func newAppDeploymentEvent(app *ketchv1.App, reason, desc, processName, podName 
 func isDeploymentEvent(msg watch.Event, name string) bool {
 	evt, ok := msg.Object.(*v1.Event)
 	return ok && strings.HasPrefix(evt.Name, name)
+}
+
+func checkWorkloadEvent(wl *workload) error {
+	for _, e := range wl.Events {
+		if e.Type == "Warning" && e.Reason == "FailedCreate" {
+			return errors.New(e.Message)
+		}
+	}
+	return nil
 }
 
 // createDeployTimeoutError gets pods that are not status == ready aggregates and returns the pod phase errors
