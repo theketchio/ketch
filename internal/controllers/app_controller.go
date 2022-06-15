@@ -421,6 +421,13 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 	}
 
+	err = r.UpdateAppNamespaceLabelsForIstio(ctx, app)
+	if err != nil {
+		return appReconcileResult{
+			err: fmt.Errorf("failed to update namespace labels for istio: %w", err),
+		}
+	}
+
 	if len(app.Spec.Deployments) > 0 && !app.Spec.Canary.Active {
 		// use latest deployment and watch events for each process
 		latestDeployment := app.Spec.Deployments[len(app.Spec.Deployments)-1]
@@ -838,6 +845,33 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 	}
 	return nil
 
+}
+
+// TODO test me, if we decide to do app.namespace overrides framework.namespace
+func (r *AppReconciler) UpdateAppNamespaceLabelsForIstio(ctx context.Context, app *ketchv1.App) error {
+	var framework ketchv1.Framework
+	err := r.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework, Namespace: app.Namespace}, &framework)
+	fmt.Println("E", err)
+	if err != nil {
+		return err
+	}
+
+	// we rely on istio automatic sidecar injection
+	// https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
+	if framework.Spec.IngressController.IngressType != ketchv1.IstioIngressControllerType {
+		return nil
+	}
+	namespacedName := framework.Spec.NamespaceName
+	if app.Spec.Namespace != "" { // override framework.spec.namespace if app.spec.namespace is set
+		namespacedName = app.Spec.Namespace
+	}
+	var namespace v1.Namespace
+	err = r.Get(ctx, types.NamespacedName{Name: namespacedName}, &namespace)
+	if err != nil {
+		return err
+	}
+	namespace.Labels["istio-injection"] = "enabled"
+	return r.Update(ctx, &namespace)
 }
 
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {

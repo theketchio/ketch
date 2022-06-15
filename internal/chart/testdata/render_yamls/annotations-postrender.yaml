@@ -46,7 +46,7 @@ kind: Deployment
 metadata:
   annotations:
     app: app1
-    theketch.io/is-shipa: "true"
+    shipa.io/is-shipa: "true"
   labels:
     theketch.io/app-deployment-version: "1"
     theketch.io/app-name: post
