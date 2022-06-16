@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -403,8 +402,8 @@ func (c *ChangeSet) getVolumeName() (string, error) {
 		return "", newMissingError(FlagVolume)
 	}
 	if errs := validation.IsDNS1123Label(*c.volume); len(errs) > 0 {
-		return "", fmt.Errorf("%w %s, %s",
-			newInvalidValueError(FlagVolume), FlagVolume, strings.Join(errs[:], ","))
+		return "", fmt.Errorf("%w %s: %s. A volume name must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc')",
+			newInvalidValueError(FlagVolume), FlagVolume, *c.volume)
 	}
 
 	return *c.volume, nil
