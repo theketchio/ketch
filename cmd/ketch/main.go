@@ -30,7 +30,7 @@ func main() {
 
 	cmd := newRootCmd(&configuration.Configuration{}, out, packSvc, getKetchConfig())
 	if err := cmd.Execute(); err != nil {
-		log.Fatalf("execution failed %q", err)
+		log.Fatalf("Error: %v", err)
 	}
 }
 
