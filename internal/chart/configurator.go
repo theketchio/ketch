@@ -2,10 +2,8 @@ package chart
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
-	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -36,70 +34,30 @@ func NewConfigurator(data *ketchv1.KetchYamlData, procfile Procfile, exposedPort
 
 // Probes represents a Pod's liveness and readiness probes.
 type Probes struct {
-	Liveness  *apiv1.Probe
-	Readiness *apiv1.Probe
+	Liveness     *apiv1.Probe
+	Readiness    *apiv1.Probe
+	StartupProbe *apiv1.Probe
 }
 
 func (c Configurator) Probes(port int32) (Probes, error) {
 	var result Probes
 	hc := c.data.Healthcheck
-	if hc == nil || hc.Path == "" {
+	if hc == nil {
 		return result, nil
 	}
-	if hc.Scheme == "" {
-		hc.Scheme = defaultHealthcheckScheme
+
+	if hc.ReadinessProbe != nil {
+		result.Readiness = hc.ReadinessProbe
 	}
-	hc.Method = strings.ToUpper(hc.Method)
-	if hc.Method == "" {
-		hc.Method = http.MethodGet
+
+	if hc.LivenessProbe != nil {
+		result.Liveness = hc.LivenessProbe
 	}
-	if hc.IntervalSeconds == 0 {
-		hc.IntervalSeconds = defaultHealthcheckIntervalSeconds
+
+	if hc.StartupProbe != nil {
+		result.StartupProbe = hc.StartupProbe
 	}
-	if hc.TimeoutSeconds == 0 {
-		hc.TimeoutSeconds = defaultHealthcheckTimeoutSeconds
-	}
-	if !hc.UseInRouter {
-		url := fmt.Sprintf("%s://localhost:%d/%s", hc.Scheme, port, strings.TrimPrefix(hc.Path, "/"))
-		result.Readiness = &apiv1.Probe{
-			FailureThreshold: int32(hc.AllowedFailures),
-			PeriodSeconds:    int32(3),
-			TimeoutSeconds:   int32(hc.TimeoutSeconds),
-			Handler: apiv1.Handler{
-				Exec: &apiv1.ExecAction{
-					Command: []string{
-						"sh", "-c",
-						fmt.Sprintf(`if [ ! -f /tmp/onetimeprobesuccessful ]; then curl -ksSf -X%[1]s -o /dev/null %[2]s && touch /tmp/onetimeprobesuccessful; fi`,
-							hc.Method, url),
-					},
-				},
-			},
-		}
-		return result, nil
-	}
-	if hc.Method != http.MethodGet {
-		return result, errors.New("healthcheck: only GET method is supported in with use_in_router set")
-	}
-	if hc.AllowedFailures == 0 {
-		hc.AllowedFailures = defaultHealthcheckAllowedFailures
-	}
-	hc.Scheme = strings.ToUpper(hc.Scheme)
-	probe := &apiv1.Probe{
-		FailureThreshold: int32(hc.AllowedFailures),
-		PeriodSeconds:    int32(hc.IntervalSeconds),
-		TimeoutSeconds:   int32(hc.TimeoutSeconds),
-		Handler: apiv1.Handler{
-			HTTPGet: &apiv1.HTTPGetAction{
-				Path:   hc.Path,
-				Port:   intstr.FromInt(int(port)),
-				Scheme: apiv1.URIScheme(hc.Scheme),
-			},
-		},
-	}
-	result.Readiness = probe
-	if hc.ForceRestart {
-		result.Liveness = probe
-	}
+
 	return result, nil
 }
 

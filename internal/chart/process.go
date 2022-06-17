@@ -31,6 +31,7 @@ type process struct {
 	VolumeMounts         []v1.VolumeMount         `json:"volumeMounts,omitempty"`
 	ReadinessProbe       *v1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe        *v1.Probe                `json:"livenessProbe,omitempty"`
+	StartupProbe         *v1.Probe                `json:"startupProbe,omitempty"`
 	Lifecycle            *v1.Lifecycle            `json:"lifecycle,omitempty"`
 	// ServiceMetadata contains Labels and Annotations to be added to a k8s Service of this process.
 	ServiceMetadata extraMetadata `json:"serviceMetadata,omitempty"`
@@ -93,6 +94,7 @@ func withPortsAndProbes(c portConfigurator) processOption {
 		p.PublicServicePort = p.ServicePorts[0].Port
 		p.LivenessProbe = probes.Liveness
 		p.ReadinessProbe = probes.Readiness
+		p.StartupProbe = probes.StartupProbe
 		return nil
 	}
 }
