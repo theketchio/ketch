@@ -53,12 +53,12 @@ type JobReconcileReason struct {
 	JobName string
 }
 
-// +kubebuilder:rbac:groups=resources.resources,resources=jobs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=resources.resources,resources=jobs/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=resources.resources,resources=jobs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=resources.resources,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=resources.resources,resources=jobs/status;cronjobs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=resources.resources,resources=jobs/finalizers;cronjobs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=theketch.io,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=theketch.io,resources=jobs/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile fetches a Job by name and updates helm charts with differences
 func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -135,7 +135,12 @@ func (r *JobReconciler) reconcile(ctx context.Context, job *ketchv1.Job) reconci
 			message: fmt.Sprintf(`framework "%s" is not linked to a kubernetes namespace`, framework.Name),
 		}
 	}
-	tpls, err := r.TemplateReader.Get(templates.JobConfigMapName())
+
+	configmapName := templates.JobConfigMapName()
+	if job.Spec.Schedule != "" {
+		configmapName = templates.CronJobConfigMapName()
+	}
+	tpls, err := r.TemplateReader.Get(configmapName)
 	if err != nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,

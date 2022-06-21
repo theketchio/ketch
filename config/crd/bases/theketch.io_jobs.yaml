@@ -65,6 +65,8 @@ spec:
                 type: array
               description:
                 type: string
+              failedJobsHistoryLimit:
+                type: integer
               framework:
                 type: string
               name:
@@ -74,9 +76,19 @@ spec:
               policy:
                 description: Policy represents the policy types a job can have
                 properties:
+                  concurrencyPolicy:
+                    description: CronJob-specific
+                    type: string
                   restartPolicy:
                     type: string
                 type: object
+              schedule:
+                description: CronJob-specific
+                type: string
+              startingDeadlineSeconds:
+                type: integer
+              successfulJobsHistoryLimit:
+                type: integer
               suspend:
                 type: boolean
               type:
@@ -91,6 +103,9 @@ spec:
           status:
             description: JobStatus defines the observed state of Job
             properties:
+              active:
+                description: CronJob-specific
+                type: boolean
               conditions:
                 items:
                   description: Condition contains details for the current condition
@@ -175,6 +190,14 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+              lastScheduleTime:
+                format: date-time
+                type: string
+              lastSuccessfulTime:
+                format: date-time
+                type: string
+            required:
+            - active
             type: object
         type: object
     served: true

@@ -69,6 +69,20 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 			wantConditionStatus: v1.ConditionTrue,
 		},
 		{
+			name: "cronjob",
+			job: ketchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cron-job",
+					Namespace: "default",
+				},
+				Spec: ketchv1.JobSpec{
+					Framework: "working-framework",
+					Schedule:  "* * * * *",
+				},
+			},
+			wantConditionStatus: v1.ConditionTrue,
+		},
+		{
 			name: "running job, delete it but keep its helm chart",
 			job: ketchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
@@ -116,11 +130,12 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 			require.Equal(t, tt.wantConditionStatus, condition.Status)
 			require.Equal(t, tt.wantConditionMessage, condition.Message)
 			require.True(t, controllerutil.ContainsFinalizer(&resultJob, ketchv1.KetchFinalizer))
+			require.Equal(t, tt.job.Spec.Schedule, resultJob.Spec.Schedule)
 			if condition.Status == v1.ConditionTrue {
 				err = ctx.k8sClient.Delete(context.Background(), &resultJob)
 				require.Nil(t, err)
 			}
 		})
 	}
-	require.Equal(t, []string{"test-job"}, helmMock.deleteChartCalled)
+	require.Equal(t, []string{"test-job", "test-cron-job"}, helmMock.deleteChartCalled)
 }

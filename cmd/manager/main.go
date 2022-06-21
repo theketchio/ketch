@@ -104,6 +104,10 @@ func main() {
 		setupLog.Error(err, "unable to set default templates")
 		os.Exit(1)
 	}
+	if err = storage.Update(templates.CronJobConfigMapName(), templates.CronJobTemplates); err != nil {
+		setupLog.Error(err, "unable to set default templates")
+		os.Exit(1)
+	}
 
 	logg := ctrl.Log.WithName("controllers").WithName("App")
 

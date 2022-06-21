@@ -27,4 +27,7 @@ spec:
           image: {{ $container.image }}
           command: {{ $container.command | toJson }}
         {{ end }}
+    metadata:
+      labels:
+        {{ $.Values.job.group }}/job-name: {{ $.Values.job.name | quote }}
   {{ end }}

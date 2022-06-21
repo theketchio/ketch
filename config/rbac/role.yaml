@@ -110,6 +110,7 @@ rules:
 - apiGroups:
   - batch
   resources:
+  - cronjobs
   - jobs
   verbs:
   - create
@@ -215,6 +216,7 @@ rules:
 - apiGroups:
   - resources.resources
   resources:
+  - cronjobs
   - jobs
   verbs:
   - create
@@ -227,12 +229,14 @@ rules:
 - apiGroups:
   - resources.resources
   resources:
+  - cronjobs/finalizers
   - jobs/finalizers
   verbs:
   - update
 - apiGroups:
   - resources.resources
   resources:
+  - cronjobs/status
   - jobs/status
   verbs:
   - get

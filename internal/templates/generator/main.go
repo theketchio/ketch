@@ -18,6 +18,7 @@ type YamlFile struct {
 	Nginx   bool
 	Common  bool
 	Job     bool
+	CronJob bool
 	Content string
 }
 
@@ -36,6 +37,7 @@ type Yamls struct {
 	IstioYamls map[string]string
 	NginxYamls map[string]string
 	JobYamls map[string]string
+	CronJobYamls map[string]string
 }
 
 var GeneratedYamls = Yamls{
@@ -65,7 +67,15 @@ var GeneratedYamls = Yamls{
 },
   JobYamls: map[string]string {
 {{- range $_, $yaml := .Yamls }}
-{{- if $yaml.Job  }} 
+{{- if $yaml.Job  }}
+    "{{ $yaml.Name }}":
+{{ $yaml.Content }},
+{{- end }}
+{{- end }}
+},
+  CronJobYamls: map[string]string {
+{{- range $_, $yaml := .Yamls }}
+{{- if $yaml.CronJob  }}
     "{{ $yaml.Name }}": 
 {{ $yaml.Content }},
 {{- end }}
@@ -82,6 +92,7 @@ func main() {
 	yamls = append(yamls, readDir("istio")...)
 	yamls = append(yamls, readDir("nginx")...)
 	yamls = append(yamls, readDir("job")...)
+	yamls = append(yamls, readDir("cronjob")...)
 
 	tmpl, err := template.New("tpl").Parse(yamlsTemplate)
 
@@ -129,6 +140,7 @@ func readDir(dir string) []YamlFile {
 			Nginx:   dir == "nginx",
 			Common:  dir == "common",
 			Job:     dir == "job",
+			CronJob: dir == "cronjob",
 			Content: fmt.Sprintf("`%s`", string(content)),
 		})
 	}

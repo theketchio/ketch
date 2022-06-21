@@ -34,12 +34,23 @@ type JobSpec struct {
 	BackoffLimit *int        `json:"backoffLimit,omitempty"`
 	Containers   []Container `json:"containers,omitempty"`
 	Policy       Policy      `json:"policy,omitempty"`
+
+	// CronJob-specific
+	Schedule                   string `json:"schedule,omitempty"`
+	StartingDeadlineSeconds    *int   `json:"startingDeadlineSeconds,omitempty"`
+	SuccessfulJobsHistoryLimit *int   `json:"successfulJobsHistoryLimit,omitempty"`
+	FailedJobsHistoryLimit     *int   `json:"failedJobsHistoryLimit,omitempty"`
 }
 
 // JobStatus defines the observed state of Job
 type JobStatus struct {
 	Conditions []Condition         `json:"conditions,omitempty"`
 	Framework  *v1.ObjectReference `json:"framework,omitempty"`
+
+	// CronJob-specific
+	Active             bool         `json:"active"`
+	LastScheduleTime   *metav1.Time `json:"lastScheduleTime,omitempty"`
+	LastSuccessfulTime *metav1.Time `json:"lastSuccessfulTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -68,6 +79,8 @@ type JobList struct {
 // Policy represents the policy types a job can have
 type Policy struct {
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
+	// CronJob-specific
+	ConcurrencyPolicy ConcurrencyPolicy `json:"concurrencyPolicy,omitempty"`
 }
 
 // Container represents a single container run in a Job
@@ -78,6 +91,8 @@ type Container struct {
 }
 
 type RestartPolicy string
+
+type ConcurrencyPolicy string
 
 const (
 	// Never Restart https://kubernetes.io/docs/concepts/workloads/controllers/job/

@@ -75,6 +75,9 @@ var (
 	JobTemplates = Templates{
 		Yamls: GeneratedYamls.JobYamls,
 	}
+	CronJobTemplates = Templates{
+		Yamls: GeneratedYamls.CronJobYamls,
+	}
 )
 
 // IngressConfigMapName returns a name of a configmap to store the ingress' templates to render helm chart.
@@ -85,6 +88,11 @@ func IngressConfigMapName(ingress string) string {
 // JobConfigMapName returns a name of a configmap to store the job's templates to render the helm chart
 func JobConfigMapName() string {
 	return "job-templates"
+}
+
+// CronJobConfigMapName returns a name of a configmap to store the job's templates to render the helm chart
+func CronJobConfigMapName() string {
+	return "cronjob-templates"
 }
 
 // Get returns templates stored in a configmap with the provided name.
