@@ -39,6 +39,37 @@ var (
 			},
 		},
 	}
+	testCronJob = &ketchv1.Job{
+		ObjectMeta: v1.ObjectMeta{
+			Generation: 1,
+		},
+		Spec: ketchv1.JobSpec{
+			Version:      "v1",
+			Type:         "Job",
+			Name:         "testjob",
+			Framework:    "myframework",
+			Description:  "this is a test",
+			Parallelism:  2,
+			Completions:  2,
+			Suspend:      false,
+			BackoffLimit: conversions.IntPtr(4),
+			Containers: []ketchv1.Container{
+				{
+					Name:    "test",
+					Image:   "ubuntu",
+					Command: []string{"pwd"},
+				},
+			},
+			Policy: ketchv1.Policy{
+				RestartPolicy:     "Never",
+				ConcurrencyPolicy: "Forbid",
+			},
+			Schedule:                   "* * * * *",
+			StartingDeadlineSeconds:    conversions.IntPtr(10),
+			SuccessfulJobsHistoryLimit: conversions.IntPtr(10),
+			FailedJobsHistoryLimit:     conversions.IntPtr(10),
+		},
+	}
 )
 
 func TestNewJobChart(t *testing.T) {
@@ -57,6 +88,25 @@ func TestNewJobChart(t *testing.T) {
 		templates: map[string]string{"test.yaml": "Lots of values"},
 	}
 	jobChart := NewJobChart(testJob, options...)
+	require.Equal(t, expected, jobChart)
+}
+
+func TestNewCronJobChart(t *testing.T) {
+	options := []Option{
+		func(opts *Options) {
+			opts.Templates = templates.Templates{Yamls: map[string]string{"test.yaml": "Lots of values"}}
+		},
+	}
+	expected := &JobChart{
+		values: jobValues{
+			Job: Job{
+				JobSpec: testCronJob.Spec,
+				Group:   "theketch.io",
+			},
+		},
+		templates: map[string]string{"test.yaml": "Lots of values"},
+	}
+	jobChart := NewJobChart(testCronJob, options...)
 	require.Equal(t, expected, jobChart)
 }
 

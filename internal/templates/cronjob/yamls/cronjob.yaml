@@ -1,0 +1,51 @@
+{{- if .Values.job }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    {{ $.Values.job.group }}/job-name: {{ $.Values.job.name | quote }}
+  name: {{ $.Values.job.name | quote }}
+spec:
+  schedule: {{ $.Values.job.schedule | quote }}
+  {{- if $.Values.job.policy.concurrencyPolicy }}
+  concurrencyPolicy: {{ $.Values.job.policy.concurrencyPolicy | quote }}
+  {{- end }}
+  {{- if $.Values.job.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ $.Values.job.startingDeadlineSeconds }}
+  {{- end }}
+  {{- if $.Values.job.suspend }}
+  suspend: {{ $.Values.job.suspend }}
+  {{- end }}
+  {{- if $.Values.job.successfulJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ $.Values.job.successfulJobsHistoryLimit }}
+  {{- end }}
+  {{- if $.Values.job.failedJobsHistoryLimit  }}
+  failedJobsHistoryLimit : {{ $.Values.job.failedJobsHistoryLimit  }}
+  {{- end }}
+  jobTemplate:
+    spec:
+      {{- if $.Values.job.parallelism }}
+      parallelism: {{ $.Values.job.parallelism }}
+      {{- end }}
+      {{- if $.Values.job.completions }}
+      completions: {{ $.Values.job.completions }}
+      {{- end }}
+      {{- if not (kindIs "invalid" $.Values.job.backoffLimit) }}
+      backoffLimit: {{ $.Values.job.backoffLimit }}
+      {{- end }}
+      {{- if $.Values.job.suspend }}
+      suspend: {{ $.Values.job.suspend }}
+      {{- end }}
+      template:
+        spec:
+          restartPolicy: {{ $.Values.job.policy.restartPolicy }}
+          containers:
+            {{ range $_, $container := $.Values.job.containers }}
+            - name: {{ $container.name }}
+              image: {{ $container.image }}
+              command: {{ $container.command | toJson }}
+            {{ end }}
+        metadata:
+          labels:
+            {{ $.Values.job.group }}/job-name: {{ $.Values.job.name | quote }}
+      {{ end }}

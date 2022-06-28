@@ -31,3 +31,11 @@ func TestIngressConfigMapName(t *testing.T) {
 		})
 	}
 }
+
+func TestJobConfigMapName(t *testing.T) {
+	require.Equal(t, "job-templates", JobConfigMapName())
+}
+
+func TestCronJobConfigMapName(t *testing.T) {
+	require.Equal(t, "cronjob-templates", CronJobConfigMapName())
+}
