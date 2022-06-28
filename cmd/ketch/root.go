@@ -25,10 +25,11 @@ type config interface {
 // RootCmd represents the base command when called without any subcommands
 func newRootCmd(cfg config, out io.Writer, packSvc *pack.Client, ketchConfig configuration.KetchConfig) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "ketch",
-		Short:   "Manage your applications and your cloud resources",
-		Long:    `For details see https://theketch.io`,
-		Version: version,
+		Use:           "ketch",
+		Short:         "Manage your applications and your cloud resources",
+		Long:          `For details see https://theketch.io`,
+		Version:       version,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Usage()
 		},
