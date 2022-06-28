@@ -16,6 +16,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -78,9 +79,9 @@ type JobList struct {
 
 // Policy represents the policy types a job can have
 type Policy struct {
-	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
+	RestartPolicy v1.RestartPolicy `json:"restartPolicy,omitempty"`
 	// CronJob-specific
-	ConcurrencyPolicy ConcurrencyPolicy `json:"concurrencyPolicy,omitempty"`
+	ConcurrencyPolicy batchv1.ConcurrencyPolicy `json:"concurrencyPolicy,omitempty"`
 }
 
 // Container represents a single container run in a Job
@@ -89,17 +90,6 @@ type Container struct {
 	Image   string   `json:"image"`
 	Command []string `json:"command"`
 }
-
-type RestartPolicy string
-
-type ConcurrencyPolicy string
-
-const (
-	// Never Restart https://kubernetes.io/docs/concepts/workloads/controllers/job/
-	Never RestartPolicy = "Never"
-	// OnFailure Restart https://kubernetes.io/docs/concepts/workloads/controllers/job/
-	OnFailure RestartPolicy = "OnFailure"
-)
 
 // Condition looks for a condition with the provided type in the condition list and returns it.
 func (s JobStatus) Condition(t ConditionType) *Condition {

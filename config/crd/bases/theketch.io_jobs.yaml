@@ -80,6 +80,10 @@ spec:
                     description: CronJob-specific
                     type: string
                   restartPolicy:
+                    description: RestartPolicy describes how the container should
+                      be restarted. Only one of the following restart policies may
+                      be specified. If none of the following policies is specified,
+                      the default one is RestartPolicyAlways.
                     type: string
                 type: object
               schedule:
