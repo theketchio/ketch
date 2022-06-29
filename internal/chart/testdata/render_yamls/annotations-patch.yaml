@@ -2,5 +2,5 @@
   path: /metadata/annotations/app
   value: "app1"
 - op: add
-  path: /metadata/annotations/shipa.io~1is-shipa
+  path: /metadata/annotations/theketch.io~1is-shipa
   value: "true"

@@ -421,7 +421,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 	}
 
-	err = r.UpdateAppNamespaceLabelsForIstio(ctx, app)
+	err = r.UpdateAppNamespaceLabelsForIngress(ctx, app)
 	if err != nil {
 		return appReconcileResult{
 			err: fmt.Errorf("failed to update namespace labels for istio: %w", err),
@@ -847,19 +847,14 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 
 }
 
-// TODO test me, if we decide to do app.namespace overrides framework.namespace
-func (r *AppReconciler) UpdateAppNamespaceLabelsForIstio(ctx context.Context, app *ketchv1.App) error {
+//UpdateAppNamespaceLabelsForIngress updates an app's namespace labels to account for different ingresses.
+// we rely on istio automatic sidecar injection
+// https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
+func (r *AppReconciler) UpdateAppNamespaceLabelsForIngress(ctx context.Context, app *ketchv1.App) error {
 	var framework ketchv1.Framework
-	err := r.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework, Namespace: app.Namespace}, &framework)
-	fmt.Println("E", err)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework, Namespace: app.ObjectMeta.Namespace}, &framework)
 	if err != nil {
 		return err
-	}
-
-	// we rely on istio automatic sidecar injection
-	// https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
-	if framework.Spec.IngressController.IngressType != ketchv1.IstioIngressControllerType {
-		return nil
 	}
 	namespacedName := framework.Spec.NamespaceName
 	if app.Spec.Namespace != "" { // override framework.spec.namespace if app.spec.namespace is set
@@ -871,6 +866,12 @@ func (r *AppReconciler) UpdateAppNamespaceLabelsForIstio(ctx context.Context, ap
 		return err
 	}
 	namespace.Labels["istio-injection"] = "enabled"
+	if framework.Spec.IngressController.IngressType != ketchv1.IstioIngressControllerType {
+		delete(namespace.Labels, "istio-injection")
+		app.AddLabel(map[string]string{"sidecar.istio.io/inject": "false"}, ketchv1.Target{Kind: "Pod", APIVersion: "v1"})
+	} else {
+		app.AddLabel(map[string]string{"sidecar.istio.io/inject": "true"}, ketchv1.Target{Kind: "Pod", APIVersion: "v1"})
+	}
 	return r.Update(ctx, &namespace)
 }
 
