@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/go-logr/logr"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestHelmClientFactory_NewHelmClient_VerifyCacheIsUsed(t *testing.T) {
@@ -22,7 +22,7 @@ func TestHelmClientFactory_NewHelmClient_VerifyCacheIsUsed(t *testing.T) {
 		},
 	}
 	now := time.Now()
-	cli, err := factory.NewHelmClient("my-namespace", nil, log.NullLogger{})
+	cli, err := factory.NewHelmClient("my-namespace", nil, log.Discard())
 	require.Nil(t, err)
 	require.NotNil(t, cli)
 	require.True(t, factory.configurationsLastUsedTimes["my-namespace"].After(now))
@@ -30,14 +30,14 @@ func TestHelmClientFactory_NewHelmClient_VerifyCacheIsUsed(t *testing.T) {
 	require.Equal(t, map[string]int{"my-namespace": 1}, getActionConfigIsCalled)
 
 	now = time.Now()
-	cli, err = factory.NewHelmClient("my-namespace", nil, log.NullLogger{})
+	cli, err = factory.NewHelmClient("my-namespace", nil, log.Discard())
 	require.Nil(t, err)
 	require.NotNil(t, cli)
 	require.Equal(t, map[string]int{"my-namespace": 1}, getActionConfigIsCalled)
 	require.True(t, factory.configurationsLastUsedTimes["my-namespace"].After(now))
 	require.True(t, factory.configurationsLastUsedTimes["my-namespace"].Before(time.Now()))
 
-	cli, err = factory.NewHelmClient("another-namespace", nil, log.NullLogger{})
+	cli, err = factory.NewHelmClient("another-namespace", nil, log.Discard())
 	require.Nil(t, err)
 	require.NotNil(t, cli)
 	require.Equal(t, map[string]int{"my-namespace": 1, "another-namespace": 1}, getActionConfigIsCalled)

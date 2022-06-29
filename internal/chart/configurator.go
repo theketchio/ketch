@@ -73,7 +73,7 @@ func (c Configurator) Lifecycle() *apiv1.Lifecycle {
 		strings.Join(c.data.Hooks.Restart.After, " && "),
 	}
 	return &apiv1.Lifecycle{
-		PostStart: &apiv1.Handler{
+		PostStart: &apiv1.LifecycleHandler{
 			Exec: &apiv1.ExecAction{
 				Command: hookCmds,
 			},

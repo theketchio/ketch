@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"testing"
 
+	log "github.com/go-logr/logr"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 //go:embed testdata/render_yamls/prerendered-manifests.yaml
@@ -84,7 +84,7 @@ func TestPostRenderRun(t *testing.T) {
 			client := fake.NewClientBuilder()
 			client.WithObjects(&tt.configmap)
 			pr := postRender{
-				log:       log.NullLogger{},
+				log:       log.Discard(),
 				namespace: "fake",
 				cli:       client.Build(),
 			}
