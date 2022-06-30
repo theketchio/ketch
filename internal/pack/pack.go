@@ -3,10 +3,11 @@ package pack
 
 import (
 	"context"
-	"github.com/buildpacks/pack"
-	packConfig "github.com/buildpacks/pack/config"
-	"github.com/buildpacks/pack/logging"
 	"io"
+
+	"github.com/buildpacks/pack/pkg/client"
+	packConfig "github.com/buildpacks/pack/pkg/image"
+	"github.com/buildpacks/pack/pkg/logging"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 )
 
 type packService interface {
-	Build(ctx context.Context, opts pack.BuildOptions) error
+	Build(ctx context.Context, opts client.BuildOptions) error
 }
 
 // BuildRequest contains parameters for the Build command
@@ -31,8 +32,8 @@ type Client struct {
 }
 
 func New(out io.Writer) (*Client, error) {
-	buildLogger := logging.New(out)
-	builder, err := pack.NewClient(pack.WithLogger(buildLogger))
+	buildLogger := logging.NewSimpleLogger(out)
+	builder, err := client.NewClient(client.WithLogger(buildLogger))
 	if err != nil {
 		return nil, err
 	}
@@ -44,22 +45,23 @@ func New(out io.Writer) (*Client, error) {
 
 // BuildAndPushImage builds and pushes an image via pack with the specified parameters in BuildRequest
 func (c *Client) BuildAndPushImage(ctx context.Context, req BuildRequest) error {
-	buildOptions := pack.BuildOptions{
-		Image:              req.Image,
-		Builder:            req.Builder,
-		Registry:           "",
-		AppPath:            req.WorkingDir,
-		RunImage:           "",
-		AdditionalMirrors:  nil,
-		Env:                nil,
-		Publish:            true,
-		ClearCache:         false,
-		TrustBuilder:       true,
+	buildOptions := client.BuildOptions{
+		Image:             req.Image,
+		Builder:           req.Builder,
+		Registry:          "",
+		AppPath:           req.WorkingDir,
+		RunImage:          "",
+		AdditionalMirrors: nil,
+		Env:               nil,
+		Publish:           true,
+		ClearCache:        false,
+		TrustBuilder: func(s string) bool {
+			return true
+		},
 		Buildpacks:         req.BuildPacks,
 		ProxyConfig:        nil,
-		ContainerConfig:    pack.ContainerConfig{},
+		ContainerConfig:    client.ContainerConfig{},
 		DefaultProcessType: defaultProcessType,
-		FileFilter:         nil,
 		PullPolicy:         packConfig.PullIfNotPresent,
 	}
 	return c.builder.Build(ctx, buildOptions)
