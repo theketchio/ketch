@@ -34,7 +34,7 @@ type KetchYamlRestartHooks struct {
 
 // KetchYamlHealthcheck describes readiness and liveness probes of the application deployment.
 type KetchYamlHealthcheck struct {
-	UseInRouter bool
+	UseInRouter bool `json:"useInRouter"`
 	// Periodic probe of container liveness.
 	// Container will be restarted if the probe fails.
 	// Cannot be updated.
