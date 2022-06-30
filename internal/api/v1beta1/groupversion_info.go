@@ -32,15 +32,28 @@ const (
 // Group is the exported variable indicating group, defaults to theketch.io
 var Group = TheKetchGroup
 
-type SchemeOptions struct{ group string }
+type SchemeOptions struct {
+	group             string
+	registerFramework bool
+}
 
 type schemeOption func(opts *SchemeOptions)
 
 func WithGroup(group string) schemeOption {
 	return func(opts *SchemeOptions) { opts.group = group }
 }
+
+// WithoutFramework means ketch won't register its Framework and FrameworkList when executing AddToScheme().
+func WithoutFramework() schemeOption {
+	return func(opts *SchemeOptions) {
+		opts.registerFramework = false
+	}
+}
 func defaultSchemeOptions() SchemeOptions {
-	return SchemeOptions{group: TheKetchGroup}
+	return SchemeOptions{
+		group:             TheKetchGroup,
+		registerFramework: true,
+	}
 }
 
 // AddToScheme can be easily consumed by ketch-cli and by default it uses `theketch.io` // and it can be consumed by shipa:
@@ -53,7 +66,9 @@ func AddToScheme(opts ...schemeOption) func(s *runtime.Scheme) error {
 	groupVersion := schema.GroupVersion{Group: options.group, Version: "v1beta1"}
 	builder := &scheme.Builder{GroupVersion: groupVersion}
 	builder.Register(&App{}, &AppList{})
-	builder.Register(&Framework{}, &FrameworkList{})
+	if options.registerFramework {
+		builder.Register(&Framework{}, &FrameworkList{})
+	}
 	builder.Register(&Job{}, &JobList{})
 	Group = options.group
 	return builder.AddToScheme
