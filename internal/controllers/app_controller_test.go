@@ -924,7 +924,6 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 	tests := []struct {
 		description       string
 		app               *ketchv1.App
-		expectedLabels    map[string]string
 		expectedAppLabels []ketchv1.MetadataItem
 		expectedError     string
 	}{
@@ -943,7 +942,6 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{Name: "app-1", Namespace: "test-1"},
 			},
-			expectedLabels: map[string]string{"istio-injection": "enabled", "kubernetes.io/metadata.name": "test-1"},
 			expectedAppLabels: []ketchv1.MetadataItem{{
 				Apply:             map[string]string{"sidecar.istio.io/inject": "true"},
 				DeploymentVersion: 1,
@@ -966,7 +964,6 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{Name: "app-2", Namespace: "test-2"},
 			},
-			expectedLabels: map[string]string{"kubernetes.io/metadata.name": "test-2"},
 			expectedAppLabels: []ketchv1.MetadataItem{{
 				Apply:             map[string]string{"sidecar.istio.io/inject": "false"},
 				DeploymentVersion: 1,
@@ -993,7 +990,6 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{Name: "app-3", Namespace: "test-3"},
 			},
-			expectedLabels: map[string]string{"kubernetes.io/metadata.name": "test-3"},
 			expectedAppLabels: []ketchv1.MetadataItem{{
 				Apply:             map[string]string{"sidecar.istio.io/inject": "false"},
 				DeploymentVersion: 1,
@@ -1023,6 +1019,7 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 				require.EqualError(t, err, tc.expectedError)
 				return
 			}
+			require.Equal(t, tc.expectedAppLabels, tc.app.Spec.Labels)
 		})
 	}
 }
