@@ -129,10 +129,10 @@ func (r *JobReconciler) reconcile(ctx context.Context, job *ketchv1.Job) reconci
 			message: err.Error(),
 		}
 	}
-	if framework.Status.Namespace == nil {
+	if framework.Status.Namespace == nil && job.Spec.Namespace == "" {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`framework "%s" is not linked to a kubernetes namespace`, framework.Name),
+			message: fmt.Sprintf(`framework "%s" or job "%s" is not linked to a kubernetes namespace`, framework.Name, job.Name),
 		}
 	}
 	tpls, err := r.TemplateReader.Get(templates.JobConfigMapName())
@@ -163,6 +163,9 @@ func (r *JobReconciler) reconcile(ctx context.Context, job *ketchv1.Job) reconci
 	}
 
 	targetNamespace := framework.Status.Namespace.Name
+	if job.Spec.Namespace != "" {
+		targetNamespace = job.Spec.Namespace
+	}
 	helmClient, err := r.HelmFactoryFn(targetNamespace)
 	if err != nil {
 		return reconcileResult{
@@ -197,7 +200,11 @@ func (r *JobReconciler) deleteChart(ctx context.Context, job *ketchv1.Job) error
 		}
 
 		if uninstallHelmChart(ketchv1.Group, job.Annotations) {
-			helmClient, err := r.HelmFactoryFn(framework.Spec.NamespaceName)
+			targetNamespace := framework.Spec.NamespaceName
+			if job.Spec.Namespace != "" {
+				targetNamespace = job.Spec.Namespace
+			}
+			helmClient, err := r.HelmFactoryFn(targetNamespace)
 			if err != nil {
 				return err
 			}

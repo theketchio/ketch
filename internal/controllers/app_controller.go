@@ -320,7 +320,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 	if err != nil {
 		return appReconcileResult{err: err}
 	}
-	if framework.Status.Namespace == nil && app.Namespace == "" {
+	if framework.Status.Namespace == nil && app.Spec.Namespace == "" {
 		return appReconcileResult{
 			err: fmt.Errorf(`framework "%s" or app "%s" must be linked to a kubernetes namespace`, framework.Name, app.Name),
 		}
@@ -421,7 +421,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 	}
 
-	err = r.UpdateAppNamespaceLabelsForIngress(ctx, app)
+	err = r.UpdateAppLabelsForIngress(ctx, app)
 	if err != nil {
 		return appReconcileResult{
 			err: fmt.Errorf("failed to update namespace labels for istio: %w", err),
@@ -847,32 +847,21 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 
 }
 
-//UpdateAppNamespaceLabelsForIngress updates an app's namespace labels to account for different ingresses.
+//UpdateAppLabelsForIngress updates an app's pod's labels to account for different ingresses.
 // we rely on istio automatic sidecar injection
 // https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
-func (r *AppReconciler) UpdateAppNamespaceLabelsForIngress(ctx context.Context, app *ketchv1.App) error {
+func (r *AppReconciler) UpdateAppLabelsForIngress(ctx context.Context, app *ketchv1.App) error {
 	var framework ketchv1.Framework
 	err := r.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework, Namespace: app.ObjectMeta.Namespace}, &framework)
 	if err != nil {
 		return err
 	}
-	namespacedName := framework.Spec.NamespaceName
-	if app.Spec.Namespace != "" { // override framework.spec.namespace if app.spec.namespace is set
-		namespacedName = app.Spec.Namespace
-	}
-	var namespace v1.Namespace
-	err = r.Get(ctx, types.NamespacedName{Name: namespacedName}, &namespace)
-	if err != nil {
-		return err
-	}
-	namespace.Labels["istio-injection"] = "enabled"
 	if framework.Spec.IngressController.IngressType != ketchv1.IstioIngressControllerType {
-		delete(namespace.Labels, "istio-injection")
 		app.AddLabel(map[string]string{"sidecar.istio.io/inject": "false"}, ketchv1.Target{Kind: "Pod", APIVersion: "v1"})
 	} else {
 		app.AddLabel(map[string]string{"sidecar.istio.io/inject": "true"}, ketchv1.Target{Kind: "Pod", APIVersion: "v1"})
 	}
-	return r.Update(ctx, &namespace)
+	return nil
 }
 
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {

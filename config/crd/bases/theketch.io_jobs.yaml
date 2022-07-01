@@ -69,6 +69,8 @@ spec:
                 type: string
               name:
                 type: string
+              namespace:
+                type: string
               parallelism:
                 type: integer
               policy:

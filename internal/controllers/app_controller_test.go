@@ -924,7 +924,6 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 	tests := []struct {
 		description       string
 		app               *ketchv1.App
-		namespace         *v1.Namespace
 		expectedLabels    map[string]string
 		expectedAppLabels []ketchv1.MetadataItem
 		expectedError     string
@@ -944,7 +943,6 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{Name: "app-1", Namespace: "test-1"},
 			},
-			namespace:      &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-1"}},
 			expectedLabels: map[string]string{"istio-injection": "enabled", "kubernetes.io/metadata.name": "test-1"},
 			expectedAppLabels: []ketchv1.MetadataItem{{
 				Apply:             map[string]string{"sidecar.istio.io/inject": "true"},
@@ -968,7 +966,6 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{Name: "app-2", Namespace: "test-2"},
 			},
-			namespace:      &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-2"}},
 			expectedLabels: map[string]string{"kubernetes.io/metadata.name": "test-2"},
 			expectedAppLabels: []ketchv1.MetadataItem{{
 				Apply:             map[string]string{"sidecar.istio.io/inject": "false"},
@@ -996,7 +993,6 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{Name: "app-3", Namespace: "test-3"},
 			},
-			namespace:      &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-3", Labels: map[string]string{"istio-injection": "enabled"}}},
 			expectedLabels: map[string]string{"kubernetes.io/metadata.name": "test-3"},
 			expectedAppLabels: []ketchv1.MetadataItem{{
 				Apply:             map[string]string{"sidecar.istio.io/inject": "false"},
@@ -1014,30 +1010,19 @@ func TestUpdateNamespaceLabelsForIngress(t *testing.T) {
 				},
 				ObjectMeta: metav1.ObjectMeta{Name: "app-4", Namespace: "test-10000000"},
 			},
-			namespace:     &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-4"}},
 			expectedError: "frameworks.theketch.io \"nonexistent-framework\" not found",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.description, func(t *testing.T) {
-			err = ctx.k8sClient.Create(ctx, tc.namespace)
-			require.Nil(t, err)
-			defer ctx.k8sClient.Delete(ctx, tc.namespace)
-
-			err = r.UpdateAppNamespaceLabelsForIngress(ctx, tc.app)
+			err = r.UpdateAppLabelsForIngress(ctx, tc.app)
 			if tc.expectedError == "" {
 				require.Nil(t, err)
 			} else {
 				require.EqualError(t, err, tc.expectedError)
 				return
 			}
-
-			var resultNamespace v1.Namespace
-			err = ctx.k8sClient.Get(context.Background(), types.NamespacedName{Namespace: tc.namespace.Namespace, Name: tc.namespace.Name}, &resultNamespace)
-			require.Nil(t, err)
-			require.Equal(t, tc.expectedLabels, resultNamespace.Labels)
-			require.Equal(t, tc.expectedAppLabels, tc.app.Spec.Labels)
 		})
 	}
 }

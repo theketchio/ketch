@@ -674,7 +674,7 @@ func (app *App) AddLabel(label map[string]string, target Target) {
 		if app.Spec.Labels[i].Target != target {
 			continue
 		}
-		for key := range app.Spec.Labels[i].Apply {
+		for key := range label {
 			delete(app.Spec.Labels[i].Apply, key)
 		}
 		if len(app.Spec.Labels[i].Apply) == 0 {
