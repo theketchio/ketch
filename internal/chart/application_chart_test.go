@@ -109,9 +109,7 @@ func TestNewApplicationChart(t *testing.T) {
 						{Name: "private-registry-secret"},
 					},
 					KetchYaml: &ketchv1.KetchYamlData{
-						Healthcheck: &ketchv1.KetchYamlHealthcheck{
-							UseInRouter: true,
-						},
+						Healthcheck: &ketchv1.KetchYamlHealthcheck{},
 					},
 				},
 				{
