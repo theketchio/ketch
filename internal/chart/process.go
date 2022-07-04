@@ -77,7 +77,7 @@ func withCmd(cmd []string) processOption {
 type portConfigurator interface {
 	ContainerPortsForProcess(process string) []v1.ContainerPort
 	ServicePortsForProcess(process string) []v1.ServicePort
-	Probes(port int32) (Probes, error)
+	Probes() (Probes, error)
 }
 
 func withPortsAndProbes(c portConfigurator) processOption {
@@ -87,7 +87,7 @@ func withPortsAndProbes(c portConfigurator) processOption {
 		if len(p.ContainerPorts) == 0 || len(p.ServicePorts) == 0 {
 			return nil
 		}
-		probes, err := c.Probes(p.ContainerPorts[0].ContainerPort)
+		probes, err := c.Probes()
 		if err != nil {
 			return err
 		}

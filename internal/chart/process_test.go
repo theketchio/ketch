@@ -19,7 +19,7 @@ type mockConfigurator struct {
 	containerPorts map[string][]v1.ContainerPort
 }
 
-func (m mockConfigurator) Probes(port int32) (Probes, error) {
+func (m mockConfigurator) Probes() (Probes, error) {
 	return Probes{}, nil
 }
 

@@ -57,7 +57,7 @@ type Probes struct {
 	StartupProbe *apiv1.Probe
 }
 
-func (c Configurator) Probes(port int32) (Probes, error) {
+func (c Configurator) Probes() (Probes, error) {
 	var result Probes
 	hc := c.data.Healthcheck
 	if hc == nil {
