@@ -1,5 +1,7 @@
 package v1beta1
 
+import v1 "k8s.io/api/core/v1"
+
 // KetchYamlData describes certain aspects of the application deployment being deployed.
 type KetchYamlData struct {
 
@@ -32,39 +34,27 @@ type KetchYamlRestartHooks struct {
 
 // KetchYamlHealthcheck describes readiness and liveness probes of the application deployment.
 type KetchYamlHealthcheck struct {
-
-	// Path defines which path to call in the application. This path is called for each unit. It is the only mandatory field. If not set, the health check is ignored.
-	// +kubebuilder:validation:MinLength=1
-	Path string `json:"path"`
-
-	// Method defines the method used to make the http request. The default is GET.
-	Method string `json:"method,omitempty"`
-
-	// Scheme defines which scheme to use. The defaults is http.
-	Scheme string `json:"scheme,omitempty"`
-
-	// Headers defines optional additional header names that can be used for the request. Header names must be capitalized.
-	Headers map[string]string `json:"headers,omitempty" bson:",omitempty"`
-
-	// Match is a regular expression to be matched against the request body.
-	// If not set, the body won’t be read and only the status code is checked. This regular expression uses Go syntax and runs with a matching \n (s flag).
-	Match string `json:"match,omitempty"`
-
-	// If not set, only readiness probe will be created.
-	UseInRouter bool `json:"use_in_router,omitempty"`
-
-	// ForceRestart determines whether a unit should be restarted after allowedFailures encounters consecutive healthcheck failures.
-	// Sets the liveness probe in the Pod.
-	ForceRestart bool `json:"force_restart,omitempty"`
-
-	// AllowedFailures specifies a number of allowed failures before healthcheck considers the application is unhealthy. The defaults is 0.
-	AllowedFailures int `json:"allowed_failures,omitempty"`
-
-	// IntervalSeconds is an interval in seconds between each active healthcheck call if use_in_router is set to true. The default is 10 seconds.
-	IntervalSeconds int `json:"interval_seconds,omitempty"`
-
-	// TimeoutSeconds is a timeout for each healthcheck call in seconds. The default is 60 seconds.
-	TimeoutSeconds int `json:"timeout_seconds,omitempty"`
+	// Periodic probe of container liveness.
+	// Container will be restarted if the probe fails.
+	// Cannot be updated.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	// +optional
+	LivenessProbe *v1.Probe `json:"livenessProbe,omitempty"`
+	// Periodic probe of container service readiness.
+	// Container will be removed from service endpoints if the probe fails.
+	// Cannot be updated.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	// +optional
+	ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty"`
+	// StartupProbe indicates that the Pod has successfully initialized.
+	// If specified, no other probes are executed until this completes successfully.
+	// If this probe fails, the Pod will be restarted, just as if the livenessProbe failed.
+	// This can be used to provide different probe parameters at the beginning of a Pod's lifecycle,
+	// when it might take a long time to load data or warm a cache, than during steady-state operation.
+	// This cannot be updated.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	// +optional
+	StartupProbe *v1.Probe `json:"startupProbe,omitempty"`
 }
 
 // KetchYamlKubernetesConfig contains specific configurations for Kubernetes.

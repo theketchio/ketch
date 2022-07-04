@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/go-logr/logr"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/release"
 	helmTime "helm.sh/helm/v3/pkg/time"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestIsHelmChartStatusActionable(t *testing.T) {
@@ -73,7 +73,7 @@ func TestIsHelmChartStatusActionable(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.description, func(t *testing.T) {
 			c := &HelmClient{
-				log: log.NullLogger{},
+				log: log.Discard(),
 			}
 			mockStatusFunc := func(cfg *action.Configuration, appName string) (*release.Release, release.Status, error) {
 				status := tc.status

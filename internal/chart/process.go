@@ -31,6 +31,7 @@ type process struct {
 	VolumeMounts         []v1.VolumeMount         `json:"volumeMounts,omitempty"`
 	ReadinessProbe       *v1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe        *v1.Probe                `json:"livenessProbe,omitempty"`
+	StartupProbe         *v1.Probe                `json:"startupProbe,omitempty"`
 	Lifecycle            *v1.Lifecycle            `json:"lifecycle,omitempty"`
 	// ServiceMetadata contains Labels and Annotations to be added to a k8s Service of this process.
 	ServiceMetadata extraMetadata `json:"serviceMetadata,omitempty"`
@@ -76,7 +77,7 @@ func withCmd(cmd []string) processOption {
 type portConfigurator interface {
 	ContainerPortsForProcess(process string) []v1.ContainerPort
 	ServicePortsForProcess(process string) []v1.ServicePort
-	Probes(port int32) (Probes, error)
+	Probes() (Probes, error)
 }
 
 func withPortsAndProbes(c portConfigurator) processOption {
@@ -86,13 +87,14 @@ func withPortsAndProbes(c portConfigurator) processOption {
 		if len(p.ContainerPorts) == 0 || len(p.ServicePorts) == 0 {
 			return nil
 		}
-		probes, err := c.Probes(p.ContainerPorts[0].ContainerPort)
+		probes, err := c.Probes()
 		if err != nil {
 			return err
 		}
 		p.PublicServicePort = p.ServicePorts[0].Port
 		p.LivenessProbe = probes.Liveness
 		p.ReadinessProbe = probes.Readiness
+		p.StartupProbe = probes.StartupProbe
 		return nil
 	}
 }
