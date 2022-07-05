@@ -49,6 +49,10 @@
           livenessProbe:
 {{ .process.livenessProbe | toYaml | indent 12 }}
           {{- end }}
+          {{- if .process.startupProbe }}
+          startupProbe:
+{{ .process.startupProbe | toYaml | indent 12 }}
+          {{- end }}
       {{- if .deployment.imagePullSecrets }}
       imagePullSecrets:
 {{ .deployment.imagePullSecrets | toYaml | indent 12}}

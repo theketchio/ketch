@@ -1275,6 +1275,12 @@ func TestAppAddLabel(t *testing.T) {
 							Target:            Target{Kind: "Deployment", APIVersion: "v1"},
 							ProcessName:       "process-1",
 						},
+						{
+							Apply:             map[string]string{"anotherkey": "myRETAINEDvalue"},
+							DeploymentVersion: 1,
+							Target:            Target{Kind: "Pod", APIVersion: "v1"},
+							ProcessName:       "process-1",
+						},
 					},
 				},
 			},
@@ -1285,6 +1291,12 @@ func TestAppAddLabel(t *testing.T) {
 					Apply:             map[string]string{"mykey": "myDEPLOYMENTvalue"},
 					DeploymentVersion: 1,
 					Target:            Target{Kind: "Deployment", APIVersion: "v1"},
+					ProcessName:       "process-1",
+				},
+				{
+					Apply:             map[string]string{"anotherkey": "myRETAINEDvalue"},
+					DeploymentVersion: 1,
+					Target:            Target{Kind: "Pod", APIVersion: "v1"},
 					ProcessName:       "process-1",
 				},
 				{
@@ -1302,7 +1314,6 @@ func TestAppAddLabel(t *testing.T) {
 			fmt.Println(tc.expected)
 			fmt.Println(tc.app.Spec.Labels)
 			require.EqualValues(t, tc.expected, tc.app.Spec.Labels)
-
 		})
 	}
 }

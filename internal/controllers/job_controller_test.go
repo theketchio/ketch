@@ -62,7 +62,7 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: ketchv1.JobSpec{
-					Framework: "working-framework",
+					Namespace: "default",
 					Schedule:  "* * * * *",
 				},
 			},

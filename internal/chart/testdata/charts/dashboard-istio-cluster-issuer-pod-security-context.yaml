@@ -182,14 +182,6 @@ spec:
             requests:
               cpu: 5Gi
               memory: 5300m
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /actuator/health/liveness
-              port: 9090
-              scheme: HTTP
-            periodSeconds: 10
-            timeoutSeconds: 60
       imagePullSecrets:
             - name: registry-secret
             - name: private-registry-secret
@@ -249,14 +241,6 @@ spec:
           image: shipasoftware/go-app:v1
           ports:
           - containerPort: 9090
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /actuator/health/liveness
-              port: 9090
-              scheme: HTTP
-            periodSeconds: 10
-            timeoutSeconds: 60
       imagePullSecrets:
             - name: registry-secret
             - name: private-registry-secret

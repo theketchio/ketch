@@ -253,7 +253,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	volumeMounts, _ := params.getVolumeMounts()
 	volumes, _ := params.getVolumes()
 	for _, volume := range volumes {
-		_, err = svc.KubeClient.CoreV1().PersistentVolumeClaims(framework.Spec.NamespaceName).Get(ctx, volume.PersistentVolumeClaim.ClaimName, metav1.GetOptions{})
+		_, err = svc.KubeClient.CoreV1().PersistentVolumeClaims(app.Spec.Namespace).Get(ctx, volume.PersistentVolumeClaim.ClaimName, metav1.GetOptions{})
 		if err != nil {
 			return errors.Wrap(err, "create pvc or input correct pvc name")
 		}
