@@ -8,13 +8,13 @@
 # ./cli_tests/app.sh
 
 setup() {
-    if [[ -z "${KETCH_EXECUTABLE_PATH}" ]]; then
+  if [[ -z "${KETCH_EXECUTABLE_PATH}" ]]; then
     KETCH=$(pwd)/bin/ketch
   else
     KETCH="${KETCH_EXECUTABLE_PATH}"
   fi
 
-  JOB_FRAMEWORK="jobframework"
+  JOB_NAMESPACE="jobnamespace"
   JOB_NAME="sample-job"
 }
 
@@ -32,16 +32,15 @@ teardown() {
 }
 
 @test "job deploy with yaml file" {
-  fwresult=$($KETCH framework add "$JOB_FRAMEWORK")
-  echo "RECEIVED:" $fwresult
-  [[ $fwresult =~ "Successfully added!" ]]
-  sleep 2 # sometimes framework can take a moment to associate to a namespace
+  nsresult=$(kubectl create ns "$JOB_NAMESPACE")
+  echo "RECEIVED:" $nsresult
+  [[ $nsresult =~ "namespace/$JOB_NAMESPACE created" ]]
 
   cat << EOF > job.yaml
 name: "$JOB_NAME"
 version: v1
 type: Job
-framework: "$JOB_FRAMEWORK"
+namespace: "$JOB_NAMESPACE"
 description: "cli test job"
 containers:
   - name: pi
@@ -56,7 +55,7 @@ EOF
   result=$($KETCH job deploy job.yaml)
   [[ $result =~ "Successfully added!" ]]
 
-  dataRegex="$JOB_NAME[ \t]+v1[ \t]+$JOB_FRAMEWORK[ \t]+cli test job"
+  dataRegex="$JOB_NAME[ \t]+v1[ \t]+$JOB_NAMESPACE[ \t]+cli test job"
   result=$($KETCH job list $JOB_NAME)
   echo "RECEIVED:" $result
   [[ $result =~ $dataRegex ]]
@@ -64,8 +63,8 @@ EOF
 
 @test "job list" {
   result=$($KETCH job list)
-  headerRegex="NAME[ \t]+VERSION[ \t]+FRAMEWORK[ \t]+DESCRIPTION"
-  dataRegex="$JOB_NAME[ \t]+v1[ \t]+$JOB_FRAMEWORK[ \t]+cli test job"
+  headerRegex="NAME[ \t]+VERSION[ \t]+NAMESPACE[ \t]+DESCRIPTION"
+  dataRegex="$JOB_NAME[ \t]+v1[ \t]+$JOB_NAMESPACE[ \t]+cli test job"
   echo "RECEIVED:" $result
   [[ $result =~ $headerRegex ]]
   [[ $result =~ $dataRegex ]]
@@ -77,7 +76,7 @@ EOF
   echo "RECEIVED:" $result
   [[ $result =~ "name: $JOB_NAME" ]]
   [[ $result =~ "type: Job" ]]
-  [[ $result =~ "framework: $JOB_FRAMEWORK" ]]
+  [[ $result =~ "namespace: $JOB_NAMESPACE" ]]
 }
 
 @test "job remove" {
@@ -85,8 +84,8 @@ EOF
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully removed!" ]]
 
-  # clean up framework
-  fwresult=$(echo "ketch-$JOB_FRAMEWORK" | $KETCH framework remove "$JOB_FRAMEWORK")
+  # clean up namespace
+  fwresult=$(kubectl delete ns "$JOB_NAMESPACE")
   echo "RECEIVED:" $fwresult
-  [[ $fwresult =~ "Framework successfully removed!" ]]
+  [[ $fwresult =~ "namespace \"$JOB_NAMESPACE\" deleted" ]]
 }

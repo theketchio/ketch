@@ -58,11 +58,7 @@ func cnameAdd(ctx context.Context, cfg config, options cnameAddOptions, out io.W
 			return nil
 		}
 	}
-	var framework ketchv1.Framework
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
-		return fmt.Errorf("failed to get the framework: %w", err)
-	}
-	if options.secure && len(framework.Spec.IngressController.ClusterIssuer) == 0 {
+	if options.secure && len(app.Spec.Ingress.Controller.ClusterIssuer) == 0 {
 		return ErrClusterIssuerRequired
 	}
 	app.Spec.Ingress.Cnames = append(app.Spec.Ingress.Cnames, ketchv1.Cname{Name: options.cname, Secure: options.secure})

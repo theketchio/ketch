@@ -66,9 +66,6 @@ func AddToScheme(opts ...schemeOption) func(s *runtime.Scheme) error {
 	groupVersion := schema.GroupVersion{Group: options.group, Version: "v1beta1"}
 	builder := &scheme.Builder{GroupVersion: groupVersion}
 	builder.Register(&App{}, &AppList{})
-	if options.registerFramework {
-		builder.Register(&Framework{}, &FrameworkList{})
-	}
 	builder.Register(&Job{}, &JobList{})
 	Group = options.group
 	return builder.AddToScheme

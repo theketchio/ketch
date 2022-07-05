@@ -1,6 +1,6 @@
 Application: dashboard
-Framework: gke
-The default cname hasn't assigned yet because "gke" framework doesn't have ingress service endpoint.
+Namespace: gke
+The default cname hasn't assigned yet because cluster doesn't have ingress service endpoint.
 
 No environment variables.
 

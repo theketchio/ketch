@@ -1,7 +1,12 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"os"
+	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/spf13/cobra"
 )
@@ -76,12 +81,25 @@ func autoCompleteAppNames(cfg config, toComplete ...string) ([]string, cobra.She
 	return names, cobra.ShellCompDirectiveNoSpace
 }
 
-func autoCompleteFrameworkNames(cfg config, toComplete ...string) ([]string, cobra.ShellCompDirective) {
-	names, err := frameworkListNames(cfg, toComplete...)
-	if err != nil {
-		return []string{err.Error()}, cobra.ShellCompDirectiveError
+func autoCompleteNamespaces(cfg config, toComplete ...string) ([]string, cobra.ShellCompDirective) {
+	namespaces := corev1.NamespaceList{}
+	if err := cfg.Client().List(context.Background(), &namespaces); err != nil {
+		return []string{fmt.Sprintf("failed to list namespaces: %s", err.Error())}, cobra.ShellCompDirectiveError
 	}
-	return names, cobra.ShellCompDirectiveNoSpace
+
+	namespaceNames := make([]string, 0)
+	for _, namespace := range namespaces.Items {
+		if len(toComplete) == 0 {
+			namespaceNames = append(namespaceNames, namespace.Name)
+		}
+
+		for _, filter := range toComplete {
+			if strings.Contains(namespace.Name, filter) {
+				namespaceNames = append(namespaceNames, namespace.Name)
+			}
+		}
+	}
+	return namespaceNames, cobra.ShellCompDirectiveNoSpace
 }
 
 func autoCompleteBuilderNames(cfg config, toComplete ...string) ([]string, cobra.ShellCompDirective) {

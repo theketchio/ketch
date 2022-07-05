@@ -115,14 +115,14 @@ func imagePullSecrets(deploymentImagePullSecrets []v1.LocalObjectReference, spec
 }
 
 // New returns an ApplicationChart instance.
-func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option) (*ApplicationChart, error) {
-
+func New(application *ketchv1.App, opts ...Option) (*ApplicationChart, error) {
+	ingressController := application.Spec.Ingress.Controller
 	options := &Options{}
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	ingress, err := newIngress(*application, *framework)
+	ingress, err := newIngress(*application, ingressController)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func New(application *ketchv1.App, framework *ketchv1.Framework, opts ...Option)
 			ServiceAccountName:  application.Spec.ServiceAccountName,
 			Type:                application.Spec.GetType(),
 		},
-		IngressController: &framework.Spec.IngressController,
+		IngressController: &ingressController,
 	}
 
 	if application.Spec.SecurityContext != nil {

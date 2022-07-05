@@ -21,7 +21,7 @@ import (
 
 var (
 	appInfoTemplate = `Application: {{ .App.Name }}
-Framework: {{ .App.Spec.Framework }}
+Namespace: {{ .App.Spec.Namespace }}
 {{- if .App.Spec.Version }}
 Version: {{ .App.Spec.Version }}
 {{- end }}
@@ -36,7 +36,7 @@ Description: {{ .App.Spec.Description }}
 Address: {{ $address }}
 {{- end }}
 {{- else }}
-The default cname hasn't assigned yet because "{{ .App.Spec.Framework }}" framework doesn't have ingress service endpoint.
+The default cname hasn't assigned yet because cluster doesn't have ingress service endpoint.
 {{- end }}
 {{- if .App.Spec.DockerRegistry.SecretName }}
 Secret name to pull application's images: {{ .App.Spec.DockerRegistry.SecretName }}
@@ -103,10 +103,6 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.name}, &app); err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
-	framework := &ketchv1.Framework{}
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, framework); err != nil {
-		return fmt.Errorf("failed to get framework: %w", err)
-	}
 
 	appPods, err := cfg.KubernetesClient().CoreV1().Pods(app.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf(`%s=%s`, utils.KetchAppNameLabel, app.Name),
@@ -115,10 +111,11 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 		return err
 	}
 
-	data := generateAppInfoOutput(app, appPods, framework)
+	data := generateAppInfoOutput(app, appPods)
 
 	buf := bytes.Buffer{}
 	t := template.Must(template.New("app-info").Parse(appInfoTemplate))
+
 	if err := t.Execute(&buf, data.AppInfoContext); err != nil {
 		return err
 	}
@@ -127,7 +124,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 
 }
 
-func generateAppInfoOutput(app ketchv1.App, appPods *v1.PodList, framework *ketchv1.Framework) appInfoOutput {
+func generateAppInfoOutput(app ketchv1.App, appPods *v1.PodList) appInfoOutput {
 	noProcesses := true
 	var deployments []deploymentOutput
 	for _, deployment := range app.Spec.Deployments {
@@ -146,7 +143,7 @@ func generateAppInfoOutput(app ketchv1.App, appPods *v1.PodList, framework *ketc
 	}
 	infoContext := appInfoContext{
 		App:         app,
-		Cnames:      app.CNames(framework),
+		Cnames:      app.CNames(),
 		NoProcesses: noProcesses,
 	}
 

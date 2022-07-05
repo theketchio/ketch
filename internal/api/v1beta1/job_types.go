@@ -26,7 +26,6 @@ type JobSpec struct {
 	Version     string `json:"version,omitempty"`
 	Type        string `json:"type"`
 	Name        string `json:"name"`
-	Framework   string `json:"framework"`
 	Description string `json:"description,omitempty"`
 	Parallelism int    `json:"parallelism,omitempty"`
 	Completions int    `json:"completions,omitempty"`
@@ -35,6 +34,7 @@ type JobSpec struct {
 	BackoffLimit *int        `json:"backoffLimit,omitempty"`
 	Containers   []Container `json:"containers,omitempty"`
 	Policy       Policy      `json:"policy,omitempty"`
+	Namespace    string      `json:"namespace"`
 
 	// CronJob-specific
 	Schedule                   string `json:"schedule,omitempty"`

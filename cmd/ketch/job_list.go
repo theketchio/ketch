@@ -19,7 +19,7 @@ List all jobs.
 type jobListOutput struct {
 	Name        string `json:"name"`
 	Version     string `json:"version"`
-	Framework   string `json:"framework"`
+	Namespace   string `json:"namespace"`
 	Description string `json:"description"`
 }
 
@@ -49,7 +49,7 @@ func generateJobListOutput(jobs ketchv1.JobList) []jobListOutput {
 		output = append(output, jobListOutput{
 			Name:        item.Name,
 			Version:     item.Spec.Version,
-			Framework:   item.Spec.Framework,
+			Namespace:   item.Spec.Namespace,
 			Description: item.Spec.Description,
 		})
 	}

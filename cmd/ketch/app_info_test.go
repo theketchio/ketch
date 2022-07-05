@@ -20,7 +20,7 @@ func Test_appInfo(t *testing.T) {
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
-			Framework: "gke",
+			Namespace: "gke",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
@@ -31,7 +31,7 @@ func Test_appInfo(t *testing.T) {
 			Name: "app-python",
 		},
 		Spec: ketchv1.AppSpec{
-			Framework: "gke",
+			Namespace: "gke",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
@@ -63,9 +63,10 @@ func Test_appInfo(t *testing.T) {
 				{Name: "API_KEY", Value: "public_key"},
 				{Name: "VAR1", Value: "VALUE"},
 			},
-			Framework: "aws",
+			Namespace: "aws",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
+				Controller:           ketchv1.IngressControllerSpec{ServiceEndpoint: "10.10.10.10"},
 			},
 		},
 	}
@@ -86,36 +87,14 @@ func Test_appInfo(t *testing.T) {
 					},
 				},
 			},
-			Framework: "aws",
+			Namespace: "aws",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 				Cnames:               ketchv1.CnameList{{Name: "theketch.io"}, {Name: "www.theketch.io"}},
+				Controller:           ketchv1.IngressControllerSpec{ServiceEndpoint: "10.10.10.10"},
 			},
 			DockerRegistry: ketchv1.DockerRegistrySpec{
 				SecretName: "go-app-pull-credentials",
-			},
-		},
-	}
-	gke := &ketchv1.Framework{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "gke",
-		},
-		Spec: ketchv1.FrameworkSpec{
-			NamespaceName: "ketch-gke",
-			IngressController: ketchv1.IngressControllerSpec{
-				IngressType: ketchv1.IstioIngressControllerType,
-			},
-		},
-	}
-	aws := &ketchv1.Framework{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "aws",
-		},
-		Spec: ketchv1.FrameworkSpec{
-			NamespaceName: "ketch-aws",
-			IngressController: ketchv1.IngressControllerSpec{
-				ServiceEndpoint: "10.10.10.10",
-				IngressType:     ketchv1.IstioIngressControllerType,
 			},
 		},
 	}
@@ -129,7 +108,7 @@ func Test_appInfo(t *testing.T) {
 		{
 			name: "no cnames, no env variable, no processes",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{gke, dashboard},
+				CtrlClientObjects: []runtime.Object{dashboard},
 			},
 			options: appInfoOptions{
 				name: "dashboard",
@@ -139,7 +118,7 @@ func Test_appInfo(t *testing.T) {
 		{
 			name: "no cnames, env variables, processes",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{aws, goApp},
+				CtrlClientObjects: []runtime.Object{goApp},
 			},
 			options: appInfoOptions{
 				name: "go-app",
@@ -149,7 +128,7 @@ func Test_appInfo(t *testing.T) {
 		{
 			name: "cnames, env variables, processes + secret name",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{aws, goAppWithSecretName},
+				CtrlClientObjects: []runtime.Object{goAppWithSecretName},
 			},
 			options: appInfoOptions{
 				name: "go-app",
@@ -159,22 +138,12 @@ func Test_appInfo(t *testing.T) {
 		{
 			name: "app with builder",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{gke, appPython},
+				CtrlClientObjects: []runtime.Object{appPython},
 			},
 			options: appInfoOptions{
 				name: "app-python",
 			},
 			wantOutputFilename: "./testdata/app-info/app-python.output",
-		},
-		{
-			name: "no framework",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{dashboard},
-			},
-			options: appInfoOptions{
-				name: "dashboard",
-			},
-			wantErr: true,
 		},
 		{
 			name: "no app",

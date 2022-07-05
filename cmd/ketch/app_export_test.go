@@ -76,23 +76,11 @@ func Test_appExport(t *testing.T) {
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
-			Framework: "gke",
+			Namespace: "mynamespace",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
 			},
 			Version: conversions.StrPtr("v1"),
-		},
-	}
-
-	gke := &ketchv1.Framework{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "gke",
-		},
-		Spec: ketchv1.FrameworkSpec{
-			NamespaceName: "ketch-gke",
-			IngressController: ketchv1.IngressControllerSpec{
-				IngressType: ketchv1.IstioIngressControllerType,
-			},
 		},
 	}
 
@@ -106,7 +94,7 @@ func Test_appExport(t *testing.T) {
 		{
 			name: "happy path",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{dashboard, gke},
+				CtrlClientObjects: []runtime.Object{dashboard},
 				StorageInstance: &mockStorage{
 					OnGet: func(name string) (*templates.Templates, error) {
 						require.Equal(t, templates.IngressConfigMapName(ketchv1.IstioIngressControllerType.String()), name)
@@ -118,8 +106,8 @@ func Test_appExport(t *testing.T) {
 				appName:  "dashboard",
 				filename: "app.yaml",
 			},
-			wantOut: `framework: gke
-name: dashboard
+			wantOut: `name: dashboard
+namespace: mynamespace
 type: Application
 version: v1
 `,
@@ -127,7 +115,7 @@ version: v1
 		{
 			name: "success - stdout",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{dashboard, gke},
+				CtrlClientObjects: []runtime.Object{dashboard},
 				StorageInstance: &mockStorage{
 					OnGet: func(name string) (*templates.Templates, error) {
 						require.Equal(t, templates.IngressConfigMapName(ketchv1.IstioIngressControllerType.String()), name)
@@ -138,8 +126,8 @@ version: v1
 			options: appExportOptions{
 				appName: "dashboard",
 			},
-			wantOut: `framework: gke
-name: dashboard
+			wantOut: `name: dashboard
+namespace: mynamespace
 type: Application
 version: v1
 `,

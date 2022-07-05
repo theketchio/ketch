@@ -15,24 +15,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
-	"github.com/theketchio/ketch/internal/utils/conversions"
 )
 
 func TestJobReconciler_Reconcile(t *testing.T) {
-	defaultObjects := []client.Object{
-		&ketchv1.Framework{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "working-framework",
-			},
-			Spec: ketchv1.FrameworkSpec{
-				NamespaceName: "hello",
-				AppQuotaLimit: conversions.IntPtr(100),
-				IngressController: ketchv1.IngressControllerSpec{
-					IngressType: ketchv1.IstioIngressControllerType,
-				},
-			},
-		},
-	}
+	defaultObjects := []client.Object{}
 	helmMock := &helm{
 		updateChartResults: map[string]error{
 			"app-update-chart-failed": errors.New("render error"),
@@ -63,7 +49,7 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: ketchv1.JobSpec{
-					Framework: "working-framework",
+					Namespace: "working-namespace",
 				},
 			},
 			wantConditionStatus: v1.ConditionTrue,
@@ -93,24 +79,22 @@ func TestJobReconciler_Reconcile(t *testing.T) {
 					},
 				},
 				Spec: ketchv1.JobSpec{
-					Framework: "working-framework",
+					Namespace: "working-namespace",
 				},
 			},
 			wantConditionStatus: v1.ConditionTrue,
 		},
 		{
-			name: "job linked to nonexisting framework",
+			name: "job not linked to namespace",
 			job: ketchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "framework-missing-job",
+					Name:      "no-namespace",
 					Namespace: "default",
 				},
-				Spec: ketchv1.JobSpec{
-					Framework: "non-existent-framework",
-				},
+				Spec: ketchv1.JobSpec{},
 			},
 			wantConditionStatus:  v1.ConditionFalse,
-			wantConditionMessage: `framework "non-existent-framework" is not found`,
+			wantConditionMessage: `job "no-namespace" is not linked to a kubernetes namespace`,
 		},
 	}
 	for _, tt := range tests {

@@ -2318,10 +2318,6 @@ spec:
                   type: object
                 type: array
                 x-kubernetes-preserve-unknown-fields: true
-              framework:
-                description: Framework is a name of a Framework used to run the application.
-                minLength: 1
-                type: string
               id:
                 description: ID is an additional unique identifier of this application
                   besides the app's name if needed. Ketch internally doesn't rely
@@ -2355,6 +2351,26 @@ spec:
                       - secure
                       type: object
                     type: array
+                  controller:
+                    description: Controller is the ingress controller the app is using
+                    properties:
+                      className:
+                        type: string
+                      clusterIssuer:
+                        type: string
+                      serviceEndpoint:
+                        type: string
+                      type:
+                        description: IngressControllerType is a type of an ingress
+                          controller for this framework.
+                        enum:
+                        - traefik
+                        - istio
+                        - nginx
+                        type: string
+                    required:
+                    - type
+                    type: object
                   generateDefaultCname:
                     description: GenerateDefaultCname if set the application will
                       have a default cname <app-name>.<ServiceEndpoint>.shipa.cloud.
@@ -2578,7 +2594,6 @@ spec:
                 type: array
             required:
             - deployments
-            - framework
             - ingress
             type: object
           status:

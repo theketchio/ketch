@@ -129,6 +129,9 @@ type IngressSpec struct {
 
 	// Cnames is a list of additional cnames.
 	Cnames CnameList `json:"cnames,omitempty"`
+
+	// Controller is the ingress controller the app is using
+	Controller IngressControllerSpec `json:"controller,omitempty"`
 }
 
 // DockerRegistrySpec contains docker registry configuration of an application.
@@ -212,10 +215,6 @@ type AppSpec struct {
 	// List of environment variables of the application.
 	Env []Env `json:"env,omitempty"`
 
-	// Framework is a name of a Framework used to run the application.
-	// +kubebuilder:validation:MinLength=1
-	Framework string `json:"framework"`
-
 	// Ingress contains configuration of entrypoints to access the application.
 	Ingress IngressSpec `json:"ingress"`
 
@@ -234,8 +233,8 @@ type AppSpec struct {
 	// Annotations is a list of annotations that will be applied to Services/Deployments/Pods/Gateways/Ingresses/IngressRoutes.
 	Annotations []MetadataItem `json:"annotations,omitempty"`
 
-	// Namespace overrides the App's Framework's Namespace
-	Namespace string `json:"namespace,omitempty"`
+	// Namespace sets the namespace in which the app is run
+	Namespace string `json:"namespace"`
 
 	// ServiceAccountName specifies a service account name to be used for this application.
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
@@ -448,9 +447,9 @@ func (app *App) Start(selector Selector) error {
 }
 
 // CNames returns all CNAMEs to access the application including a default cname.
-func (app *App) CNames(framework *Framework) []string {
+func (app *App) CNames() []string {
 	cnames := []string{}
-	defaultCname := app.DefaultCname(framework)
+	defaultCname := app.DefaultCname()
 	if defaultCname != nil {
 		cnames = append(cnames, fmt.Sprintf("http://%s", *defaultCname))
 	}
@@ -466,17 +465,14 @@ func (app *App) CNames(framework *Framework) []string {
 
 // DefaultCname returns a default cname to access the application.
 // A default cname uses the following format: <app name>.<Framework's ServiceEndpoint>.shipa.cloud.
-func (app *App) DefaultCname(framework *Framework) *string {
-	if framework == nil {
-		return nil
-	}
+func (app *App) DefaultCname() *string {
 	if !app.Spec.Ingress.GenerateDefaultCname {
 		return nil
 	}
-	if len(framework.Spec.IngressController.ServiceEndpoint) == 0 {
+	if len(app.Spec.Ingress.Controller.ServiceEndpoint) == 0 {
 		return nil
 	}
-	url := fmt.Sprintf("%s.%s.%s", app.Name, framework.Spec.IngressController.ServiceEndpoint, ShipaCloudDomain)
+	url := fmt.Sprintf("%s.%s.%s", app.Name, app.Spec.Ingress.Controller.ServiceEndpoint, ShipaCloudDomain)
 	return &url
 }
 
@@ -674,7 +670,7 @@ func (app *App) AddLabel(label map[string]string, target Target) {
 		if app.Spec.Labels[i].Target != target {
 			continue
 		}
-		for key := range app.Spec.Labels[i].Apply {
+		for key := range label {
 			delete(app.Spec.Labels[i].Apply, key)
 		}
 		if len(app.Spec.Labels[i].Apply) == 0 {

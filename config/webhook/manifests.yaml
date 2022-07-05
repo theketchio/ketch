@@ -1,60 +1,11 @@
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingWebhookConfiguration
-metadata:
-  creationTimestamp: null
-  name: mutating-webhook-configuration
-webhooks:
-- admissionReviewVersions:
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-theketch-io-v1beta1-framework
-  failurePolicy: Fail
-  name: mframework.kb.io
-  rules:
-  - apiGroups:
-    - theketch.io
-    apiVersions:
-    - v1beta1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - frameworks
-  sideEffects: None
-
----
-apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   creationTimestamp: null
   name: validating-webhook-configuration
 webhooks:
-- admissionReviewVersions:
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-theketch-io-v1beta1-framework
-  failurePolicy: Fail
-  name: vframework.kb.io
-  rules:
-  - apiGroups:
-    - theketch.io
-    apiVersions:
-    - v1beta1
-    operations:
-    - CREATE
-    - UPDATE
-    - DELETE
-    resources:
-    - frameworks
-  sideEffects: None
 - admissionReviewVersions:
   - v1beta1
   clientConfig:

@@ -19,7 +19,7 @@ type Application struct {
 	Type           *string   `json:"type"`
 	Name           *string   `json:"name"`
 	Image          *string   `json:"image,omitempty"`
-	Framework      *string   `json:"framework"`
+	Namespace      *string   `json:"namespace"`
 	Description    *string   `json:"description,omitempty"`
 	Environment    []string  `json:"environment,omitempty"`
 	RegistrySecret *string   `json:"registrySecret,omitempty"`
@@ -98,7 +98,7 @@ func (o *Options) GetChangeSetFromYaml(filename string) (*ChangeSet, error) {
 		appType:              application.Type,
 		image:                application.Image,
 		description:          application.Description,
-		framework:            application.Framework,
+		namespace:            application.Namespace,
 		dockerRegistrySecret: application.RegistrySecret,
 		builder:              application.Builder,
 		timeout:              &o.Timeout,
@@ -144,8 +144,8 @@ func (c *ChangeSet) applyDefaults() {
 
 // validate assures that a ChangeSet's required fields are set
 func (c *ChangeSet) validate() error {
-	if c.framework == nil {
-		return errors.New("missing required field framework")
+	if c.namespace == nil {
+		return errors.New("missing required field namespace")
 	}
 	if c.image == nil {
 		return errors.New("missing required field image")
@@ -165,7 +165,7 @@ func GetApplicationFromKetchApp(app ketchv1.App) *Application {
 		Version:   app.Spec.Version,
 		Type:      conversions.StrPtr(typeApplication),
 		Name:      &app.Name,
-		Framework: &app.Spec.Framework,
+		Namespace: &app.Spec.Namespace,
 	}
 
 	deployment := getLatestDeployment(app.Spec.Deployments)

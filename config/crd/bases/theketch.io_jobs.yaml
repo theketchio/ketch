@@ -67,9 +67,9 @@ spec:
                 type: string
               failedJobsHistoryLimit:
                 type: integer
-              framework:
-                type: string
               name:
+                type: string
+              namespace:
                 type: string
               parallelism:
                 type: integer
@@ -100,8 +100,8 @@ spec:
               version:
                 type: string
             required:
-            - framework
             - name
+            - namespace
             - type
             type: object
           status:

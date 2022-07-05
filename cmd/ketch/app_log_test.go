@@ -268,20 +268,9 @@ func Test_appLog(t *testing.T) {
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
-			Framework: "gke",
+			Namespace: "ketch-gke",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
-			},
-		},
-	}
-	gke := &ketchv1.Framework{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "gke",
-		},
-		Spec: ketchv1.FrameworkSpec{
-			NamespaceName: "ketch-gke",
-			IngressController: ketchv1.IngressControllerSpec{
-				IngressType: ketchv1.IstioIngressControllerType,
 			},
 		},
 	}
@@ -296,7 +285,7 @@ func Test_appLog(t *testing.T) {
 		{
 			description: "happy path, app selector + prefix",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{dashboard, gke},
+				CtrlClientObjects: []runtime.Object{dashboard},
 			},
 			options:    appLogOptions{appName: "dashboard", prefix: true},
 			wantCalled: true,
@@ -311,7 +300,7 @@ func Test_appLog(t *testing.T) {
 		{
 			description: "happy path, app selector + follow",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{dashboard, gke},
+				CtrlClientObjects: []runtime.Object{dashboard},
 			},
 			options:    appLogOptions{appName: "dashboard", follow: true},
 			wantCalled: true,
@@ -326,7 +315,7 @@ func Test_appLog(t *testing.T) {
 		{
 			description: "happy path: app and process selector + timestamps",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{dashboard, gke},
+				CtrlClientObjects: []runtime.Object{dashboard},
 			},
 			options:    appLogOptions{appName: "dashboard", processName: "web", timestamps: true},
 			wantCalled: true,
@@ -342,7 +331,7 @@ func Test_appLog(t *testing.T) {
 		{
 			description: "happy path: app + process + deployment version selector + ignoreErrors",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{dashboard, gke},
+				CtrlClientObjects: []runtime.Object{dashboard},
 			},
 			options:    appLogOptions{appName: "dashboard", processName: "worker", deploymentVersion: 4, ignoreErrors: true},
 			wantCalled: true,
@@ -359,23 +348,15 @@ func Test_appLog(t *testing.T) {
 		{
 			description: "no app",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{gke},
+				CtrlClientObjects: []runtime.Object{},
 			},
 			options: appLogOptions{appName: "dashboard"},
 			wantErr: `failed to get app instance: apps.theketch.io "dashboard" not found`,
 		},
 		{
-			description: "no framework",
-			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{dashboard},
-			},
-			options: appLogOptions{appName: "dashboard"},
-			wantErr: `failed to get framework instance: frameworks.theketch.io "gke" not found`,
-		},
-		{
 			description: "error from watchLog",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{dashboard, gke},
+				CtrlClientObjects: []runtime.Object{dashboard},
 			},
 			options:    appLogOptions{appName: "dashboard"},
 			wantErr:    `error from watchLog`,

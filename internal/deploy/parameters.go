@@ -1,7 +1,6 @@
 package deploy
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,14 +11,11 @@ import (
 
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
 
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
-	"github.com/theketchio/ketch/internal/errors"
 	"github.com/theketchio/ketch/internal/utils"
 )
 
@@ -35,7 +31,7 @@ const (
 	FlagTimeout            = "timeout"
 	FlagDescription        = "description"
 	FlagEnvironment        = "env"
-	FlagFramework          = "framework"
+	FlagNamespace          = "namespace"
 	FlagRegistrySecret     = "registry-secret"
 	FlagBuilder            = "builder"
 	FlagBuildPacks         = "build-packs"
@@ -52,7 +48,7 @@ const (
 	FlagImageShort       = "i"
 	FlagDescriptionShort = "d"
 	FlagEnvironmentShort = "e"
-	FlagFrameworkShort   = "k"
+	FlagNamespaceShort   = "n"
 
 	defaultYamlFile = "ketch.yaml"
 )
@@ -84,6 +80,7 @@ type Services struct {
 type Options struct {
 	AppName                 string
 	Image                   string
+	Namespace               string
 	KetchYamlFileName       string
 	StrictKetchYamlDecoding bool
 	Steps                   int
@@ -93,7 +90,6 @@ type Options struct {
 	AppSourcePath           string
 	SubPaths                []string
 
-	Framework            string
 	Description          string
 	Envs                 []string
 	DockerRegistrySecret string
@@ -115,6 +111,7 @@ type ChangeSet struct {
 	yamlStrictDecoding   bool
 	sourcePath           *string
 	image                *string
+	namespace            *string
 	ketchYamlFileName    *string
 	steps                *int
 	stepTimeInterval     *string
@@ -123,7 +120,6 @@ type ChangeSet struct {
 	subPaths             *[]string
 	description          *string
 	envs                 *[]string
-	framework            *string
 	dockerRegistrySecret *string
 	builder              *string
 	buildPacks           *[]string
@@ -176,11 +172,11 @@ func (o Options) GetChangeSet(flags *pflag.FlagSet) *ChangeSet {
 		FlagDescription: func(c *ChangeSet) {
 			c.description = &o.Description
 		},
+		FlagNamespace: func(c *ChangeSet) {
+			c.namespace = &o.Namespace
+		},
 		FlagEnvironment: func(c *ChangeSet) {
 			c.envs = &o.Envs
-		},
-		FlagFramework: func(c *ChangeSet) {
-			c.framework = &o.Framework
 		},
 		FlagRegistrySecret: func(c *ChangeSet) {
 			c.dockerRegistrySecret = &o.DockerRegistrySecret
@@ -255,26 +251,18 @@ func (c *ChangeSet) getSourceDirectory() (string, error) {
 	return *c.sourcePath, nil
 }
 
-func (c *ChangeSet) getFramework(ctx context.Context, client Client) (string, error) {
-	if c.framework == nil {
-		return "", newMissingError(FlagFramework)
-	}
-	var p ketchv1.Framework
-	err := client.Get(ctx, types.NamespacedName{Name: *c.framework}, &p)
-	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("%w framework %q has not been created", newInvalidValueError(FlagFramework), *c.framework)
-	}
-	if err != nil {
-		return "", errors.Wrap(err, "could not fetch framework %q", *c.framework)
-	}
-	return *c.framework, nil
-}
-
 func (c *ChangeSet) getImage() (string, error) {
 	if c.image == nil {
 		return "", fmt.Errorf("%w %s is required", newMissingError(FlagImage), FlagImage)
 	}
 	return *c.image, nil
+}
+
+func (c *ChangeSet) getNamespace() (string, error) {
+	if c.namespace == nil {
+		return "", fmt.Errorf("%w %s is required", newMissingError(FlagNamespace), FlagNamespace)
+	}
+	return *c.namespace, nil
 }
 
 func (c *ChangeSet) getSteps() (int, error) {

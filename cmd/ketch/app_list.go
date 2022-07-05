@@ -17,7 +17,7 @@ import (
 
 type appListOutput struct {
 	Name        string `json:"name" yaml:"name"`
-	Framework   string `json:"framework" yaml:"framework"`
+	Namespace   string `json:"namespace" yaml:"namespace"`
 	State       string `json:"state" yaml:"state"`
 	Addresses   string `json:"addresses" yaml:"addresses"`
 	Builder     string `json:"builder" yaml:"builder"`
@@ -46,30 +46,21 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 	if err := cfg.Client().List(ctx, &apps); err != nil {
 		return fmt.Errorf("failed to list apps: %w", err)
 	}
-	frameworks := ketchv1.FrameworkList{}
-	if err := cfg.Client().List(ctx, &frameworks); err != nil {
-		return fmt.Errorf("failed to list frameworks: %w", err)
-	}
-	frameworksByName := make(map[string]ketchv1.Framework, len(frameworks.Items))
-	for _, framework := range frameworks.Items {
-		frameworksByName[framework.Name] = framework
-	}
 	allPods, err := allAppsPods(ctx, cfg, apps.Items)
 	if err != nil {
 		return fmt.Errorf("failed to list apps pods: %w", err)
 	}
-	return output.Write(generateAppListOutput(apps, allPods, frameworksByName), out, "column")
+	return output.Write(generateAppListOutput(apps, allPods), out, "column")
 }
 
-func generateAppListOutput(apps ketchv1.AppList, allPods *corev1.PodList, frameworksByName map[string]ketchv1.Framework) []appListOutput {
+func generateAppListOutput(apps ketchv1.AppList, allPods *corev1.PodList) []appListOutput {
 	var outputs []appListOutput
 	for _, item := range apps.Items {
 		pods := filterAppPods(item.Name, allPods.Items)
-		framework := frameworksByName[item.Spec.Framework]
-		urls := strings.Join(item.CNames(&framework), " ")
+		urls := strings.Join(item.CNames(), " ")
 		outputs = append(outputs, appListOutput{
 			Name:        item.Name,
-			Framework:   item.Spec.Framework,
+			Namespace:   item.Spec.Namespace,
 			State:       appState(pods),
 			Addresses:   urls,
 			Builder:     item.Spec.Builder,

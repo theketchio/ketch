@@ -361,39 +361,26 @@ func TestApp_DefaultCname(t *testing.T) {
 		name                 string
 		appName              string
 		generateDefaultCname bool
-		framework            *Framework
+		ingressController    IngressControllerSpec
 		want                 *string
 	}{
 		{
 			name:                 "cname with default domain",
 			appName:              "app-2",
 			generateDefaultCname: true,
-			framework: &Framework{
-				Spec: FrameworkSpec{
-					IngressController: IngressControllerSpec{
-						ServiceEndpoint: "20.20.20.20",
-					},
-				},
-			},
-			want: stringRef("app-2.20.20.20.20.shipa.cloud"),
+			ingressController:    IngressControllerSpec{ServiceEndpoint: "20.20.20.20"},
+			want:                 stringRef("app-2.20.20.20.20.shipa.cloud"),
 		},
 		{
 			name:                 "no service endpoint - no default cname",
 			appName:              "app-1",
 			generateDefaultCname: true,
-			framework:            &Framework{},
 		},
 		{
 			name:                 "do not generate default cname - no default cname",
 			appName:              "app-1",
 			generateDefaultCname: false,
-			framework: &Framework{
-				Spec: FrameworkSpec{
-					IngressController: IngressControllerSpec{
-						ServiceEndpoint: "20.20.20.20",
-					},
-				},
-			},
+			ingressController:    IngressControllerSpec{ServiceEndpoint: "20.20.20.20"},
 		},
 	}
 	for _, tt := range tests {
@@ -405,10 +392,11 @@ func TestApp_DefaultCname(t *testing.T) {
 				Spec: AppSpec{
 					Ingress: IngressSpec{
 						GenerateDefaultCname: tt.generateDefaultCname,
+						Controller:           tt.ingressController,
 					},
 				},
 			}
-			got := app.DefaultCname(tt.framework)
+			got := app.DefaultCname()
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("DefaultCname() mismatch (-want +got):\n%s", diff)
 			}
@@ -417,59 +405,44 @@ func TestApp_DefaultCname(t *testing.T) {
 }
 
 func TestApp_CNames(t *testing.T) {
-	framework := Framework{
-		Spec: FrameworkSpec{
-			IngressController: IngressControllerSpec{
-				ServiceEndpoint: "10.20.30.40",
-			},
-		},
-	}
-	frameworkWithClusterIssuer := Framework{
-		Spec: FrameworkSpec{
-			IngressController: IngressControllerSpec{
-				ServiceEndpoint: "10.20.30.40",
-				ClusterIssuer:   "letsencrypt",
-			},
-		},
-	}
 	tests := []struct {
 		name                 string
 		generateDefaultCname bool
-		framework            Framework
+		ingressController    IngressControllerSpec
 		cnames               []Cname
 		want                 []string
 	}{
 		{
 			name:                 "with default cname",
 			generateDefaultCname: true,
-			framework:            framework,
+			ingressController:    IngressControllerSpec{ServiceEndpoint: "10.20.30.40"},
 			cnames:               []Cname{{Name: "theketch.io"}, {Name: "app.theketch.io"}},
 			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud", "http://theketch.io", "http://app.theketch.io"},
 		},
 		{
 			name:                 "with default cname and framework with cluster issuer",
 			generateDefaultCname: true,
-			framework:            frameworkWithClusterIssuer,
+			ingressController:    IngressControllerSpec{ServiceEndpoint: "10.20.30.40", ClusterIssuer: "letsencrypt"},
 			cnames:               []Cname{{Name: "theketch.io"}, {Name: "app.theketch.io", Secure: true}},
 			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud", "http://theketch.io", "https://app.theketch.io"},
 		},
 		{
 			name:                 "without default cname",
 			generateDefaultCname: false,
-			framework:            framework,
+			ingressController:    IngressControllerSpec{ServiceEndpoint: "10.20.30.40"},
 			cnames:               []Cname{{Name: "theketch.io"}, {Name: "app.theketch.io"}},
 			want:                 []string{"http://theketch.io", "http://app.theketch.io"},
 		},
 		{
 			name:                 "empty cnames",
-			framework:            framework,
 			generateDefaultCname: false,
+			ingressController:    IngressControllerSpec{ServiceEndpoint: "10.20.30.40"},
 			want:                 []string{},
 		},
 		{
 			name:                 "empty cnames with default cname",
-			framework:            framework,
 			generateDefaultCname: true,
+			ingressController:    IngressControllerSpec{ServiceEndpoint: "10.20.30.40"},
 			want:                 []string{"http://ketch.10.20.30.40.shipa.cloud"},
 		},
 	}
@@ -483,10 +456,11 @@ func TestApp_CNames(t *testing.T) {
 					Ingress: IngressSpec{
 						GenerateDefaultCname: tt.generateDefaultCname,
 						Cnames:               tt.cnames,
+						Controller:           tt.ingressController,
 					},
 				},
 			}
-			got := app.CNames(&tt.framework)
+			got := app.CNames()
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("CNames() mismatch (-want +got):\n%s", diff)
 			}

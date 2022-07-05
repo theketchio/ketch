@@ -25,7 +25,7 @@ func TestGetChangeSetFromYaml(t *testing.T) {
 type: Application
 name: test
 image: gcr.io/kubernetes/sample-app:latest
-framework: myframework
+namespace: mynamespace
 description: a test
 builder: heroku/buildpacks:20
 buildPacks:
@@ -52,7 +52,7 @@ cname:
 				image:                conversions.StrPtr("gcr.io/kubernetes/sample-app:latest"),
 				description:          conversions.StrPtr("a test"),
 				envs:                 &[]string{"PORT=6666", "FOO=bar"},
-				framework:            conversions.StrPtr("myframework"),
+				namespace:            conversions.StrPtr("mynamespace"),
 				dockerRegistrySecret: nil,
 				builder:              conversions.StrPtr("heroku/buildpacks:20"),
 				buildPacks:           &[]string{"test-buildpack"},
@@ -96,14 +96,14 @@ cname:
 		{
 			description: "success - defaults",
 			yaml: `name: test
-framework: myframework
+namespace: mynamespace
 image: gcr.io/kubernetes/sample-app:latest`,
 			options: &Options{},
 			changeSet: &ChangeSet{
 				appName:            "test",
 				yamlStrictDecoding: true,
 				image:              conversions.StrPtr("gcr.io/kubernetes/sample-app:latest"),
-				framework:          conversions.StrPtr("myframework"),
+				namespace:          conversions.StrPtr("mynamespace"),
 				appVersion:         conversions.StrPtr("v1"),
 				appType:            conversions.StrPtr("Application"),
 				timeout:            conversions.StrPtr(""),
@@ -115,12 +115,12 @@ image: gcr.io/kubernetes/sample-app:latest`,
 			yaml: `name: test
 image: gcr.io/kubernetes/sample-app:latest`,
 			options: &Options{},
-			errStr:  "missing required field framework",
+			errStr:  "missing required field namespace",
 		},
 		{
 			description: "validation error - processes without sourcePath",
 			yaml: `name: test
-framework: myframework
+namespace: mynamespace
 image: gcr.io/kubernetes/sample-app:latest
 processes:
   - name: web
@@ -134,7 +134,7 @@ processes:
 type: Application
 name: test
 image: gcr.io/kubernetes/sample-app:latest
-framework: myframework
+namespace: mynamespace
 description: a test
 builder: heroku/buildpacks:20
 processes:
@@ -153,7 +153,7 @@ processes:
 				image:              conversions.StrPtr("gcr.io/kubernetes/sample-app:latest"),
 				description:        conversions.StrPtr("a test"),
 				builder:            conversions.StrPtr("heroku/buildpacks:20"),
-				framework:          conversions.StrPtr("myframework"),
+				namespace:          conversions.StrPtr("mynamespace"),
 				timeout:            conversions.StrPtr(""),
 				wait:               conversions.BoolPtr(false),
 				processes: &[]ketchv1.ProcessSpec{
@@ -173,7 +173,7 @@ processes:
 		{
 			description: "success - no cname",
 			yaml: `name: test
-framework: myframework
+namespace: mynamespace
 image: gcr.io/kubernetes/sample-app:latest
 `,
 			options: &Options{},
@@ -181,7 +181,7 @@ image: gcr.io/kubernetes/sample-app:latest
 				appName:            "test",
 				yamlStrictDecoding: true,
 				image:              conversions.StrPtr("gcr.io/kubernetes/sample-app:latest"),
-				framework:          conversions.StrPtr("myframework"),
+				namespace:          conversions.StrPtr("mynamespace"),
 				appVersion:         conversions.StrPtr("v1"),
 				appType:            conversions.StrPtr("Application"),
 				timeout:            conversions.StrPtr(""),
@@ -191,7 +191,7 @@ image: gcr.io/kubernetes/sample-app:latest
 		{
 			description: "error - malformed envvar",
 			yaml: `name: test
-framework: myframework
+namespace: mynamespace
 image: gcr.io/kubernetes/sample-app:latest
 environment:
   - bad:variable
@@ -233,13 +233,13 @@ func TestGetApplicationFromKetchApp(t *testing.T) {
 					Name: "test",
 				},
 				Spec: ketchv1.AppSpec{
-					Framework: "myframework",
+					Namespace: "mynamespace",
 				},
 			},
 			application: &Application{
 				Type:      conversions.StrPtr(typeApplication),
 				Name:      conversions.StrPtr("test"),
-				Framework: conversions.StrPtr("myframework"),
+				Namespace: conversions.StrPtr("mynamespace"),
 			},
 		},
 		{
@@ -249,7 +249,7 @@ func TestGetApplicationFromKetchApp(t *testing.T) {
 					Name: "test",
 				},
 				Spec: ketchv1.AppSpec{
-					Framework:      "myframework",
+					Namespace:      "mynamespace",
 					Version:        conversions.StrPtr("v1"),
 					Description:    "a test",
 					Env:            []ketchv1.Env{{Name: "TEST_KEY", Value: "TEST_VALUE"}},
@@ -283,7 +283,7 @@ func TestGetApplicationFromKetchApp(t *testing.T) {
 				Type:           conversions.StrPtr(typeApplication),
 				Name:           conversions.StrPtr("test"),
 				Image:          conversions.StrPtr("gcr.io/shipa-ci/sample-go-app:latest"),
-				Framework:      conversions.StrPtr("myframework"),
+				Namespace:      conversions.StrPtr("mynamespace"),
 				Description:    conversions.StrPtr("a test"),
 				Environment:    []string{"TEST_KEY=TEST_VALUE"},
 				RegistrySecret: conversions.StrPtr("a_secret"),

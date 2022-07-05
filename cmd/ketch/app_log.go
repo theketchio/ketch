@@ -76,10 +76,6 @@ func appLog(ctx context.Context, cfg config, options appLogOptions, out io.Write
 	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.appName}, &app); err != nil {
 		return fmt.Errorf("failed to get app instance: %w", err)
 	}
-	framework := ketchv1.Framework{}
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
-		return fmt.Errorf("failed to get framework instance: %w", err)
-	}
 	set := map[string]string{
 		utils.KetchAppNameLabel: options.appName,
 	}
@@ -91,7 +87,7 @@ func appLog(ctx context.Context, cfg config, options appLogOptions, out io.Write
 	}
 	s := labels.SelectorFromSet(set)
 	opts := watchOptions{
-		namespace:    framework.Spec.NamespaceName,
+		namespace:    app.Spec.Namespace,
 		selector:     s,
 		follow:       options.follow,
 		ignoreErrors: options.ignoreErrors,

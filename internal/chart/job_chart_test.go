@@ -21,7 +21,7 @@ var (
 			Version:      "v1",
 			Type:         "Job",
 			Name:         "testjob",
-			Framework:    "myframework",
+			Namespace:    "mynamespace",
 			Description:  "this is a test",
 			Parallelism:  2,
 			Completions:  2,
