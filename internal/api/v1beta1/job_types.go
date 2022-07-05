@@ -27,6 +27,7 @@ type JobSpec struct {
 	Type        string `json:"type"`
 	Name        string `json:"name"`
 	Framework   string `json:"framework"`
+	Namespace   string `json:"namespace,omitempty"`
 	Description string `json:"description,omitempty"`
 	Parallelism int    `json:"parallelism,omitempty"`
 	Completions int    `json:"completions,omitempty"`
