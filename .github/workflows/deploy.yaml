@@ -113,6 +113,6 @@ jobs:
           sudo apt-get update -yq && sudo apt-get install bats -y
 
       - name: Run Integration Tests
+        # TODO enable cli_tests/app.sh after ingress updates
         run: |
-#          cli_tests/app.sh # TODO - enable after ingress update
           cli_tests/job.sh
