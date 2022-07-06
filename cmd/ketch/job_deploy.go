@@ -54,7 +54,7 @@ func jobDeploy(ctx context.Context, cfg config, filename string, out io.Writer) 
 		return err
 	}
 
-	job := &ketchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: spec.Name}}
+	job := &ketchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: spec.Name, Namespace: "default"}}
 	res, err := controllerutil.CreateOrUpdate(ctx, cfg.Client(), job, func() error {
 		job.Spec = spec
 		return nil

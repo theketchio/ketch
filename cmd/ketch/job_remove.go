@@ -38,7 +38,7 @@ func newJobRemoveCmd(cfg config, out io.Writer) *cobra.Command {
 
 func jobRemove(ctx context.Context, cfg config, jobName string, out io.Writer) error {
 	var job ketchv1.Job
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: jobName}, &job); err != nil {
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: jobName, Namespace: "default"}, &job); err != nil {
 		return err
 	}
 
