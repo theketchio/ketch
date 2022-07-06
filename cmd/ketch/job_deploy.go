@@ -54,7 +54,7 @@ func jobDeploy(ctx context.Context, cfg config, filename string, out io.Writer) 
 		return err
 	}
 
-	job := &ketchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: spec.Name}}
+	job := &ketchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: spec.Name, Namespace: "default"}}
 	res, err := controllerutil.CreateOrUpdate(ctx, cfg.Client(), job, func() error {
 		job.Spec = spec
 		return nil
@@ -93,8 +93,8 @@ func setJobSpecDefaults(jobSpec *ketchv1.JobSpec) {
 // validateJobSpec assures that required fields are populated. Missing fields will throw errors
 // when the custom resource is created, but this is a way to surface errors to user clearly.
 func validateJobSpec(jobSpec *ketchv1.JobSpec) error {
-	if jobSpec.Name == "" || jobSpec.Framework == "" {
-		return errors.New("job.name and job.framework are required")
+	if jobSpec.Name == "" || jobSpec.Namespace == "" {
+		return errors.New("job.name and job.namespace are required")
 	}
 	return nil
 }

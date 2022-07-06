@@ -20,7 +20,7 @@ func Test_appList(t *testing.T) {
 		},
 		Spec: ketchv1.AppSpec{
 			Description: "my app-a",
-			Framework:   "fw1",
+			Namespace:   "fw1",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: false,
 				Cnames:               ketchv1.CnameList{{Name: "app-a-cname1"}},
@@ -35,7 +35,7 @@ func Test_appList(t *testing.T) {
 		},
 		Spec: ketchv1.AppSpec{
 			Description: "my app-b",
-			Framework:   "fw1",
+			Namespace:   "fw1",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: false,
 				Cnames:               ketchv1.CnameList{{Name: "app-b-cname1"}},
@@ -56,7 +56,7 @@ func Test_appList(t *testing.T) {
 			cfg: &mocks.Configuration{
 				CtrlClientObjects: []runtime.Object{appA, appB},
 			},
-			wantOut: `NAME     FRAMEWORK    STATE      ADDRESSES              BUILDER    DESCRIPTION
+			wantOut: `NAME     NAMESPACE    STATE      ADDRESSES              BUILDER    DESCRIPTION
 app-a    fw1          created    http://app-a-cname1               my app-a
 app-b    fw1          created    http://app-b-cname1               my app-b
 `,
@@ -67,11 +67,11 @@ app-b    fw1          created    http://app-b-cname1               my app-b
 			out := &bytes.Buffer{}
 			err := appList(context.Background(), tt.cfg, out)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("frameworkList() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("appList() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if gotOut := out.String(); gotOut != tt.wantOut {
-				t.Errorf("frameworkList() gotOut = \n%v\n, want \n%v\n", gotOut, tt.wantOut)
+				t.Errorf("appList() gotOut = \n%v\n, want \n%v\n", gotOut, tt.wantOut)
 			}
 		})
 	}

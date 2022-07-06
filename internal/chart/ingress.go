@@ -44,7 +44,7 @@ type ingress struct {
 	Https []httpsEndpoint `json:"https"`
 }
 
-func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) {
+func newIngress(app ketchv1.App, ingressController ketchv1.IngressControllerSpec) (*ingress, error) {
 
 	// CNAMEs contain only:
 	// A to Z ; upper case characters
@@ -64,8 +64,8 @@ func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) 
 			continue
 		}
 
-		if len(framework.Spec.IngressController.ClusterIssuer) == 0 {
-			return nil, errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified")
+		if len(ingressController.ClusterIssuer) == 0 {
+			return nil, errors.New("secure cnames require a Ingress.ClusterIssuer to be specified")
 		}
 
 		strippedCname := regex.ReplaceAllString(cname.Name, "-")
@@ -85,7 +85,7 @@ func newIngress(app ketchv1.App, framework ketchv1.Framework) (*ingress, error) 
 			})
 		}
 	}
-	defaultCname := app.DefaultCname(&framework)
+	defaultCname := app.DefaultCname()
 	if defaultCname != nil {
 		http = append(http, *defaultCname)
 	}

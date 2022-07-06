@@ -13,7 +13,6 @@ import (
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,8 +31,7 @@ type mockClient struct {
 	create funcMap
 	update funcMap
 
-	app       *ketchv1.App
-	framework *ketchv1.Framework
+	app *ketchv1.App
 
 	getCounter    int
 	createCounter int
@@ -48,15 +46,8 @@ func newMockClient() *mockClient {
 		app: &ketchv1.App{
 			Spec: ketchv1.AppSpec{
 				Description: "foo",
-				Framework:   "initialframework",
 				Builder:     "initialbuilder",
 			},
-		},
-		framework: &ketchv1.Framework{
-			TypeMeta:   metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec:       ketchv1.FrameworkSpec{},
-			Status:     ketchv1.FrameworkStatus{},
 		},
 	}
 }
@@ -71,9 +62,6 @@ func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj client.Objec
 	switch v := obj.(type) {
 	case *ketchv1.App:
 		*v = *m.app
-		return nil
-	case *ketchv1.Framework:
-		*v = *m.framework
 		return nil
 	}
 	panic("unhandled type")
@@ -90,9 +78,6 @@ func (m *mockClient) Create(_ context.Context, obj client.Object, _ ...client.Cr
 	case *ketchv1.App:
 		m.app = v
 		return nil
-	case *ketchv1.Framework:
-		m.framework = v
-		return nil
 	}
 	panic("unhandled type")
 }
@@ -107,9 +92,6 @@ func (m *mockClient) Update(ctx context.Context, obj client.Object, opts ...clie
 	switch v := obj.(type) {
 	case *ketchv1.App:
 		m.app = v
-		return nil
-	case *ketchv1.Framework:
-		m.framework = v
 		return nil
 	}
 	panic("unhandled type")
@@ -199,7 +181,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "initialframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -229,7 +211,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -261,7 +243,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -337,7 +319,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 				"--builder", "superduper",
 				"--build-packs", "pack1,pack2",
@@ -373,7 +355,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,zip=zap",
 				"--builder", "newbuilder",
@@ -386,7 +368,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
 			validate: func(t *testing.T, mock *mockClient) {
-				require.Equal(t, "myframework", mock.app.Spec.Framework)
+				require.Equal(t, "initialnamespace", mock.app.Spec.Namespace)
 				require.Equal(t, "newbuilder", mock.app.Spec.Builder)
 				require.Len(t, mock.app.Spec.Deployments, 1)
 				require.Len(t, mock.app.Spec.Deployments[0].KetchYaml.Kubernetes.Processes, 3)
@@ -456,6 +438,7 @@ func TestNewCommand(t *testing.T) {
 				"--steps", "4",
 				"--step-interval", "1h",
 				"--image", "shipa/go-sample:latest",
+				"--namespace", "initialnamespace",
 			},
 			setup: func(t *testing.T) {
 				dir := t.TempDir()
@@ -464,7 +447,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, ioutil.WriteFile("src/Procfile", []byte(procfile), 0600))
 			},
 			validate: func(t *testing.T, mock *mockClient) {
-				require.Equal(t, mock.app.Spec.Framework, "initialframework")
+				require.Equal(t, mock.app.Spec.Namespace, "initialnamespace")
 
 			},
 			params: &deploy.Services{
@@ -495,7 +478,7 @@ func TestNewCommand(t *testing.T) {
 			name: "happy path build from image",
 			arguments: []string{
 				"myapp",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -525,7 +508,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -554,7 +537,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 				"--procfile", "./Procfile",
 			},
@@ -564,7 +547,7 @@ func TestNewCommand(t *testing.T) {
 				require.Nil(t, os.Chdir(dir))
 			},
 			validate: func(t *testing.T, mock *mockClient) {
-				require.Equal(t, "myframework", mock.app.Spec.Framework)
+				require.Equal(t, "initialnamespace", mock.app.Spec.Namespace)
 			},
 			params: &deploy.Services{
 				Client: func() *mockClient {
@@ -586,7 +569,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,bobb=dobbs",
 			},
@@ -618,7 +601,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 				"--env", "foo=bar,bobbdobbs",
 			},
@@ -649,7 +632,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 			},
 			setup: func(t *testing.T) {
@@ -678,7 +661,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 				"--unit-version", "7",
 			},
@@ -709,7 +692,7 @@ func TestNewCommand(t *testing.T) {
 			arguments: []string{
 				"myapp",
 				"src",
-				"--framework", "myframework",
+				"--namespace", "initialnamespace",
 				"--image", "shipa/go-sample:latest",
 				"--unit-process", "test",
 			},
@@ -741,6 +724,7 @@ func TestNewCommand(t *testing.T) {
 				"src",
 				"--units", "4",
 				"--image", "shipa/go-sample:latest",
+				"--namespace", "initialnamespace",
 			},
 			setup: func(t *testing.T) {
 				dir := t.TempDir()
@@ -755,7 +739,7 @@ func TestNewCommand(t *testing.T) {
 				for _, process := range mock.app.Spec.Deployments[0].Processes {
 					require.Equal(t, *process.Units, 4)
 				}
-				require.Equal(t, mock.app.Spec.Framework, "initialframework")
+				require.Equal(t, mock.app.Spec.Namespace, "initialnamespace")
 
 			},
 			params: &deploy.Services{
@@ -811,6 +795,7 @@ func TestNewCommand(t *testing.T) {
 				"--units", "4",
 				"--unit-process", "worker",
 				"--image", "shipa/go-sample:latest",
+				"--namespace", "initialnamespace",
 			},
 			setup: func(t *testing.T) {
 				dir := t.TempDir()
@@ -824,7 +809,7 @@ func TestNewCommand(t *testing.T) {
 				// changes from the previous deployment defined below to the one created by procfile variable above
 				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Name, "worker")
 				require.Equal(t, mock.app.Spec.Deployments[0].Processes[1].Cmd[0], "worker")
-				require.Equal(t, mock.app.Spec.Framework, "initialframework")
+				require.Equal(t, mock.app.Spec.Namespace, "initialnamespace")
 
 			},
 			params: &deploy.Services{
@@ -875,6 +860,7 @@ func TestNewCommand(t *testing.T) {
 				"--unit-process", "worker1",
 				"--unit-version", "1",
 				"--image", "shipa/go-sample:latest",
+				"--namespace", "initialnamespace",
 			},
 			setup: func(t *testing.T) {
 				dir := t.TempDir()
@@ -886,7 +872,7 @@ func TestNewCommand(t *testing.T) {
 				require.Equal(t, *mock.app.Spec.Deployments[0].Processes[1].Units, 4)
 				require.Nil(t, mock.app.Spec.Deployments[1].Processes[0].Units)
 				require.Nil(t, mock.app.Spec.Deployments[1].Processes[1].Units)
-				require.Equal(t, mock.app.Spec.Framework, "initialframework")
+				require.Equal(t, mock.app.Spec.Namespace, "initialnamespace")
 
 			},
 			params: &deploy.Services{

@@ -45,7 +45,7 @@ func newJobExportCmd(cfg config, out io.Writer) *cobra.Command {
 
 func jobExport(ctx context.Context, cfg config, options jobExportOptions, out io.Writer) error {
 	var job ketchv1.Job
-	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.name}, &job); err != nil {
+	if err := cfg.Client().Get(ctx, types.NamespacedName{Name: options.name, Namespace: "default"}, &job); err != nil {
 		return err
 	}
 	return output.WriteToFileOrOut(job.Spec, out, options.filename)

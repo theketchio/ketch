@@ -7,7 +7,6 @@ import (
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
 	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
 	"github.com/theketchio/ketch/internal/chart"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -22,8 +21,7 @@ type mockClient struct {
 	create funcMap
 	update funcMap
 
-	app       *ketchv1.App
-	framework *ketchv1.Framework
+	app *ketchv1.App
 
 	getCounter    int
 	createCounter int
@@ -38,15 +36,9 @@ func newMockClient() *mockClient {
 		app: &ketchv1.App{
 			Spec: ketchv1.AppSpec{
 				Description: "foo",
-				Framework:   "initialframework",
+				Namespace:   "initialnamespace",
 				Builder:     "initialbuilder",
 			},
-		},
-		framework: &ketchv1.Framework{
-			TypeMeta:   metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec:       ketchv1.FrameworkSpec{},
-			Status:     ketchv1.FrameworkStatus{},
 		},
 	}
 }
@@ -61,9 +53,6 @@ func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj client.Objec
 	switch v := obj.(type) {
 	case *ketchv1.App:
 		*v = *m.app
-		return nil
-	case *ketchv1.Framework:
-		*v = *m.framework
 		return nil
 	}
 	panic("unhandled type")
@@ -80,9 +69,6 @@ func (m *mockClient) Create(_ context.Context, obj client.Object, _ ...client.Cr
 	case *ketchv1.App:
 		m.app = v
 		return nil
-	case *ketchv1.Framework:
-		m.framework = v
-		return nil
 	}
 	panic("unhandled type")
 }
@@ -97,9 +83,6 @@ func (m *mockClient) Update(ctx context.Context, obj client.Object, opts ...clie
 	switch v := obj.(type) {
 	case *ketchv1.App:
 		m.app = v
-		return nil
-	case *ketchv1.Framework:
-		m.framework = v
 		return nil
 	}
 	panic("unhandled type")

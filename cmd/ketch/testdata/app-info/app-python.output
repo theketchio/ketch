@@ -1,7 +1,7 @@
 Application: app-python
-Framework: gke
+Namespace: gke
 Builder: python
-The default cname hasn't assigned yet because "gke" framework doesn't have ingress service endpoint.
+The default cname hasn't assigned yet because cluster doesn't have ingress service endpoint.
 
 No environment variables.
 

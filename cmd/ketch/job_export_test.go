@@ -20,7 +20,7 @@ func TestJobExport(t *testing.T) {
 		Spec: ketchv1.JobSpec{
 			Name:         "hello",
 			Version:      "v1",
-			Framework:    "myframework",
+			Namespace:    "mynamespace",
 			Description:  "test",
 			Parallelism:  1,
 			Completions:  1,
@@ -64,8 +64,8 @@ containers:
   image: ubuntu
   name: lister
 description: test
-framework: myframework
 name: hello
+namespace: mynamespace
 parallelism: 1
 policy:
   restartPolicy: Never

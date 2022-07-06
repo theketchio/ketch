@@ -26,42 +26,25 @@ func TestNewApplicationChart(t *testing.T) {
 
 	const chartDirectory = "./testdata/charts/"
 
-	frameworkWithClusterIssuer := &ketchv1.Framework{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "framework",
-		},
-		Spec: ketchv1.FrameworkSpec{
-			NamespaceName: "ketch-gke",
-			IngressController: ketchv1.IngressControllerSpec{
-				ClassName:       "ingress-class",
-				ServiceEndpoint: "10.10.10.10",
-				ClusterIssuer:   "letsencrypt-production",
-			},
-		},
-	}
-	frameworkWithoutClusterIssuer := &ketchv1.Framework{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "framework",
-		},
-		Spec: ketchv1.FrameworkSpec{
-			NamespaceName: "ketch-gke",
-			IngressController: ketchv1.IngressControllerSpec{
-				ClassName:       "gke",
-				ServiceEndpoint: "20.20.20.20",
-			},
-		},
-	}
 	exportedPorts := map[ketchv1.DeploymentVersion][]ketchv1.ExposedPort{
 		3: {{Port: 9090, Protocol: "TCP"}},
 		4: {{Port: 9091, Protocol: "TCP"}},
 	}
 	memorySize := resource.NewQuantity(5*1024*1024*1024, resource.BinarySI)
 	cores := resource.NewMilliQuantity(5300, resource.DecimalSI)
+
+	ingressController := ketchv1.IngressControllerSpec{ClassName: "ingress-class",
+		ServiceEndpoint: "10.10.10.10",
+		ClusterIssuer:   "letsencrypt-production"}
+	ingressControllerWithoutClusterIssuer := ketchv1.IngressControllerSpec{ClassName: "gke",
+		ServiceEndpoint: "20.20.20.20"}
+
 	dashboard := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
+			Namespace: "test-ns",
 			Deployments: []ketchv1.AppDeploymentSpec{
 				{
 					Image:   "shipasoftware/go-app:v1",
@@ -131,7 +114,6 @@ func TestNewApplicationChart(t *testing.T) {
 			Env: []ketchv1.Env{
 				{Name: "VAR", Value: "VALUE"},
 			},
-			Framework: "framework",
 			DockerRegistry: ketchv1.DockerRegistrySpec{
 				SecretName: "default-image-pull-secret",
 			},
@@ -253,11 +235,11 @@ func TestNewApplicationChart(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		application *ketchv1.App
-		framework   *ketchv1.Framework
-		opts        []Option
-		group       string
+		name              string
+		application       *ketchv1.App
+		ingressController ketchv1.IngressControllerSpec
+		opts              []Option
+		group             string
 
 		wantYamlsFilename string
 		wantErr           bool
@@ -269,7 +251,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       dashboard,
-			framework:         frameworkWithClusterIssuer,
+			ingressController: ingressController,
 			wantYamlsFilename: "dashboard-nginx-cluster-issuer",
 		},
 		{
@@ -279,7 +261,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       setServiceAccount(convertSecureEndpoints(dashboard)),
-			framework:         frameworkWithoutClusterIssuer,
+			ingressController: ingressControllerWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-nginx",
 		},
 		{
@@ -289,7 +271,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       dashboard,
-			framework:         frameworkWithClusterIssuer,
+			ingressController: ingressController,
 			wantYamlsFilename: "dashboard-istio-cluster-issuer",
 		},
 		{
@@ -299,7 +281,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       setPodSecurityContext(dashboard),
-			framework:         frameworkWithClusterIssuer,
+			ingressController: ingressController,
 			wantYamlsFilename: "dashboard-istio-cluster-issuer-pod-security-context",
 		},
 		{
@@ -309,7 +291,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       setStatefulSet(setVolumeClaimTemplates(dashboard)),
-			framework:         frameworkWithClusterIssuer,
+			ingressController: ingressController,
 			wantYamlsFilename: "dashboard-istio-cluster-issuer-volume-claim-templates",
 		},
 		{
@@ -319,7 +301,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       convertSecureEndpoints(dashboard),
-			framework:         frameworkWithoutClusterIssuer,
+			ingressController: ingressControllerWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-istio",
 		},
 		{
@@ -329,7 +311,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       dashboard,
-			framework:         frameworkWithClusterIssuer,
+			ingressController: ingressController,
 			wantYamlsFilename: "dashboard-traefik-cluster-issuer",
 		},
 		{
@@ -339,7 +321,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       convertSecureEndpoints(dashboard),
-			framework:         frameworkWithoutClusterIssuer,
+			ingressController: ingressControllerWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-traefik",
 		},
 		{
@@ -349,7 +331,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       dashboard,
-			framework:         frameworkWithClusterIssuer,
+			ingressController: ingressController,
 			wantYamlsFilename: "dashboard-traefik-cluster-issuer",
 		},
 		{
@@ -359,7 +341,7 @@ func TestNewApplicationChart(t *testing.T) {
 				WithExposedPorts(exportedPorts),
 			},
 			application:       dashboard,
-			framework:         frameworkWithClusterIssuer,
+			ingressController: ingressController,
 			group:             "shipa.io",
 			wantYamlsFilename: "dashboard-traefik-cluster-issuer-shipa",
 		},
@@ -373,7 +355,8 @@ func TestNewApplicationChart(t *testing.T) {
 					ketchv1.Group = original
 				}()
 			}
-			got, err := New(tt.application, tt.framework, tt.opts...)
+			tt.application.Spec.Ingress.Controller = tt.ingressController
+			got, err := New(tt.application, tt.opts...)
 			if tt.wantErr {
 				require.NotNil(t, err, "New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -389,7 +372,7 @@ func TestNewApplicationChart(t *testing.T) {
 				DeploymentVersions: deploymentVersions(*tt.application),
 			}
 
-			client := HelmClient{cfg: &action.Configuration{KubeClient: &fake.PrintingKubeClient{}, Releases: storage.Init(driver.NewMemory())}, namespace: tt.framework.Spec.NamespaceName, c: clientfake.NewClientBuilder().Build()}
+			client := HelmClient{cfg: &action.Configuration{KubeClient: &fake.PrintingKubeClient{}, Releases: storage.Init(driver.NewMemory())}, namespace: tt.application.Spec.Namespace, c: clientfake.NewClientBuilder().Build()}
 			release, err := client.UpdateChart(*got, chartConfig, func(install *action.Install) {
 				install.DryRun = true
 				install.ClientOnly = true

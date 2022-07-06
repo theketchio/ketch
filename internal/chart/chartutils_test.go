@@ -26,7 +26,6 @@ func TestBufferedFiles(t *testing.T) {
 				Version:      "v1",
 				Type:         "Job",
 				Name:         "testjob",
-				Framework:    "myframework",
 				Description:  "this is a test",
 				Parallelism:  2,
 				Completions:  2,
@@ -42,6 +41,7 @@ func TestBufferedFiles(t *testing.T) {
 				Policy: ketchv1.Policy{
 					RestartPolicy: "Never",
 				},
+				Namespace: "mynamespace",
 			},
 			Group: "theketch.io",
 		},
@@ -64,9 +64,9 @@ appVersion: v1
     image: ubuntu
     name: test
   description: this is a test
-  framework: myframework
   group: theketch.io
   name: testjob
+  namespace: mynamespace
   parallelism: 2
   policy:
     restartPolicy: Never
@@ -101,7 +101,7 @@ func TestGetValuesMap(t *testing.T) {
 				Version:      "v1",
 				Type:         "Job",
 				Name:         "testjob",
-				Framework:    "myframework",
+				Namespace:    "mynamespace",
 				Description:  "this is a test",
 				Parallelism:  2,
 				Completions:  2,
@@ -125,7 +125,7 @@ func TestGetValuesMap(t *testing.T) {
 					map[string]interface{}{"name": "test", "image": "ubuntu", "command": []interface{}{"pwd"}},
 				},
 				"description": "this is a test",
-				"framework":   "myframework",
+				"namespace":   "mynamespace",
 				"name":        "testjob",
 				"policy":      map[string]interface{}{"restartPolicy": "Never"},
 				"type":        "Job",
@@ -137,7 +137,7 @@ func TestGetValuesMap(t *testing.T) {
 			description: "app spec",
 			i: ketchv1.AppSpec{
 				Version:   conversions.StrPtr("v1"),
-				Framework: "myframework",
+				Namespace: "mynamespace",
 				Deployments: []ketchv1.AppDeploymentSpec{{
 					Image: "test/image",
 					Processes: []ketchv1.ProcessSpec{{
@@ -148,7 +148,7 @@ func TestGetValuesMap(t *testing.T) {
 			},
 			expected: map[string]interface{}{
 				"version":   "v1",
-				"framework": "myframework",
+				"namespace": "mynamespace",
 				"deployments": []interface{}{map[string]interface{}{
 					"image": "test/image",
 					"processes": []interface{}{map[string]interface{}{
@@ -160,7 +160,7 @@ func TestGetValuesMap(t *testing.T) {
 				}},
 				"canary":         map[string]interface{}{},
 				"dockerRegistry": map[string]interface{}{},
-				"ingress":        map[string]interface{}{"generateDefaultCname": false},
+				"ingress":        map[string]interface{}{"generateDefaultCname": false, "controller": map[string]interface{}{"type": ""}},
 			},
 		},
 	}

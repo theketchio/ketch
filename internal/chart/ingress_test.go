@@ -56,7 +56,7 @@ func TestNewIngress(t *testing.T) {
 					Secure: true,
 				},
 			},
-			expectedError: errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified"),
+			expectedError: errors.New("secure cnames require a Ingress.ClusterIssuer to be specified"),
 		},
 	}
 	for _, tt := range tests {
@@ -71,14 +71,8 @@ func TestNewIngress(t *testing.T) {
 					},
 				},
 			}
-			framework := ketchv1.Framework{
-				Spec: ketchv1.FrameworkSpec{
-					IngressController: ketchv1.IngressControllerSpec{
-						ClusterIssuer: tt.clusterIssuer,
-					},
-				},
-			}
-			issuer, err := newIngress(app, framework)
+			ingressController := ketchv1.IngressControllerSpec{ClusterIssuer: tt.clusterIssuer}
+			issuer, err := newIngress(app, ingressController)
 			if tt.expectedError != nil {
 				require.EqualError(t, err, tt.expectedError.Error())
 			} else {

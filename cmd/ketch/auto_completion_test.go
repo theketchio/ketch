@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,17 +59,17 @@ func Test_autoCompleteAppNames(t *testing.T) {
 	}
 }
 
-func Test_autoCompleteFrameworkNames(t *testing.T) {
-	frameworkA := &ketchv1.Framework{
+func Test_autoCompleteNamespaces(t *testing.T) {
+	namespaceA := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "framework-a",
+			Name: "namespace-a",
 		},
 	}
-	frameworkB := &ketchv1.Framework{
+	namespaceB := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "framework-b",
+			Name: "namespace-b",
 		},
 	}
 
@@ -81,22 +83,22 @@ func Test_autoCompleteFrameworkNames(t *testing.T) {
 		{
 			name: "show all, no error",
 			cfg: &mocks.Configuration{
-				CtrlClientObjects: []runtime.Object{frameworkA, frameworkB},
+				CtrlClientObjects: []runtime.Object{namespaceA, namespaceB},
 			},
 
-			want:         []string{"framework-a", "framework-b"},
+			want:         []string{"namespace-a", "namespace-b"},
 			wantFallback: cobra.ShellCompDirectiveNoSpace,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			names, fallback := autoCompleteFrameworkNames(tt.cfg)
+			names, fallback := autoCompleteNamespaces(tt.cfg)
 			if fallback != tt.wantFallback {
-				t.Errorf("autoCompleteFrameworkNames() fallback = %v, wantFallback %v", fallback, tt.wantFallback)
+				t.Errorf("autoCompleteNamespaces() fallback = %v, wantFallback %v", fallback, tt.wantFallback)
 				return
 			}
 			if !reflect.DeepEqual(names, tt.want) {
-				t.Errorf("autoCompleteFrameworkNames() got = \n%v\n, want \n%v\n", names, tt.want)
+				t.Errorf("autoCompleteNamespace() got = \n%v\n, want \n%v\n", names, tt.want)
 			}
 		})
 	}

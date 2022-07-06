@@ -26,8 +26,6 @@ type JobSpec struct {
 	Version     string `json:"version,omitempty"`
 	Type        string `json:"type"`
 	Name        string `json:"name"`
-	Framework   string `json:"framework"`
-	Namespace   string `json:"namespace,omitempty"`
 	Description string `json:"description,omitempty"`
 	Parallelism int    `json:"parallelism,omitempty"`
 	Completions int    `json:"completions,omitempty"`
@@ -36,6 +34,7 @@ type JobSpec struct {
 	BackoffLimit *int        `json:"backoffLimit,omitempty"`
 	Containers   []Container `json:"containers,omitempty"`
 	Policy       Policy      `json:"policy,omitempty"`
+	Namespace    string      `json:"namespace"`
 
 	// CronJob-specific
 	Schedule                   string `json:"schedule,omitempty"`
@@ -46,8 +45,7 @@ type JobSpec struct {
 
 // JobStatus defines the observed state of Job
 type JobStatus struct {
-	Conditions []Condition         `json:"conditions,omitempty"`
-	Framework  *v1.ObjectReference `json:"framework,omitempty"`
+	Conditions []Condition `json:"conditions,omitempty"`
 
 	// CronJob-specific
 	Active             bool         `json:"active"`
@@ -57,8 +55,6 @@ type JobStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster
-// +kubebuilder:printcolumn:name="Framework",type=string,JSONPath=`.spec.Framework`
 
 // Job is the Schema for the jobs API
 type Job struct {

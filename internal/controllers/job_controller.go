@@ -25,9 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -90,7 +88,6 @@ func (r *JobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		reason := JobReconcileReason{JobName: job.Name}
 		r.Recorder.Event(&job, v1.EventTypeWarning, reason.String(), err.Error())
 	} else {
-		job.Status.Framework = scheduleResult.framework
 		reason := JobReconcileReason{JobName: job.Name}
 		r.Recorder.Event(&job, v1.EventTypeNormal, reason.String(), "success")
 	}
@@ -109,30 +106,15 @@ func (r *JobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 type reconcileResult struct {
-	status    v1.ConditionStatus
-	message   string
-	framework *v1.ObjectReference
+	status  v1.ConditionStatus
+	message string
 }
 
 func (r *JobReconciler) reconcile(ctx context.Context, job *ketchv1.Job) reconcileResult {
-	framework := ketchv1.Framework{}
-	if err := r.Get(ctx, types.NamespacedName{Name: job.Spec.Framework}, &framework); err != nil {
+	if job.Spec.Namespace == "" {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`framework "%s" is not found`, job.Spec.Framework),
-		}
-	}
-	ref, err := reference.GetReference(r.Scheme, &framework)
-	if err != nil {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: err.Error(),
-		}
-	}
-	if framework.Status.Namespace == nil && job.Spec.Namespace == "" {
-		return reconcileResult{
-			status:  v1.ConditionFalse,
-			message: fmt.Sprintf(`framework "%s" or job "%s" is not linked to a kubernetes namespace`, framework.Name, job.Name),
+			message: fmt.Sprintf(`job "%s" is not linked to a kubernetes namespace`, job.Name),
 		}
 	}
 
@@ -155,23 +137,7 @@ func (r *JobReconciler) reconcile(ctx context.Context, job *ketchv1.Job) reconci
 	jobChartConfig := chart.NewJobChartConfig(*job)
 	jobChart := chart.NewJobChart(job, options...)
 
-	patchedFramework := framework
-	if !patchedFramework.HasJob(job.Name) {
-		patchedFramework.Status.Jobs = append(patchedFramework.Status.Jobs, job.Name)
-		mergePatch := client.MergeFrom(&framework)
-		if err := r.Status().Patch(ctx, &patchedFramework, mergePatch); err != nil {
-			return reconcileResult{
-				status:  v1.ConditionFalse,
-				message: fmt.Sprintf("failed to update framework status: %v", err),
-			}
-		}
-	}
-
-	targetNamespace := framework.Status.Namespace.Name
-	if job.Spec.Namespace != "" {
-		targetNamespace = job.Spec.Namespace
-	}
-	helmClient, err := r.HelmFactoryFn(targetNamespace)
+	helmClient, err := r.HelmFactoryFn(job.Spec.Namespace)
 	if err != nil {
 		return reconcileResult{
 			status:  v1.ConditionFalse,
@@ -188,51 +154,22 @@ func (r *JobReconciler) reconcile(ctx context.Context, job *ketchv1.Job) reconci
 	}
 
 	return reconcileResult{
-		framework: ref,
-		status:    v1.ConditionTrue,
+		status: v1.ConditionTrue,
 	}
 }
 
 func (r *JobReconciler) deleteChart(ctx context.Context, job *ketchv1.Job) error {
-	frameworks := ketchv1.FrameworkList{}
-	err := r.Client.List(ctx, &frameworks)
-	if err != nil {
-		return err
-	}
-	for _, framework := range frameworks.Items {
-		if !framework.HasJob(job.Name) {
-			continue
-		}
-
-		if uninstallHelmChart(ketchv1.Group, job.Annotations) {
-			targetNamespace := framework.Spec.NamespaceName
-			if job.Spec.Namespace != "" {
-				targetNamespace = job.Spec.Namespace
-			}
-			helmClient, err := r.HelmFactoryFn(targetNamespace)
-			if err != nil {
-				return err
-			}
-			err = helmClient.DeleteChart(job.Name)
-			if err != nil {
-				return err
-			}
-		}
-		patchedFramework := framework
-
-		patchedFramework.Status.Jobs = make([]string, 0, len(patchedFramework.Status.Jobs))
-		for _, name := range framework.Status.Jobs {
-			if name == job.Name {
-				continue
-			}
-			patchedFramework.Status.Jobs = append(patchedFramework.Status.Jobs, name)
-		}
-		mergePatch := client.MergeFrom(&framework)
-		if err := r.Status().Patch(ctx, &patchedFramework, mergePatch); err != nil {
+	if uninstallHelmChart(ketchv1.Group, job.Annotations) {
+		helmClient, err := r.HelmFactoryFn(job.Spec.Namespace)
+		if err != nil {
 			return err
 		}
-		break
+		err = helmClient.DeleteChart(job.Name)
+		if err != nil {
+			return err
+		}
 	}
+
 	controllerutil.RemoveFinalizer(job, ketchv1.KetchFinalizer)
 	if err := r.Update(ctx, job); err != nil {
 		return err

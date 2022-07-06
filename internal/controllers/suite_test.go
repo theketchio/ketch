@@ -114,13 +114,6 @@ func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testin
 	if err != nil {
 		return nil, err
 	}
-	err = (&FrameworkReconciler{
-		Client: k8sManager.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Framework"),
-	}).SetupWithManager(k8sManager)
-	if err != nil {
-		return nil, err
-	}
 
 	go func() {
 		_ = k8sManager.Start(ctx)
@@ -137,8 +130,6 @@ func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testin
 	for _, obj := range objects {
 		var name string
 		switch x := obj.(type) {
-		case *ketchv1.Framework:
-			name = x.Name
 		case *ketchv1.App:
 			name = x.Name
 		case *ketchv1.Job:
@@ -149,16 +140,12 @@ func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testin
 			return nil, err
 		}
 		switch x := obj.(type) {
-		case *ketchv1.Framework:
-			if x.Status.Phase != ketchv1.FrameworkCreated {
-				return nil, fmt.Errorf("failed to create %v framework", x.Name)
-			}
 		case *ketchv1.App:
 			if len(x.Status.Conditions) == 0 {
 				return nil, fmt.Errorf("failed to run %v app", x.Name)
 			}
 		case *ketchv1.Job:
-			if x.Status.Framework.String() == "" {
+			if len(x.Status.Conditions) == 0 {
 				return nil, fmt.Errorf("failed to run %v job", x.Name)
 			}
 		}

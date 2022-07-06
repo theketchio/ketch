@@ -9,9 +9,6 @@ type cliError string
 func (e cliError) Error() string { return string(e) }
 
 const (
-	ErrInvalidFrameworkName cliError = "invalid framework, arg should be a <framework>.yaml file or specify a framework name that has" +
-		"at most 40 characters, containing only lower case letters, numbers or dashes, starting with a letter"
-
 	ErrInvalidAppName cliError = "invalid app name, app name should have at most 40 " +
 		"characters, containing only lower case letters, numbers or dashes, starting with a letter"
 
@@ -23,7 +20,7 @@ const (
 
 	ErrClusterIssuerNotFound cliError = "cluster issuer not found"
 
-	ErrClusterIssuerRequired cliError = "secure cnames require framework.IngressController.ClusterIssuer to be set"
+	ErrClusterIssuerRequired cliError = "secure cnames require app.Ingress.Controller.ClusterIssuer to be set"
 )
 
 func unwrappedError(err error) error {

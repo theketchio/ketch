@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controllers contains App and Framework reconcilers to be used with controller-runtime.
+// Package controllers contains App reconcilers to be used with controller-runtime.
 package controllers
 
 import (
@@ -32,12 +32,10 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -85,8 +83,6 @@ const (
 
 // +kubebuilder:rbac:groups=theketch.io,resources=apps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=theketch.io,resources=apps/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=theketch.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=theketch.io,resources=frameworks/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete
@@ -150,7 +146,6 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		r.Recorder.Event(&app, v1.EventTypeWarning, ketchv1.AppReconcileOutcomeReason, outcome.String(err))
 		app.SetCondition(ketchv1.Scheduled, v1.ConditionFalse, scheduleResult.err.Error(), metav1.NewTime(time.Now()))
 	} else {
-		app.Status.Framework = scheduleResult.framework
 		outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeNormal, ketchv1.AppReconcileOutcomeReason, outcome.String())
 		app.SetCondition(ketchv1.Scheduled, v1.ConditionTrue, "", metav1.NewTime(time.Now()))
@@ -203,7 +198,6 @@ func hpaTargetMap(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList)
 }
 
 type appReconcileResult struct {
-	framework  *v1.ObjectReference
 	useTimeout bool
 	err        error
 }
@@ -334,57 +328,26 @@ func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
 }
 
 func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger logr.Logger) appReconcileResult {
-
-	framework := ketchv1.Framework{}
-	if err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
+	if app.Spec.Namespace == "" {
 		return appReconcileResult{
-			err: fmt.Errorf(`framework "%s" is not found`, app.Spec.Framework),
+			err: fmt.Errorf(`app "%s" must be linked to a kubernetes namespace`, app.Name),
 		}
 	}
-	ref, err := reference.GetReference(r.Scheme, &framework)
-	if err != nil {
-		return appReconcileResult{err: err}
-	}
-	if framework.Status.Namespace == nil && app.Spec.Namespace == "" {
-		return appReconcileResult{
-			err: fmt.Errorf(`framework "%s" or app "%s" must be linked to a kubernetes namespace`, framework.Name, app.Name),
-		}
-	}
-	tpls, err := r.TemplateReader.Get(templates.IngressConfigMapName(framework.Spec.IngressController.IngressType.String()))
+	tpls, err := r.TemplateReader.Get(templates.IngressConfigMapName(app.Spec.Ingress.Controller.IngressType.String()))
 	if err != nil {
 		return appReconcileResult{
 			err: fmt.Errorf(`failed to read configmap with the app's chart templates: %w`, err),
 		}
 	}
-	if !framework.HasApp(app.Name) && framework.Spec.AppQuotaLimit != nil && len(framework.Status.Apps) >= *framework.Spec.AppQuotaLimit && *framework.Spec.AppQuotaLimit != -1 {
-		return appReconcileResult{
-			err: fmt.Errorf(`you have reached the limit of apps`),
-		}
-	}
 
-	appChrt, err := chart.New(app, &framework,
+	appChrt, err := chart.New(app,
 		chart.WithExposedPorts(app.ExposedPorts()),
 		chart.WithTemplates(*tpls))
 	if err != nil {
 		return appReconcileResult{err: err}
 	}
 
-	patchedFramework := framework
-	if !patchedFramework.HasApp(app.Name) {
-		patchedFramework.Status.Apps = append(patchedFramework.Status.Apps, app.Name)
-		mergePatch := client.MergeFrom(&framework)
-		if err := r.Status().Patch(ctx, &patchedFramework, mergePatch); err != nil {
-			return appReconcileResult{
-				err: fmt.Errorf("failed to update framework status: %w", err),
-			}
-		}
-	}
-	// Override framework.namespace if app.namespace is set
-	targetNamespace := framework.Status.Namespace.Name
-	if app.Spec.Namespace != "" {
-		targetNamespace = app.Spec.Namespace
-	}
-	helmClient, err := r.HelmFactoryFn(targetNamespace)
+	helmClient, err := r.HelmFactoryFn(app.Spec.Namespace)
 	if err != nil {
 		return appReconcileResult{err: err}
 	}
@@ -420,7 +383,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 
 		var hpaList v2beta1.HorizontalPodAutoscalerList
-		if err := r.List(ctx, &hpaList, &client.ListOptions{Namespace: framework.Status.Namespace.Name}); err != nil {
+		if err := r.List(ctx, &hpaList, &client.ListOptions{Namespace: app.Spec.Namespace}); err != nil {
 			return appReconcileResult{
 				err: fmt.Errorf("failed to find HPAs"),
 			}
@@ -446,12 +409,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 	}
 
-	err = r.UpdateAppLabelsForIngress(ctx, app)
-	if err != nil {
-		return appReconcileResult{
-			err: fmt.Errorf("failed to update namespace labels for istio: %w", err),
-		}
-	}
+	UpdateAppLabelsForIngress(app)
 
 	if len(app.Spec.Deployments) > 0 && !app.Spec.Canary.Active {
 		// use latest deployment and watch events for each process
@@ -464,14 +422,10 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 					err: err,
 				}
 			}
-			namespace := framework.Spec.NamespaceName
-			if app.Spec.Namespace != "" {
-				namespace = app.Spec.Namespace
-			}
 			wc := workloadClient{
 				k8sClient:         cli,
 				workloadName:      fmt.Sprintf("%s-%s-%d", app.GetName(), process.Name, latestDeployment.Version),
-				workloadNamespace: namespace,
+				workloadNamespace: app.Spec.Namespace,
 				workloadType:      app.Spec.GetType(),
 			}
 
@@ -493,14 +447,11 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		// in order to ensure events actually get sent. It seems the lazyRecorder we use
 		// can stop with unhandled messages if the reconciler rapidly requeues.
 		return appReconcileResult{
-			framework:  ref,
 			useTimeout: true,
 		}
 	}
 
-	return appReconcileResult{
-		framework: ref,
-	}
+	return appReconcileResult{}
 }
 
 // watchDeployEvents watches a namespace for events and, after a deployment has started updating, records events
@@ -835,45 +786,16 @@ func checkPodStatus(group string, c client.Client, appName string, depVersion ke
 }
 
 func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error {
-	frameworks := ketchv1.FrameworkList{}
-	err := r.Client.List(ctx, &frameworks)
-	if err != nil {
-		return err
-	}
-	for _, framework := range frameworks.Items {
-		if !framework.HasApp(app.Name) {
-			continue
-		}
+	if uninstallHelmChart(r.Group, app.Annotations) {
+		targetNamespace := app.Spec.Namespace
 
-		if uninstallHelmChart(r.Group, app.Annotations) {
-			// Override framework.namespace if app.namespace is set
-			targetNamespace := framework.Status.Namespace.Name
-			if app.Spec.Namespace != "" {
-				targetNamespace = app.Spec.Namespace
-			}
-			helmClient, err := r.HelmFactoryFn(targetNamespace)
-			if err != nil {
-				return err
-			}
-			if err = helmClient.DeleteChart(app.Name); err != nil {
-				return err
-			}
-		}
-
-		patchedFramework := framework
-
-		patchedFramework.Status.Apps = make([]string, 0, len(patchedFramework.Status.Apps))
-		for _, name := range framework.Status.Apps {
-			if name == app.Name {
-				continue
-			}
-			patchedFramework.Status.Apps = append(patchedFramework.Status.Apps, name)
-		}
-		mergePatch := client.MergeFrom(&framework)
-		if err := r.Status().Patch(ctx, &patchedFramework, mergePatch); err != nil {
+		helmClient, err := r.HelmFactoryFn(targetNamespace)
+		if err != nil {
 			return err
 		}
-		break
+		if err = helmClient.DeleteChart(app.Name); err != nil {
+			return err
+		}
 	}
 
 	controllerutil.RemoveFinalizer(app, ketchv1.KetchFinalizer)
@@ -884,21 +806,15 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 
 }
 
-//UpdateAppLabelsForIngress updates an app's pod's labels to account for different ingresses.
+//UpdateAppLabelsForIngress updates an app's namespace labels to account for different ingresses.
 // we rely on istio automatic sidecar injection
 // https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
-func (r *AppReconciler) UpdateAppLabelsForIngress(ctx context.Context, app *ketchv1.App) error {
-	var framework ketchv1.Framework
-	err := r.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework, Namespace: app.ObjectMeta.Namespace}, &framework)
-	if err != nil {
-		return err
-	}
-	if framework.Spec.IngressController.IngressType != ketchv1.IstioIngressControllerType {
+func UpdateAppLabelsForIngress(app *ketchv1.App) {
+	if app.Spec.Ingress.Controller.IngressType != ketchv1.IstioIngressControllerType {
 		app.AddLabel(map[string]string{"sidecar.istio.io/inject": "false"}, ketchv1.Target{Kind: "Pod", APIVersion: "v1"})
 	} else {
 		app.AddLabel(map[string]string{"sidecar.istio.io/inject": "true"}, ketchv1.Target{Kind: "Pod", APIVersion: "v1"})
 	}
-	return nil
 }
 
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {

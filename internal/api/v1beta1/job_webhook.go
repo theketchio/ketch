@@ -22,9 +22,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
+
+type manager interface {
+	GetClient() client.Client
+}
 
 // joblog is for logging in this package.
 var joblog = logf.Log.WithName("job-resource")

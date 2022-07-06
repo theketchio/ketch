@@ -12,6 +12,14 @@ import (
 	"github.com/theketchio/ketch/internal/api/v1beta1/mocks"
 )
 
+type mockManager struct {
+	client *mocks.MockClient
+}
+
+func (m *mockManager) GetClient() client.Client {
+	return m.client
+}
+
 func TestJob_ValidateDelete(t *testing.T) {
 	tests := []struct {
 		name string

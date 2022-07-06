@@ -20,7 +20,7 @@ func TestJobRemove(t *testing.T) {
 		Spec: ketchv1.JobSpec{
 			Name:         "hello",
 			Version:      "v1",
-			Framework:    "myframework",
+			Namespace:    "mynamespace",
 			Description:  "test",
 			Parallelism:  1,
 			Completions:  1,

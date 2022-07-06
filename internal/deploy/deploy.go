@@ -57,6 +57,7 @@ func (r Runner) Run(ctx context.Context, svc *Services) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("A", app.Spec.Namespace)
 
 	return deployImage(ctx, svc, app, r.params)
 }
@@ -133,12 +134,9 @@ func getUpdatedApp(ctx context.Context, client Client, cs *ChangeSet) (*ketchv1.
 			return err
 		}
 
-		framework, err := cs.getFramework(ctx, client)
+		namespace, err := cs.getNamespace()
 		if err := assign(err, func() error {
-			if app.Spec.Framework != "" && framework != app.Spec.Framework {
-				return fmt.Errorf("can't change framework once app has been created")
-			}
-			app.Spec.Framework = framework
+			app.Spec.Namespace = namespace
 			changed = true
 			return nil
 		}); err != nil {
@@ -220,12 +218,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 		return err
 	}
 
-	var framework ketchv1.Framework
-	if err := svc.Client.Get(ctx, types.NamespacedName{Name: app.Spec.Framework}, &framework); err != nil {
-		return errors.Wrap(err, "failed to get framework %q", app.Spec.Framework)
-	}
-
-	if len(framework.Spec.IngressController.ClusterIssuer) == 0 && params.hasSecureCnames() {
+	if len(app.Spec.Ingress.Controller.ClusterIssuer) == 0 && params.hasSecureCnames() {
 		return errors.New("secure cnames require a framework.Ingress.ClusterIssuer to be specified")
 	}
 
@@ -243,7 +236,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	imageRequest := ImageConfigRequest{
 		imageName:       image,
 		secretName:      app.Spec.DockerRegistry.SecretName,
-		secretNamespace: framework.Spec.NamespaceName,
+		secretNamespace: app.Spec.Namespace,
 		client:          svc.KubeClient,
 	}
 	imgConfig, err := svc.GetImageConfig(ctx, imageRequest)
@@ -260,7 +253,7 @@ func deployImage(ctx context.Context, svc *Services, app *ketchv1.App, params *C
 	volumeMounts, _ := params.getVolumeMounts()
 	volumes, _ := params.getVolumes()
 	for _, volume := range volumes {
-		_, err = svc.KubeClient.CoreV1().PersistentVolumeClaims(framework.Spec.NamespaceName).Get(ctx, volume.PersistentVolumeClaim.ClaimName, metav1.GetOptions{})
+		_, err = svc.KubeClient.CoreV1().PersistentVolumeClaims(app.Spec.Namespace).Get(ctx, volume.PersistentVolumeClaim.ClaimName, metav1.GetOptions{})
 		if err != nil {
 			return errors.Wrap(err, "create pvc or input correct pvc name")
 		}

@@ -20,7 +20,7 @@ func TestJobList(t *testing.T) {
 		Spec: ketchv1.JobSpec{
 			Name:         "hello",
 			Version:      "v1",
-			Framework:    "myframework",
+			Namespace:    "mynamespace",
 			Description:  "test",
 			Parallelism:  1,
 			Completions:  1,
@@ -51,7 +51,7 @@ func TestJobList(t *testing.T) {
 				CtrlClientObjects:    []runtime.Object{mockJob},
 				DynamicClientObjects: []runtime.Object{},
 			},
-			wantOut: "NAME     VERSION    FRAMEWORK      DESCRIPTION\nhello    v1         myframework    test\n",
+			wantOut: "NAME     VERSION    NAMESPACE      DESCRIPTION\nhello    v1         mynamespace    test\n",
 		},
 	}
 	for _, tt := range tests {
@@ -76,7 +76,7 @@ func TestJobListNames(t *testing.T) {
 		Spec: ketchv1.JobSpec{
 			Name:         "hello",
 			Version:      "v1",
-			Framework:    "myframework",
+			Namespace:    "mynamespace",
 			Description:  "test",
 			Parallelism:  1,
 			Completions:  1,

@@ -9,7 +9,7 @@ set -o pipefail
 
 # Set variables
 KETCH_TAG=""
-FRAMEWORK=""
+NAMESPACE=""
 INGRESS_TYPE=""
 INGRESS_ENDPOINT=""
 APP_NAME=""
@@ -19,7 +19,7 @@ REG_SECRET=""
 KETCH_YAML=""
 PROCFILE=""
 
-# if true, ketch will try to create framework for the deployment
+# if true, ketch will try to create ingress for the deployment
 RESOURCE_CREATION=true
 
 # set colors for printing texts
@@ -32,25 +32,25 @@ function usage() {
     echo -e "${RED}👉 $1${CLEAR}\n";
   fi
 
-  echo -e "Usage: $0 [-t --ketch-tag] [-k --framework] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]\n"
+  echo -e "Usage: $0 [-t --ketch-tag] [--namespace] [-ig --ingress] [--endpoint] [-a --app] [-i --image] [-e --env] [-ig --ingress] [--registry-secret] [--ketch-yaml] [--procfile] [--skip-resource-creation]\n"
   echo "  -t, --ketch-tag                 Ketch version. Default is latest."
-  echo "  -k, --framework                      Framework where your application should be deployed."
+  echo "  --namespace                     Namespace where your application should be deployed."
   echo "  -a, --app                       App Name."
   echo "  -e, --env                       Application environment variables."
   echo "  -ig, --ingress                  Ingress type. Default is Traefik."
   echo "  --endpoint                      Ingress IP address."
   echo "  -i, --image                     The image that should be used with the application."
-  echo "  --registry-secret               A name of a Secret with docker credentials. This secret must be created in the same namespace of the framework."
+  echo "  --registry-secret               A name of a Secret with docker credentials. This secret must be created in the same namespace."
   echo "  --ketch-yaml                    The path to the ketch.yaml file."
   echo "  --procfile	                  The path to Procfile. If not set, ketch will use the entrypoint and cmd from the image."
-  echo "  --skip-resource-creation        If set, ketch will NOT create framework for the deployment. Useful when framework already exists."
+  echo "  --skip-resource-creation        If set, ketch will NOT create app for the deployment."
   exit 1
 }
 
 # parse params and set variables with custom user inputs
 while [[ "$#" > 0 ]]; do case $1 in
     -t|--ketch-tag) KETCH_TAG="$2"; shift;shift;;
-    -k|--framework) FRAMEWORK="$2"; shift;shift;;
+    --namespace) NAMESPACE="$2"; shift;shift;;
     -ig|--ingress) INGRESS_TYPE="$2"; shift;shift;;
     --endpoint) INGRESS_ENDPOINT="$2"; shift;shift;;
     -a|--app) APP_NAME="$2"; shift;shift;;
@@ -130,25 +130,16 @@ fi
 ensure_resource 'ketch-controller-manager' 1
 
 if [ "$RESOURCE_CREATION" = true ] ; then
-    # validate addtional required params
-    if [ -z "$FRAMEWORK" ]; then usage "Framework name required"; fi;
+    # validate additional required params
+    if [ -z "$NAMESPACE" ]; then usage "Namespace name required"; fi;
     if [ -z "$INGRESS_ENDPOINT" ]; then usage "Ingress endpoint required"; fi;
 
-    # Add a framework with ingress Traefik (default), replace ingress endpoint address by your ingress IP address
-    echo "creating framework for deployment ..."
-    FRAMEWORK_CMD="ketch framework add ${FRAMEWORK} --ingress-service-endpoint ${INGRESS_ENDPOINT}"
-
-    if [ ! -z "$INGRESS_TYPE" ]; then
-        FRAMEWORK_CMD+=" --ingress-type ${INGRESS_TYPE}"
-    fi
-
-    echo "CMD: ${FRAMEWORK_CMD}"
-    eval "${FRAMEWORK_CMD}"
+    # TODO set up ingress controller
 fi
 
 # Deploy app
 echo "deploying app ..."
-DEP_CMD="ketch app deploy ${APP_NAME} -i ${DOCKER_IMAGE} --framework ${FRAMEWORK}"
+DEP_CMD="ketch app deploy ${APP_NAME} -i ${DOCKER_IMAGE} --namespace ${NAMESPACE}"
 
 if [ ! -z "$KETCH_YAML" ]; then
     DEP_CMD+=" --ketch-yaml ${KETCH_YAML}"

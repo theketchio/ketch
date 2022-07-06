@@ -36,7 +36,7 @@ func TestJobDeploy(t *testing.T) {
 			filename: "job.yaml",
 			yamlData: `name: hello
 version: v1
-framework: myframework
+namespace: mynamespace
 description: test
 parallelism: 1
 completions: 1
@@ -55,7 +55,7 @@ policy:
 				Name:         "hello",
 				Version:      "v1",
 				Type:         "Job",
-				Framework:    "myframework",
+				Namespace:    "mynamespace",
 				Description:  "test",
 				Parallelism:  1,
 				Completions:  1,
@@ -83,9 +83,9 @@ policy:
 			},
 			filename: "job.yaml",
 			yamlData: `version: v1
-framework: NOFRAMEWORK
+namespace: NONAMESPACE
 description: test`,
-			wantErr: "job.name and job.framework are required",
+			wantErr: "job.name and job.namespace are required",
 		},
 	}
 	for _, tt := range tests {
