@@ -67,11 +67,11 @@ app-b    fw1          created    http://app-b-cname1               my app-b
 			out := &bytes.Buffer{}
 			err := appList(context.Background(), tt.cfg, out)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("frameworkList() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("appList() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if gotOut := out.String(); gotOut != tt.wantOut {
-				t.Errorf("frameworkList() gotOut = \n%v\n, want \n%v\n", gotOut, tt.wantOut)
+				t.Errorf("appList() gotOut = \n%v\n, want \n%v\n", gotOut, tt.wantOut)
 			}
 		})
 	}

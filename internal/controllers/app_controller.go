@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controllers contains App and Framework reconcilers to be used with controller-runtime.
+// Package controllers contains App reconcilers to be used with controller-runtime.
 package controllers
 
 import (
@@ -83,8 +83,6 @@ const (
 
 // +kubebuilder:rbac:groups=theketch.io,resources=apps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=theketch.io,resources=apps/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=theketch.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=theketch.io,resources=frameworks/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete

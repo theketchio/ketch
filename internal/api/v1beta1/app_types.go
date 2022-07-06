@@ -67,7 +67,7 @@ type Cname struct {
 	Name   string `json:"name"`
 	Secure bool   `json:"secure"`
 	// SecretName if provided must contain an SSL certificate that will be used to serve this cname.
-	// Currently, the secret must be in the framework's namespace.
+	// Currently, the secret must be in the app's namespace.
 	SecretName string `json:"secretName,omitempty"`
 }
 
@@ -158,8 +158,7 @@ const (
 // AppStatus represents information about the status of an application.
 type AppStatus struct {
 	// Conditions of App resource.
-	Conditions []Condition         `json:"conditions,omitempty"`
-	Framework  *v1.ObjectReference `json:"framework,omitempty"`
+	Conditions []Condition `json:"conditions,omitempty"`
 	// ExtensionsStatuses can be used by third-parties to keep additional information.
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
@@ -292,7 +291,6 @@ type Target struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Framework",type=string,JSONPath=`.spec.framework`
 // +kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 
 // App is the Schema for the apps API.
@@ -464,7 +462,7 @@ func (app *App) CNames() []string {
 }
 
 // DefaultCname returns a default cname to access the application.
-// A default cname uses the following format: <app name>.<Framework's ServiceEndpoint>.shipa.cloud.
+// A default cname uses the following format: <app name>.<App's Ingress ServiceEndpoint>.shipa.cloud.
 func (app *App) DefaultCname() *string {
 	if !app.Spec.Ingress.GenerateDefaultCname {
 		return nil

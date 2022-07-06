@@ -18,7 +18,7 @@ package v1beta1
 
 // +kubebuilder:validation:Enum=traefik;istio;nginx
 
-// IngressControllerType is a type of an ingress controller for this framework.
+// IngressControllerType is a type of an ingress controller.
 type IngressControllerType string
 
 func (t IngressControllerType) String() string { return string(t) }

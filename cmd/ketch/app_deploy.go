@@ -27,7 +27,7 @@ Deploy from an image:
 Users can deploy from image or source code by passing a filename such as app.yaml containing fields like:
 	name: test
 	image: gcr.io/shipa-ci/sample-go-app:latest
-	framework: myframework
+	namespace: mynamespace
 `
 )
 
@@ -67,7 +67,7 @@ func newAppDeployCmd(cfg config, params *deploy.Services, configDefaultBuilder s
 	cmd.Flags().StringVarP(&options.Description, deploy.FlagDescription, deploy.FlagDescriptionShort, "", "App description.")
 	cmd.Flags().StringSliceVarP(&options.Envs, deploy.FlagEnvironment, deploy.FlagEnvironmentShort, []string{}, "App env variables.")
 	cmd.Flags().StringVarP(&options.Namespace, deploy.FlagNamespace, deploy.FlagNamespaceShort, "", "Namespace to deploy your app.")
-	cmd.Flags().StringVarP(&options.DockerRegistrySecret, deploy.FlagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace of the framework.")
+	cmd.Flags().StringVarP(&options.DockerRegistrySecret, deploy.FlagRegistrySecret, "", "", "A name of a Secret with docker credentials. This secret must be created in the same namespace.")
 	cmd.Flags().StringVar(&options.Builder, deploy.FlagBuilder, "", "Builder to use when building from source.")
 	cmd.Flags().StringSliceVar(&options.BuildPacks, deploy.FlagBuildPacks, nil, "A list of build packs.")
 	cmd.Flags().StringVar(&options.Volume, "volume", "", "Name of the volume to bind to the application.")

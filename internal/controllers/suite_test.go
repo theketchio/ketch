@@ -145,7 +145,7 @@ func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testin
 				return nil, fmt.Errorf("failed to run %v app", x.Name)
 			}
 		case *ketchv1.Job:
-			if x.Status.Framework.String() == "" {
+			if len(x.Status.Conditions) == 0 {
 				return nil, fmt.Errorf("failed to run %v job", x.Name)
 			}
 		}
