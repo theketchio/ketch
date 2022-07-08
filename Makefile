@@ -14,7 +14,7 @@ endif
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 
-KUBEBUILDER_VERSION=3.4.1
+KUBEBUILDER_VERSION=3.5.0
 KUBEBUILDER_INSTALL_DIR ?= "/usr/local/kubebuilder/bin"
 KUBEBUILDER_RELEASE=kubebuilder_${GOOS}_${GOARCH}
 

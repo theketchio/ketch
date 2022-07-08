@@ -14,8 +14,6 @@ setup() {
     KETCH="${KETCH_EXECUTABLE_PATH}"
   fi
   INGRESS_TRAEFIK=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-  INGRESS_NGINX=$(kubectl get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' -n ingress-nginx)
-  INGRESS_ISTIO=$(kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   NAMESPACE="appnamespace"
   APP_IMAGE="gcr.io/shipa-ci/sample-go-app:latest"
   APP_NAME="sample-app"
@@ -24,8 +22,18 @@ setup() {
   TEST_ENVVAR_VALUE="BAR"
 }
 
+setup_suite() {
+  # create namespace
+  kubectl create ns "$NAMESPACE"
+}
+
 teardown() {
   rm -f app.yaml
+}
+
+teardown_suite() {
+   # clean up namespace
+   kubectl delete ns "$NAMESPACE"
 }
 
 @test "help" {
@@ -36,18 +44,21 @@ teardown() {
   [[ $result =~ "Flags" ]]
 }
 
+@test "ingress set" {
+  result=$($KETCH ingress set --ingress-service-endpoint "INGRESS_TRAEFIK" --ingress-type "traefik" --ingress-class-name "traefik")
+  echo "RECEIVED:" $result
+  [[ $result =~ "Successfully set!" ]]
+}
+
+@test "ingress get" {
+  result=$($KETCH ingress get)
+  echo "RECEIVED:" $result
+  [[ $result =~ "Class Name: traefik" ]]
+  [[ $result =~ "Ingress Type: traefik" ]]
+}
+
 @test "app deploy" {
   run $KETCH app deploy "$APP_NAME" --namespace "$NAMESPACE" -i "$APP_IMAGE"
-  [[ $status -eq 0 ]]
-}
-
-@test "app deploy istio" {
-  run $KETCH app deploy "$APP_NAME-istio" --namespace "$NAMESPACE-istio" -i "$APP_IMAGE"
-  [[ $status -eq 0 ]]
-}
-
-@test "app deploy nginx" {
-  run $KETCH app deploy "$APP_NAME-nginx" --namespace "$NAMESPACE-nginx" -i "$APP_IMAGE"
   [[ $status -eq 0 ]]
 }
 
@@ -184,18 +195,6 @@ EOF
 
 @test "app remove" {
   result=$($KETCH app remove "$APP_NAME")
-  echo "RECEIVED:" $result
-  [[ $result =~ "Successfully removed!" ]]
-}
-
-@test "app-istio remove" {
-  result=$($KETCH app remove "$APP_NAME-istio")
-  echo "RECEIVED:" $result
-  [[ $result =~ "Successfully removed!" ]]
-}
-
-@test "app-nginx remove" {
-  result=$($KETCH app remove "$APP_NAME-nginx")
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully removed!" ]]
 }

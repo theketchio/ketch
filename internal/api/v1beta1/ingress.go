@@ -16,7 +16,15 @@ limitations under the License.
 
 package v1beta1
 
-// +kubebuilder:validation:Enum=traefik;istio;nginx
+import (
+	"context"
+	"fmt"
+
+	"k8s.io/apimachinery/pkg/types"
+
+	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
 // IngressControllerType is a type of an ingress controller.
 type IngressControllerType string
@@ -27,14 +35,37 @@ const (
 	TraefikIngressControllerType IngressControllerType = "traefik"
 	IstioIngressControllerType   IngressControllerType = "istio"
 	NginxIngressControllerType   IngressControllerType = "nginx"
-)
 
-const IngressConfigmapName = "ketch-ingress"
+	IngressConfigmapNamespace = "default"
+	IngressConfigmapName      = "ketch-ingress"
+)
 
 // IngressControllerSpec contains configuration for an ingress controller.
 type IngressControllerSpec struct {
 	ClassName       string                `json:"className,omitempty"`
 	ServiceEndpoint string                `json:"serviceEndpoint,omitempty"`
-	IngressType     IngressControllerType `json:"type"`
+	IngressType     IngressControllerType `json:"type,omitempty"`
 	ClusterIssuer   string                `json:"clusterIssuer,omitempty"`
+}
+
+// GetIngressControllerSpec gets the ketch-ingress configmap and returns an IngressControllerSpec from the configmap's data
+func GetIngressControllerSpec(ctx context.Context, client client.Client) (*IngressControllerSpec, error) {
+	var configmap v1.ConfigMap
+	if err := client.Get(ctx, types.NamespacedName{Name: IngressConfigmapName, Namespace: IngressConfigmapNamespace}, &configmap); err != nil {
+		return nil, err
+	}
+	if configmap.Data == nil {
+		return nil, fmt.Errorf("ingress configmap data is nil")
+	}
+	return NewIngressControllerSpec(configmap), nil
+}
+
+// NewIngressControllerSpec creates an IngressControllerSpec from a ConfigMap
+func NewIngressControllerSpec(configmap v1.ConfigMap) *IngressControllerSpec {
+	return &IngressControllerSpec{
+		ClassName:       configmap.Data["className"],
+		ServiceEndpoint: configmap.Data["serviceEndpoint"],
+		IngressType:     IngressControllerType(configmap.Data["ingressType"]),
+		ClusterIssuer:   configmap.Data["clusterIssuer"],
+	}
 }
