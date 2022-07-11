@@ -109,6 +109,11 @@ jobs:
           kubectl wait --for=condition=Ready=true pod -n cert-manager --all
           kubectl get pods -A
 
+          # check services
+          kubectl get svc ingress-nginx-controller
+          kubectl get svc istio-ingressgateway -n istio-system
+          kubectl get svc traefik
+
           # install bats
           sudo apt-get update -yq && sudo apt-get install bats -y
 
