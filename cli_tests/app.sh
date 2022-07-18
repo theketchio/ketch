@@ -13,9 +13,9 @@ setup() {
   else
     KETCH="${KETCH_EXECUTABLE_PATH}"
   fi
-  INGRESS_TRAEFIK=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-  INGRESS_NGINX=$(kubectl get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' -n ingress-nginx)
-  INGRESS_ISTIO=$(kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  INGRESS_TRAEFIK=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo '')
+  INGRESS_NGINX=$(kubectl get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' -n ingress-nginx || echo '')
+  INGRESS_ISTIO=$(kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo '')
   NAMESPACE="appnamespace"
   APP_IMAGE="gcr.io/shipa-ci/sample-go-app:latest"
   APP_NAME="sample-app"
