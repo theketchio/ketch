@@ -103,7 +103,7 @@ jobs:
           kubectl get pods -A
 
           # check services
-          kubectl get svc ingress-nginx-controller
+          kubectl get svc ingress-nginx-controller -n ingress-nginx
 
           # install bats
           sudo apt-get update -yq && sudo apt-get install bats -y
