@@ -54,7 +54,9 @@ jobs:
         name: "Create K3D Cluster"
         with:
           cluster-name: "test-cluster-1"
-          args: --agents 1
+          args: >-
+            --agents 1
+            --k3s-arg "--no-deploy=traefik"
       - name: Install Integration Test Dependencies
         run: |
           # kubebuilder
