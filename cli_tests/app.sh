@@ -36,17 +36,20 @@ teardown() {
   [[ $result =~ "Flags" ]]
 }
 
-@test "app deploy" {
+@test "app deploy traefik" {
+  if [ -z "$INGRESS_TRAEFIK" ]; then skip "no traefik ingress"; fi
   run $KETCH app deploy "$APP_NAME" --namespace "$NAMESPACE" -i "$APP_IMAGE"
   [[ $status -eq 0 ]]
 }
 
 @test "app deploy istio" {
+  if [ -z "$INGRESS_ISTIO" ]; then skip "no istio ingress"; fi
   run $KETCH app deploy "$APP_NAME-istio" --namespace "$NAMESPACE-istio" -i "$APP_IMAGE"
   [[ $status -eq 0 ]]
 }
 
 @test "app deploy nginx" {
+  if [ -z "$INGRESS_NGINX" ]; then skip "no nginx ingress"; fi
   run $KETCH app deploy "$APP_NAME-nginx" --namespace "$NAMESPACE-nginx" -i "$APP_IMAGE"
   [[ $status -eq 0 ]]
 }
@@ -182,19 +185,22 @@ EOF
   [[ ! $result =~ "$TEST_ENVVAR_VALUE" ]]
 }
 
-@test "app remove" {
+@test "app-traefik remove" {
+  if [ -z "$INGRESS_TRAEFIK" ]; then skip "no traefik ingress"; fi
   result=$($KETCH app remove "$APP_NAME")
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully removed!" ]]
 }
 
 @test "app-istio remove" {
+  if [ -z "$INGRESS_ISTIO" ]; then skip "no istio ingress"; fi
   result=$($KETCH app remove "$APP_NAME-istio")
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully removed!" ]]
 }
 
 @test "app-nginx remove" {
+  if [ -z "$INGRESS_NGINX" ]; then skip "no nginx ingress"; fi
   result=$($KETCH app remove "$APP_NAME-nginx")
   echo "RECEIVED:" $result
   [[ $result =~ "Successfully removed!" ]]
