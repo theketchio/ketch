@@ -65,7 +65,7 @@ func NewIngressControllerSpec(configmap v1.ConfigMap) *IngressControllerSpec {
 	return &IngressControllerSpec{
 		ClassName:       configmap.Data["className"],
 		ServiceEndpoint: configmap.Data["serviceEndpoint"],
-		IngressType:     IngressControllerType(configmap.Data["ingressType"]),
+		IngressType:     IngressControllerType(configmap.Data["type"]),
 		ClusterIssuer:   configmap.Data["clusterIssuer"],
 	}
 }
