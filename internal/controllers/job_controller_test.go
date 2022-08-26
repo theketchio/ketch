@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 )
 
 func TestJobReconciler_Reconcile(t *testing.T) {

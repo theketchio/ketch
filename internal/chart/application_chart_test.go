@@ -17,7 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 	"github.com/theketchio/ketch/internal/templates"
 	"github.com/theketchio/ketch/internal/utils/conversions"
 )

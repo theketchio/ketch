@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 	"github.com/theketchio/ketch/internal/errors"
 	"github.com/theketchio/ketch/internal/utils"
 )

@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/theketchio/ketch/internal/api/v1beta1/mocks"
+	"github.com/theketchio/ketch/internal/api/v1/mocks"
 )
 
 type mockManager struct {

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	apiv1 "k8s.io/api/core/v1"
 
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 )
 
 func Test_appState(t *testing.T) {

@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 	"github.com/theketchio/ketch/internal/chart"
 	"github.com/theketchio/ketch/internal/templates"
 )

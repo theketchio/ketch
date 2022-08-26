@@ -3,7 +3,7 @@ package controllers
 import (
 	"strconv"
 
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 )
 
 // uninstallHelmChart checks if there is a special annotation that

@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 	"github.com/theketchio/ketch/internal/utils"
 	"github.com/theketchio/ketch/internal/validation"
 )

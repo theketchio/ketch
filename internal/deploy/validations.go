@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 	kerrs "github.com/theketchio/ketch/internal/errors"
 	"github.com/theketchio/ketch/internal/validation"
 )

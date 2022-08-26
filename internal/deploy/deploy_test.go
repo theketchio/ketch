@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 	"github.com/theketchio/ketch/internal/chart"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

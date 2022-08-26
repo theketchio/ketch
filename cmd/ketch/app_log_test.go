@@ -29,7 +29,7 @@ import (
 	fakerest "k8s.io/client-go/rest/fake"
 	testclient "k8s.io/client-go/testing"
 
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1"
 	"github.com/theketchio/ketch/internal/mocks"
 	"github.com/theketchio/ketch/internal/utils"
 )
