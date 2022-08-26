@@ -95,7 +95,7 @@ vet:
 # Generate code
 .PHONY: generate
 generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile="internal/hack/boilerplate.go.txt" paths="./internal/api/v1beta1/"
+	$(CONTROLLER_GEN) object:headerFile="internal/hack/boilerplate.go.txt" paths="./internal/api/v1/"
 	go run internal/templates/generator/main.go
 
 # Build the docker image
