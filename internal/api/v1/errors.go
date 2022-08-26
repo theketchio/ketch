@@ -1,4 +1,4 @@
-package v1beta1
+package v1
 
 // Error is a main error type of this package.
 type Error string

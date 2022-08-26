@@ -16,7 +16,7 @@ spec:
     singular: job
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - name: v1
     schema:
       openAPIV3Schema:
         description: Job is the Schema for the jobs API
@@ -97,6 +97,7 @@ spec:
                 type: string
             required:
             - name
+            - namespace
             - type
             type: object
           status:

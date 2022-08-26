@@ -1,4 +1,4 @@
-package v1beta1
+package v1
 
 // Selector specifies targets to apply an action.
 // If both a process and version are not specified, an action will be applied to all processes of all deployments.

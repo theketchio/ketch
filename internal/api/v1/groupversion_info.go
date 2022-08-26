@@ -17,7 +17,7 @@ limitations under the License.
 // Package v1 contains API Schema definitions for the resources v1 API group
 // +kubebuilder:object:generate=true
 // +groupName=theketch.io
-package v1beta1
+package v1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,7 +63,7 @@ func AddToScheme(opts ...schemeOption) func(s *runtime.Scheme) error {
 	for _, o := range opts {
 		o(&options)
 	}
-	groupVersion := schema.GroupVersion{Group: options.group, Version: "v1beta1"}
+	groupVersion := schema.GroupVersion{Group: options.group, Version: "v1"}
 	builder := &scheme.Builder{GroupVersion: groupVersion}
 	builder.Register(&App{}, &AppList{})
 	builder.Register(&Job{}, &JobList{})

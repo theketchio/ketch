@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1
 
 import (
 	"context"
@@ -43,7 +43,7 @@ func (r *Job) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update;delete,path=/validate-theketch-io-v1beta1-job,mutating=false,failurePolicy=fail,groups=theketch.io,resources=jobs,versions=v1beta1,name=vjob.kb.io,sideEffects=none,admissionReviewVersions=v1beta1
+// +kubebuilder:webhook:verbs=create;update;delete,path=/validate-theketch-io-v1-job,mutating=false,failurePolicy=fail,groups=theketch.io,resources=jobs,versions=v1,name=vjob.kb.io,sideEffects=none,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Job{}
 

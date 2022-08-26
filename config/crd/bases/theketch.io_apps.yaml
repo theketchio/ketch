@@ -20,7 +20,7 @@ spec:
     - jsonPath: .spec.description
       name: Description
       type: string
-    name: v1beta1
+    name: v1
     schema:
       openAPIV3Schema:
         description: App is the Schema for the apps API.
