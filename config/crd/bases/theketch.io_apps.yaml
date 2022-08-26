@@ -2820,13 +2820,7 @@ spec:
                       type:
                         description: IngressControllerType is a type of an ingress
                           controller.
-                        enum:
-                        - traefik
-                        - istio
-                        - nginx
                         type: string
-                    required:
-                    - type
                     type: object
                   generateDefaultCname:
                     description: GenerateDefaultCname if set the application will

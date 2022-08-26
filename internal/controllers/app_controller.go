@@ -113,6 +113,16 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if app.Spec.Ingress.Controller.IngressType == "" || app.Spec.Ingress.Controller.ServiceEndpoint == "" || app.Spec.Ingress.Controller.ClassName == "" {
+		ingressControllerSpec, err := ketchv1.GetIngressControllerSpec(ctx, r.Client)
+		// permit notFound error, leaving ingress controller empty
+		if client.IgnoreNotFound(err) != nil {
+			return ctrl.Result{}, err
+		}
+		if ingressControllerSpec != nil {
+			app.Spec.Ingress.Controller = *ingressControllerSpec
+		}
+	}
 
 	if !controllerutil.ContainsFinalizer(&app, ketchv1.KetchFinalizer) {
 		controllerutil.AddFinalizer(&app, ketchv1.KetchFinalizer)

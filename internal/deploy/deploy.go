@@ -57,8 +57,6 @@ func (r Runner) Run(ctx context.Context, svc *Services) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("A", app.Spec.Namespace)
-
 	return deployImage(ctx, svc, app, r.params)
 }
 

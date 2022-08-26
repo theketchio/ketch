@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"math"
@@ -38,6 +39,7 @@ import (
 	"github.com/theketchio/ketch/internal/chart"
 	"github.com/theketchio/ketch/internal/controllers"
 	"github.com/theketchio/ketch/internal/templates"
+	"github.com/theketchio/ketch/internal/watchers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -169,6 +171,14 @@ func main() {
 		}
 	}
 	// +kubebuilder:scaffold:builder
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	if err = watchers.NewIngressWatcher(clientSet, mgr.GetClient(), logg).Inform(ctx); err != nil {
+		setupLog.Error(err, "unable to create ingress watcher", "watcher", "ingress")
+		os.Exit(1)
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

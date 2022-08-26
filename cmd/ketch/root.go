@@ -39,6 +39,7 @@ func newRootCmd(cfg config, out io.Writer, packSvc *pack.Client, ketchConfig con
 	cmd.AddCommand(newCnameCmd(cfg, out))
 	cmd.AddCommand(newEnvCmd(cfg, out))
 	cmd.AddCommand(newJobCmd(cfg, out))
+	cmd.AddCommand(newIngressCmd(cfg, out))
 	cmd.AddCommand(newCompletionCmd())
 	return cmd
 }
