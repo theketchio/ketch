@@ -157,16 +157,6 @@ func (r *FrameworkReconciler) reconcile(ctx context.Context, framework *ketchv1.
 		if p.Status.Namespace == nil {
 			continue
 		}
-		if p.Status.Namespace.UID == ref.UID && p.Name != framework.Name {
-			return ketchv1.FrameworkStatus{
-				Phase:              ketchv1.FrameworkFailed,
-				Message:            "Target namespace is already used by another framework",
-				Apps:               framework.Status.Apps,
-				Jobs:               framework.Status.Jobs,
-				ExtensionsStatuses: framework.Status.ExtensionsStatuses,
-				Namespace:          framework.Status.Namespace,
-			}
-		}
 	}
 	return ketchv1.FrameworkStatus{
 		Namespace:          ref,

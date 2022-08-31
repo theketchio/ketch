@@ -57,8 +57,7 @@ func TestFrameworkReconciler_Reconcile(t *testing.T) {
 					},
 				},
 			},
-			wantStatusPhase:   ketchv1.FrameworkFailed,
-			wantStatusMessage: "Target namespace is already used by another framework",
+			wantStatusPhase: ketchv1.FrameworkCreated,
 		},
 		{
 			name: "istio controller - everything is ok",
