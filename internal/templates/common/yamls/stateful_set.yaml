@@ -35,7 +35,7 @@ spec:
       {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
       {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
       {{ $.Values.app.group }}/is-isolated-run: "false"
-  serviceName: {{ $.Values.app.name | quote }}
+  serviceName: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}
   template:
     metadata:
       labels:

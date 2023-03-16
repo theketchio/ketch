@@ -11,7 +11,7 @@ metadata:
     {{- with (last $.Values.app.deployments) }}
     {{ $.Values.app.group }}/app-deployment-version: {{ .version | quote }}
     {{- end }}
-  name: {{ $.Values.app.name }}-http-gateway
+  name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-http-gateway
   {{- $data := dict "kind" "Gateway" "apiVersion" "networking.istio.io/v1alpha3" "metadataItems" $.Values.app.metadataAnnotations }}
   annotations: {{- include "ketch.renderMetadata" $data | nindent 4 }}
 spec:

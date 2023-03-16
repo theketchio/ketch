@@ -4,7 +4,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
-  name: shipa-{{ $.Values.app.name}}-rule-{{ $deployment.version }}
+  name: shipa-{{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-rule-{{ $deployment.version }}
   labels:
     {{- if $.Values.app.id }}
     {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}

@@ -15,7 +15,7 @@ metadata:
     {{- with (last $.Values.app.deployments) }}
     {{ $.Values.app.group }}/app-deployment-version: {{ .version | quote }}
     {{- end }}
-  name: {{ $.Values.app.name }}-http
+  name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-http
 spec:
     hosts:
     {{- if  $.Values.app.ingress.http }}
