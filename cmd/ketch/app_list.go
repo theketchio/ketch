@@ -96,10 +96,11 @@ func filterAppPods(appId string, appName string, pods []corev1.Pod) []corev1.Pod
 	var appPods []corev1.Pod
 	for _, pod := range pods {
 		if pod.Labels[utils.KetchAppNameLabel] == appName {
-			appPods = append(appPods, pod)
-		}
-		if len(appId) > 0 {
-			if pod.Labels[utils.KetchAppIdLabel] == appId {
+			if len(appId) > 0 {
+				if pod.Labels[utils.KetchAppIdLabel] == appId {
+					appPods = append(appPods, pod)
+				}
+			} else {
 				appPods = append(appPods, pod)
 			}
 		}

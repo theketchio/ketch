@@ -99,6 +99,7 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 		clientInstall := action.NewInstall(c.cfg)
 		clientInstall.ReleaseName = chartName
 		clientInstall.Namespace = c.namespace
+		clientInstall.CreateNamespace = true
 		clientInstall.PostRenderer = &postRender{
 			log:                c.log,
 			cli:                c.c,

@@ -437,9 +437,13 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 					err: err,
 				}
 			}
+			workloadName := fmt.Sprintf("%s-%s-%d", app.GetName(), process.Name, latestDeployment.Version)
+			if len(app.ID()) > 0 {
+				workloadName = fmt.Sprintf("%s-%s-%s-%d", app.GetName(), app.ID(), process.Name, latestDeployment.Version)
+			}
 			wc := workloadClient{
 				k8sClient:         cli,
-				workloadName:      fmt.Sprintf("%s-%s-%d", app.GetName(), process.Name, latestDeployment.Version),
+				workloadName:      workloadName,
 				workloadNamespace: app.Spec.Namespace,
 				workloadType:      app.Spec.GetType(),
 			}
