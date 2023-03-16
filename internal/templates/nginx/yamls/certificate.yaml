@@ -13,6 +13,9 @@ spec:
   secretName: {{ $https.secretName | quote }}
   secretTemplate:
     labels:
+      {{- if $.Values.app.id }}
+      {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+      {{- end }}
       {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
   dnsNames:
     - {{ $https.cname }}

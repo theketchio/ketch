@@ -9,7 +9,7 @@
 {{ .root.app.securityContext | toYaml | indent 8 }}
       {{- end }}
       containers:
-        - name: {{ .root.app.name }}-{{ .process.name }}-{{ .deployment.version }}
+        - name: {{ empty .root.app.id | ternary .root.app.name (printf "%s-%s" .root.app.name .root.app.id) }}-{{ .process.name }}-{{ .deployment.version }}
           command: {{ .process.cmd | toJson }}
           {{- if or .process.env .root.app.env }}
           env:

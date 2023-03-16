@@ -81,3 +81,76 @@ func TestNewIngress(t *testing.T) {
 		})
 	}
 }
+
+func TestNewIngressWithAppId(t *testing.T) {
+	tests := []struct {
+		name          string
+		cnames        ketchv1.CnameList
+		clusterIssuer string
+		expected      *ingress
+		expectedError error
+	}{
+		{
+			name: "happy",
+			cnames: ketchv1.CnameList{
+				{Name: "a.name"},
+				{Name: "b.name", Secure: true},
+				{Name: "c.name", Secure: true, SecretName: "c-ssl"},
+			},
+			clusterIssuer: "test-cluster-issuer",
+			expected: &ingress{
+				Http: []string{"a.name"},
+				Https: []httpsEndpoint{
+					{Cname: "b.name", SecretName: "my-app-ID-cname-b-name", UniqueName: "my-app-ID-https-b-name", ManagedBy: certManager},
+					{Cname: "c.name", SecretName: "c-ssl", UniqueName: "my-app-ID-https-c-name", ManagedBy: user},
+				},
+			},
+		},
+		{
+			name: "happy - no https, no cluster issuer",
+			cnames: ketchv1.CnameList{
+				{
+					Name: "a.name",
+				},
+				{
+					Name: "b.name",
+				},
+			},
+			expected: &ingress{
+				Http: []string{"a.name", "b.name"},
+			},
+		},
+		{
+			name: "sad - no cluster issuer",
+			cnames: ketchv1.CnameList{
+				{
+					Name:   "a.name",
+					Secure: true,
+				},
+			},
+			expectedError: errors.New("secure cnames require a Ingress.ClusterIssuer to be specified"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := ketchv1.App{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "my-app-ID",
+				},
+				Spec: ketchv1.AppSpec{
+					ID: "ID",
+					Ingress: ketchv1.IngressSpec{
+						Cnames: tt.cnames,
+					},
+				},
+			}
+			ingressController := ketchv1.IngressControllerSpec{ClusterIssuer: tt.clusterIssuer}
+			issuer, err := newIngress(app, ingressController)
+			if tt.expectedError != nil {
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.Equal(t, tt.expected, issuer)
+			}
+		})
+	}
+}

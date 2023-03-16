@@ -60,6 +60,7 @@ func newAppLogCmd(cfg config, out io.Writer, appLog appLogFn) *cobra.Command {
 }
 
 type appLogOptions struct {
+	appId             string
 	appName           string
 	processName       string
 	deploymentVersion int
@@ -78,6 +79,9 @@ func appLog(ctx context.Context, cfg config, options appLogOptions, out io.Write
 	}
 	set := map[string]string{
 		utils.KetchAppNameLabel: options.appName,
+	}
+	if len(options.appId) > 0 {
+		set[utils.KetchAppIdLabel] = options.appId
 	}
 	if len(options.processName) > 0 {
 		set[utils.KetchProcessNameLabel] = options.processName

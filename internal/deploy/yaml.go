@@ -17,6 +17,7 @@ import (
 type Application struct {
 	Version        *string   `json:"version,omitempty"`
 	Type           *string   `json:"type"`
+	Id             *string   `json:"id,omitempty"`
 	Name           *string   `json:"name"`
 	Image          *string   `json:"image,omitempty"`
 	Namespace      *string   `json:"namespace"`
@@ -161,11 +162,16 @@ func (c *ChangeSet) validate() error {
 
 // GetApplicationFromKetchApp takes an App parameter and returns a yaml-file friendly Application
 func GetApplicationFromKetchApp(app ketchv1.App) *Application {
+	appName := app.AppName()
 	application := &Application{
 		Version:   app.Spec.Version,
 		Type:      conversions.StrPtr(typeApplication),
-		Name:      &app.Name,
+		Name:      &appName,
 		Namespace: &app.Spec.Namespace,
+	}
+	appId := app.ID()
+	if len(appId) > 0 {
+		application.Id = &appId
 	}
 
 	deployment := getLatestDeployment(app.Spec.Deployments)

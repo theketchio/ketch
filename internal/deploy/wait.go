@@ -56,13 +56,17 @@ func WaitForDeployment(ctx context.Context, svc *Services, app *ketchv1.App, tim
 }
 
 func watchAppReconcileEvent(ctx context.Context, kubeClient kubernetes.Interface, app *ketchv1.App) (watch.Interface, error) {
-	reason := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
-	selector := fields.Set(map[string]string{
+	reason := ketchv1.AppReconcileOutcome{AppId: app.ID(), AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+	query := map[string]string{
 		"involvedObject.apiVersion": utils.V1betaPrefix,
 		"involvedObject.kind":       "App",
-		"involvedObject.name":       app.Name,
+		"involvedObject.name":       app.AppName(),
 		"reason":                    reason.String(),
-	}).AsSelector()
+	}
+	if len(app.ID()) > 0 {
+		query["involvedObject.id"] = app.ID()
+	}
+	selector := fields.Set(query).AsSelector()
 	return kubeClient.CoreV1().
 		Events(app.Namespace).Watch(ctx, metav1.ListOptions{FieldSelector: selector.String()})
 }

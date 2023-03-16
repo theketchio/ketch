@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -100,7 +101,10 @@ func TestInform(t *testing.T) {
 		Spec: ketchv1.AppSpec{
 			Deployments: []ketchv1.AppDeploymentSpec{},
 			Namespace:   "namespace",
-			Ingress:     ketchv1.IngressSpec{Controller: ketchv1.IngressControllerSpec{IngressType: ketchv1.NginxIngressControllerType}},
+			Ingress: ketchv1.IngressSpec{Controller: ketchv1.IngressControllerSpec{
+				IngressType: ketchv1.NginxIngressControllerType,
+				ClassName:   "nginx",
+			}},
 		},
 	}
 
@@ -128,20 +132,20 @@ func TestInform(t *testing.T) {
 			testctx, err := setup(tc.obj)
 			require.Nil(t, err)
 			require.NotNil(t, testctx)
-			defer teardown(testctx)
 
 			i := NewIngressWatcher(fake.NewSimpleClientset(), testctx.k8sClient, ctrl.Log)
 			i.retryDelay = time.Millisecond * 100
 			i.retries = 1
 
 			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
 			err = i.Inform(ctx)
 			if tc.expectedErr == "" {
 				require.Nil(t, err)
 			} else {
 				require.EqualError(t, err, tc.expectedErr)
 			}
+			teardown(testctx)
+			cancel()
 		})
 	}
 }
@@ -155,7 +159,10 @@ func Test_handleAddUpdateIngressConfigmap(t *testing.T) {
 			Spec: ketchv1.AppSpec{
 				Deployments: []ketchv1.AppDeploymentSpec{},
 				Namespace:   "namespace",
-				Ingress:     ketchv1.IngressSpec{Controller: ketchv1.IngressControllerSpec{IngressType: ketchv1.NginxIngressControllerType}},
+				Ingress: ketchv1.IngressSpec{Controller: ketchv1.IngressControllerSpec{
+					IngressType: ketchv1.NginxIngressControllerType,
+					ClassName:   "nginx",
+				}},
 			},
 		},
 	}
@@ -204,13 +211,17 @@ func Test_handleAddUpdateIngressConfigmap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: ketchv1.IngressConfigmapName},
 				Data:       map[string]string{},
 			},
-			expected: "error updating ingress",
+			expected: "unsupported value. supported values: traefik, istio, nginx",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.description, func(t *testing.T) {
 			i.handleAddUpdateIngressConfigmap(context.Background(), tc.obj)
+			if !strings.Contains(buf.String(), tc.expected) {
+				t.Logf("want: %s", tc.expected)
+				t.Logf("got : %s", buf.String())
+			}
 			require.Contains(t, buf.String(), tc.expected)
 			buf.Truncate(0)
 		})
@@ -249,7 +260,7 @@ func TestUpdateAppIngress(t *testing.T) {
 		{
 			description:           "fail at missing ingress controller fields",
 			ingressControllerSpec: ketchv1.IngressControllerSpec{},
-			expectedErr:           "App.theketch.io \"default-app\" is invalid: spec.ingress.controller.type: Unsupported value: \"\": supported values: \"traefik\", \"istio\", \"nginx\"",
+			expectedErr:           "unsupported value. supported values: traefik, istio, nginx",
 		},
 		{
 			description: "success",

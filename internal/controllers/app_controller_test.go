@@ -53,8 +53,8 @@ func (h *helm) UpdateChart(tv chart.TemplateValuer, config chart.ChartConfig, op
 	return nil, h.updateChartResults[tv.GetName()]
 }
 
-func (h *helm) DeleteChart(appName string) error {
-	h.deleteChartCalled = append(h.deleteChartCalled, appName)
+func (h *helm) DeleteChart(chartName string) error {
+	h.deleteChartCalled = append(h.deleteChartCalled, chartName)
 	return nil
 }
 
@@ -87,7 +87,8 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 	}
 	helmMock := &helm{
 		updateChartResults: map[string]error{
-			"app-update-chart-failed": errors.New("render error"),
+			"app-update-chart-failed":        errors.New("render error"),
+			"app-update-chart-failed-withid": errors.New("render error"),
 		},
 	}
 	readerMock := &templateReader{
@@ -156,9 +157,10 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			name: "app with update-chart-error",
 			app: ketchv1.App{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "app-update-chart-failed",
+					Name: "app-update-chart-failed-withid",
 				},
 				Spec: ketchv1.AppSpec{
+					ID:          "withid",
 					Deployments: []ketchv1.AppDeploymentSpec{},
 					Namespace:   "working-namespace",
 					Ingress:     ketchv1.IngressSpec{Controller: ketchv1.IngressControllerSpec{IngressType: ketchv1.TraefikIngressControllerType}},
@@ -177,7 +179,7 @@ func TestAppReconciler_Reconcile(t *testing.T) {
 			resultApp := ketchv1.App{}
 			for {
 				time.Sleep(250 * time.Millisecond)
-				err = ctx.k8sClient.Get(context.Background(), types.NamespacedName{Name: tt.app.Name}, &resultApp)
+				err = ctx.k8sClient.Get(context.Background(), types.NamespacedName{Name: tt.app.GetName()}, &resultApp)
 				require.Nil(t, err)
 				if len(resultApp.Status.Conditions) > 0 {
 					break
@@ -511,15 +513,23 @@ func TestCancelWatchDeployEvents(t *testing.T) {
 }
 
 func Test_checkPodStatus(t *testing.T) {
-	createPod := func(group, appName, version string, status v1.PodStatus) *v1.Pod {
+	createPod := func(group, appId, appName, version string, status v1.PodStatus) *v1.Pod {
+		podName := fmt.Sprintf("%v-%v", appName, version)
+		if len(appId) > 0 {
+			podName = fmt.Sprintf("%s-%s-%v", appName, appId, version)
+		}
+		labels := map[string]string{
+			group + "/app-name":               appName,
+			group + "/app-deployment-version": version,
+		}
+		if len(appId) > 0 {
+			labels[group+"/app-id"] = appId
+		}
 		return &v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%v-%v", appName, version),
+				Name:      podName,
 				Namespace: "default",
-				Labels: map[string]string{
-					group + "/app-name":               appName,
-					group + "/app-deployment-version": version,
-				},
+				Labels:    labels,
 			},
 			Status: status,
 		}
@@ -527,6 +537,7 @@ func Test_checkPodStatus(t *testing.T) {
 	tests := []struct {
 		name        string
 		pods        []runtime.Object
+		appId       string
 		appName     string
 		depVersion  ketchv1.DeploymentVersion
 		group       string
@@ -539,7 +550,7 @@ func Test_checkPodStatus(t *testing.T) {
 			depVersion: 5,
 			group:      "theketch.io",
 			pods: []runtime.Object{
-				createPod("theketch.io", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
+				createPod("theketch.io", "id", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
 			},
 			expectedPod: "my-app-5",
 			wantErr:     `all pods are not running`,
@@ -550,7 +561,7 @@ func Test_checkPodStatus(t *testing.T) {
 			depVersion: 5,
 			group:      "ketch.io",
 			pods: []runtime.Object{
-				createPod("theketch.io", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
+				createPod("theketch.io", "id", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
 			},
 			wantErr: ``,
 		},
@@ -558,7 +569,7 @@ func Test_checkPodStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cli := ctrlFake.NewClientBuilder().WithScheme(clientgoscheme.Scheme).WithRuntimeObjects(tt.pods...).Build()
-			podName, err := checkPodStatus(tt.group, cli, tt.appName, tt.depVersion)
+			podName, err := checkPodStatus(tt.group, cli, tt.appId, tt.appName, tt.depVersion)
 			if len(tt.wantErr) > 0 {
 				require.NotNil(t, err)
 				require.Equal(t, tt.wantErr, err.Error())
@@ -610,13 +621,15 @@ func TestAppDeloymentEventFromWatchEvent(t *testing.T) {
 			},
 			processName: "test process",
 			expected: &ketchv1.AppDeploymentEvent{
-				Name:              app.Name,
+				ID:                app.ID(),
+				Name:              app.AppName(),
 				DeploymentVersion: 2,
 				Reason:            "test reason",
 				Description:       "test message",
 				ProcessName:       "test process",
 				Annotations: map[string]string{
-					ketchv1.DeploymentAnnotationAppName:                 app.Name,
+					ketchv1.DeploymentAnnotationAppId:                   app.ID(),
+					ketchv1.DeploymentAnnotationAppName:                 app.AppName(),
 					ketchv1.DeploymentAnnotationDevelopmentVersion:      "2",
 					ketchv1.DeploymentAnnotationEventName:               "test reason",
 					ketchv1.DeploymentAnnotationDescription:             "test message",
@@ -669,13 +682,15 @@ func TestAppDeloymentEvent(t *testing.T) {
 			processName: "test process",
 			podName:     "test-pod",
 			expected: &ketchv1.AppDeploymentEvent{
-				Name:              app.Name,
+				ID:                app.ID(),
+				Name:              app.AppName(),
 				DeploymentVersion: 2,
 				Reason:            "test reason",
 				Description:       "test message",
 				ProcessName:       "test process",
 				Annotations: map[string]string{
-					ketchv1.DeploymentAnnotationAppName:            app.Name,
+					ketchv1.DeploymentAnnotationAppId:              app.ID(),
+					ketchv1.DeploymentAnnotationAppName:            app.AppName(),
 					ketchv1.DeploymentAnnotationDevelopmentVersion: "2",
 					ketchv1.DeploymentAnnotationEventName:          "test reason",
 					ketchv1.DeploymentAnnotationDescription:        "test message",

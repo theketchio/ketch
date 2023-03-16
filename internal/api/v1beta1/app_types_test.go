@@ -360,6 +360,7 @@ func TestApp_DefaultCname(t *testing.T) {
 	tests := []struct {
 		name                 string
 		appName              string
+		appId                string
 		generateDefaultCname bool
 		ingressController    IngressControllerSpec
 		want                 *string
@@ -1429,6 +1430,7 @@ func TestGetUpdatedUnits(t *testing.T) {
 
 func TestCanaryEvent_Message(t *testing.T) {
 	expectedAnnotations := map[string]string{
+		CanaryAnnotationAppId:              "app1-id",
 		CanaryAnnotationAppName:            "app1",
 		CanaryAnnotationDevelopmentVersion: "2",
 		CanaryAnnotationDescription:        "started",
@@ -1437,6 +1439,7 @@ func TestCanaryEvent_Message(t *testing.T) {
 	event := newCanaryEvent(&App{
 		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
 		Spec: AppSpec{
+			ID:     "app1-id",
 			Canary: CanarySpec{CurrentStep: 10},
 			Deployments: []AppDeploymentSpec{
 				{Version: 1, RoutingSettings: RoutingSettings{Weight: 30}},
@@ -1450,6 +1453,7 @@ func TestCanaryEvent_Message(t *testing.T) {
 
 func TestCanaryNextStepEvent_Message(t *testing.T) {
 	expectedAnnotations := map[string]string{
+		CanaryAnnotationAppId:              "app1-id",
 		CanaryAnnotationAppName:            "app1",
 		CanaryAnnotationDevelopmentVersion: "2",
 		CanaryAnnotationDescription:        "weight change",
@@ -1463,6 +1467,7 @@ func TestCanaryNextStepEvent_Message(t *testing.T) {
 	event := newCanaryNextStepEvent(&App{
 		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
 		Spec: AppSpec{
+			ID:     "app1-id",
 			Canary: CanarySpec{CurrentStep: 10},
 			Deployments: []AppDeploymentSpec{
 				{Version: 1, RoutingSettings: RoutingSettings{Weight: 30}},
@@ -1475,6 +1480,7 @@ func TestCanaryNextStepEvent_Message(t *testing.T) {
 
 func TestCanaryTargetChangeEvent_Annotations(t *testing.T) {
 	expectedAnnotations := map[string]string{
+		CanaryAnnotationAppId:              "app1-id",
 		CanaryAnnotationAppName:            "app1",
 		CanaryAnnotationDevelopmentVersion: "2",
 		CanaryAnnotationDescription:        "units change",
@@ -1488,6 +1494,7 @@ func TestCanaryTargetChangeEvent_Annotations(t *testing.T) {
 	event := newCanaryTargetChangeEvent(&App{
 		ObjectMeta: metav1.ObjectMeta{Name: "app1"},
 		Spec: AppSpec{
+			ID:     "app1-id",
 			Canary: CanarySpec{CurrentStep: 10},
 			Deployments: []AppDeploymentSpec{
 				{Version: 1, RoutingSettings: RoutingSettings{Weight: 30}},
@@ -1501,18 +1508,20 @@ func TestCanaryTargetChangeEvent_Annotations(t *testing.T) {
 
 func TestAppReconcileOutcome_String(t *testing.T) {
 	event := AppReconcileOutcome{
+		AppId:           "ff-ff-ff-ff",
 		AppName:         "app1",
 		DeploymentCount: 5,
 	}
-	require.Equal(t, "app app1 5 reconcile success", event.String())
-	require.Equal(t, "app app1 5 reconcile fail: [failed to do something]", event.String(fmt.Errorf("failed to do something")))
+	require.Equal(t, "app app1 ff-ff-ff-ff 5 reconcile success", event.String())
+	require.Equal(t, "app app1 ff-ff-ff-ff 5 reconcile fail: [failed to do something]", event.String(fmt.Errorf("failed to do something")))
 }
 
 func TestParseAppReconcileOutcome(t *testing.T) {
-	msg := "app app1 5 reconcile success"
+	msg := "app app1 ff-ff-ff-ff 5 reconcile success"
 	outcome, err := ParseAppReconcileOutcome(msg)
 	require.Nil(t, err)
 	require.Equal(t, AppReconcileOutcome{
+		AppId:           "ff-ff-ff-ff",
 		AppName:         "app1",
 		DeploymentCount: 5,
 	}, *outcome)
@@ -1576,15 +1585,17 @@ func TestParseAppReconcileOutcome_Multiple(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		got, err := ParseAppReconcileOutcome(test.msg)
-		if err != nil {
-			require.Equal(t, test.expectedErr, err.Error())
-		} else {
-			require.Equal(t, test.expectedApp, got.AppName)
-			require.Equal(t, test.expectedVersion, got.DeploymentCount)
-			require.Equal(t, test.expectedString, got.String())
-		}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			got, err := ParseAppReconcileOutcome(test.msg)
+			if err != nil {
+				require.Equal(t, test.expectedErr, err.Error())
+			} else {
+				require.Equal(t, test.expectedApp, got.AppName)
+				require.Equal(t, test.expectedVersion, got.DeploymentCount)
+				require.Equal(t, test.expectedString, got.String())
+			}
+		})
 	}
 }
 

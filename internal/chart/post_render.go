@@ -21,6 +21,7 @@ type postRender struct {
 	log logr.Logger
 	cli client.Client
 
+	appId              string
 	appName            string
 	deploymentVersions []int
 	namespace          string
@@ -38,7 +39,8 @@ func (p *postRender) Run(renderedManifests *bytes.Buffer) (modifiedManifests *by
 		fwPatch := strings.HasSuffix(cm.Name, "-postrender")
 		var appPatch bool
 		for _, dv := range p.deploymentVersions {
-			appPatch = strings.HasPrefix(cm.Name, fmt.Sprintf("%s-%d-app-post-render", p.appName, dv))
+			appPatch = strings.HasPrefix(cm.Name, fmt.Sprintf("%s-%d-app-post-render", p.appName, dv)) ||
+				strings.HasPrefix(cm.Name, fmt.Sprintf("%s-%s-%d-app-post-render", p.appName, p.appId, dv))
 			if appPatch {
 				break
 			}
