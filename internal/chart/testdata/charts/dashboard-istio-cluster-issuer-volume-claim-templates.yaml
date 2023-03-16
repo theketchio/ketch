@@ -136,7 +136,7 @@ spec:
       theketch.io/app-process: "web"
       theketch.io/app-deployment-version: "3"
       theketch.io/is-isolated-run: "false"
-  serviceName: "dashboard"
+  serviceName: dashboard
   template:
     metadata:
       labels:
@@ -226,7 +226,7 @@ spec:
       theketch.io/app-process: "worker"
       theketch.io/app-deployment-version: "3"
       theketch.io/is-isolated-run: "false"
-  serviceName: "dashboard"
+  serviceName: dashboard
   template:
     metadata:
       labels:
@@ -294,7 +294,7 @@ spec:
       theketch.io/app-process: "web"
       theketch.io/app-deployment-version: "4"
       theketch.io/is-isolated-run: "false"
-  serviceName: "dashboard"
+  serviceName: dashboard
   template:
     metadata:
       labels:
@@ -361,7 +361,7 @@ spec:
       theketch.io/app-process: "worker"
       theketch.io/app-deployment-version: "4"
       theketch.io/is-isolated-run: "false"
-  serviceName: "dashboard"
+  serviceName: dashboard
   template:
     metadata:
       labels:

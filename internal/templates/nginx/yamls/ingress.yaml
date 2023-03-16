@@ -5,7 +5,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $.Values.app.name }}-{{ $i }}-http-ingress
+  name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-{{ $i }}-http-ingress
   annotations:
     {{- if gt $i 0 }}
     nginx.ingress.kubernetes.io/canary: "true"
@@ -14,6 +14,9 @@ metadata:
     {{- $data := dict "kind" "Ingress" "apiVersion" "networking.k8s.io/v1" "metadataItems" $.Values.app.metadataAnnotations }}
     {{- include "ketch.renderMetadata" $data | nindent 4 }}
   labels:
+    {{- if $.Values.app.id }}
+    {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+    {{- end }}
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
 spec:
@@ -29,7 +32,7 @@ spec:
         {{- if $process.routable }}
       - backend:
           service:
-            name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+            name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-{{ $process.name }}-{{ $deployment.version }}
             port:
               number: {{ $process.publicServicePort }}
         pathType: ImplementationSpecific
@@ -49,7 +52,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $.Values.app.name }}-{{ $i }}-https-ingress
+  name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-{{ $i }}-https-ingress
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
@@ -58,6 +61,9 @@ metadata:
     nginx.ingress.kubernetes.io/canary-weight: "{{ $deployment.routingSettings.weight }}"
     {{- end }}
   labels:
+    {{- if $.Values.app.id }}
+    {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+    {{- end }}
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
 spec:
   {{- if $.Values.ingressController.className }}
@@ -80,7 +86,7 @@ spec:
           pathType: Prefix
           backend:
             service:
-              name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+              name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-{{ $process.name }}-{{ $deployment.version }}
               port:
                 number: {{ $process.publicServicePort }}
         {{- end }}

@@ -56,6 +56,7 @@ func TestGetSourceHandler(t *testing.T) {
 				return nil
 			},
 			request: &CreateImageFromSourceRequest{
+				ID:      "acmeapp",
 				Image:   "acme/superimage",
 				AppName: "acmeapp",
 				Builder: "heroku/buildpacks:18",
@@ -67,6 +68,7 @@ func TestGetSourceHandler(t *testing.T) {
 				return errors.New("failed build")
 			},
 			request: &CreateImageFromSourceRequest{
+				ID:      "acmeapp",
 				Image:   "acme/superimage",
 				AppName: "acmeapp",
 			},

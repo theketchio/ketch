@@ -142,7 +142,7 @@ func setup(reader templates.Reader, helm Helm, objects []client.Object) (*testin
 		switch x := obj.(type) {
 		case *ketchv1.App:
 			if len(x.Status.Conditions) == 0 {
-				return nil, fmt.Errorf("failed to run %v app", x.Name)
+				return nil, fmt.Errorf("failed to run %v app", x.AppName())
 			}
 		case *ketchv1.Job:
 			if len(x.Status.Conditions) == 0 {

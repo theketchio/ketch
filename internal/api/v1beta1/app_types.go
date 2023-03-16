@@ -311,6 +311,26 @@ type AppList struct {
 	Items           []App `json:"items"`
 }
 
+// AppName represents name of the application. We take it from CRD name.
+// CRD name doesn't have to always represent the application name.
+// CRD name is either composed of:
+// - {appName}-{appId}
+// - {appName}
+func (app *App) AppName() string {
+	if len(app.Spec.ID) == 0 {
+		return app.GetName()
+	}
+	return strings.TrimSuffix(app.GetName(), fmt.Sprintf("-%s", app.Spec.ID))
+}
+
+// ID represents id of the application. We can take it from CRD name or from spec.ID.
+func (app *App) ID() string {
+	if len(app.Spec.ID) > 0 {
+		return app.Spec.ID
+	}
+	return ""
+}
+
 func (s *AppDeploymentSpec) setUnits(process string, units int) error {
 	for i, processSpec := range s.Processes {
 		if processSpec.Name == process {
@@ -462,13 +482,17 @@ func (app *App) CNames() []string {
 }
 
 // DefaultCname returns a default cname to access the application.
-// A default cname uses the following format: <app name>.<App's Ingress ServiceEndpoint>.shipa.cloud.
+// A default cname uses the following format: <crd name>.<App's Ingress ServiceEndpoint>.shipa.cloud.
 func (app *App) DefaultCname() *string {
 	if !app.Spec.Ingress.GenerateDefaultCname {
 		return nil
 	}
 	if len(app.Spec.Ingress.Controller.ServiceEndpoint) == 0 {
 		return nil
+	}
+	if len(app.ID()) > 0 {
+		url := fmt.Sprintf("%s-%s.%s.%s", app.Name, app.ID(), app.Spec.Ingress.Controller.ServiceEndpoint, ShipaCloudDomain)
+		return &url
 	}
 	url := fmt.Sprintf("%s.%s.%s", app.Name, app.Spec.Ingress.Controller.ServiceEndpoint, ShipaCloudDomain)
 	return &url
@@ -754,6 +778,7 @@ const (
 	CanaryStepTarget     = "CanaryStepTarget"
 	CanaryStepTargetDesc = "units change"
 
+	CanaryAnnotationAppId              = "canary.shipa.io/app-id"
 	CanaryAnnotationAppName            = "canary.shipa.io/app-name"
 	CanaryAnnotationDevelopmentVersion = "canary.shipa.io/deployment-version"
 	CanaryAnnotationEventName          = "canary.shipa.io/event-name"
@@ -769,6 +794,8 @@ const (
 )
 
 type CanaryEvent struct {
+	// AppId represents event for certain app id
+	AppId string
 	// AppName represents event for certain app
 	AppName string
 	// DeploymentVersion represents for which deployment event is associated with
@@ -791,12 +818,14 @@ func newCanaryEvent(app *App, event string, desc string) CanaryEvent {
 	}
 
 	return CanaryEvent{
-		AppName:           app.Name,
+		AppId:             app.ID(),
+		AppName:           app.AppName(),
 		DeploymentVersion: int(version),
 		Name:              event,
 		Description:       desc,
 		Annotations: map[string]string{
-			CanaryAnnotationAppName:            app.Name,
+			CanaryAnnotationAppId:              app.ID(),
+			CanaryAnnotationAppName:            app.AppName(),
 			CanaryAnnotationDevelopmentVersion: version.String(),
 			CanaryAnnotationEventName:          event,
 			CanaryAnnotationDescription:        desc,
@@ -812,6 +841,9 @@ func (c CanaryEvent) Message() string {
 // CanaryEventFromAnnotations creates CanaryEvent from given message
 func CanaryEventFromAnnotations(annotations map[string]string) (*CanaryEvent, error) {
 	event := CanaryEvent{}
+	if value, found := annotations[CanaryAnnotationAppId]; found {
+		event.AppId = value
+	}
 	if value, found := annotations[CanaryAnnotationAppName]; found {
 		event.AppName = value
 	}
@@ -1004,6 +1036,7 @@ const (
 
 // AppReconcileOutcome handle information about app reconcile
 type AppReconcileOutcome struct {
+	AppId           string
 	AppName         string
 	DeploymentCount int
 }
@@ -1011,7 +1044,13 @@ type AppReconcileOutcome struct {
 // String is a Stringer interface implementation
 func (r *AppReconcileOutcome) String(err ...error) string {
 	if err != nil {
+		if len(r.AppId) > 0 {
+			return fmt.Sprintf(`app %s %s %d reconcile fail: %v`, r.AppName, r.AppId, r.DeploymentCount, err)
+		}
 		return fmt.Sprintf(`app %s %d reconcile fail: %v`, r.AppName, r.DeploymentCount, err)
+	}
+	if len(r.AppId) > 0 {
+		return fmt.Sprintf(`app %s %s %d reconcile success`, r.AppName, r.AppId, r.DeploymentCount)
 	}
 	return fmt.Sprintf(`app %s %d reconcile success`, r.AppName, r.DeploymentCount)
 }
@@ -1019,14 +1058,19 @@ func (r *AppReconcileOutcome) String(err ...error) string {
 // ParseAppReconcileOutcome makes AppReconcileOutcome from the incoming event reason string
 func ParseAppReconcileOutcome(in string) (*AppReconcileOutcome, error) {
 	rm := AppReconcileOutcome{}
-	_, err := fmt.Sscanf(in, `app %s %d reconcile`, &rm.AppName, &rm.DeploymentCount)
+	_, err := fmt.Sscanf(in, `app %s %s %d reconcile success`, &rm.AppName, &rm.AppId, &rm.DeploymentCount)
 	if err != nil {
-		return nil, fmt.Errorf(`unable to parse reconcile reason: %v`, err)
+		rm.AppId = ""
+		_, err := fmt.Sscanf(in, `app %s %d reconcile`, &rm.AppName, &rm.DeploymentCount)
+		if err != nil {
+			return nil, fmt.Errorf(`unable to parse reconcile reason: %v`, err)
+		}
 	}
 	return &rm, nil
 }
 
 const (
+	DeploymentAnnotationAppId                   = "deployment.shipa.io/app-id"
 	DeploymentAnnotationAppName                 = "deployment.shipa.io/app-name"
 	DeploymentAnnotationDevelopmentVersion      = "deployment.shipa.io/deployment-version"
 	DeploymentAnnotationEventName               = "deployment.shipa.io/event-name"
@@ -1046,6 +1090,9 @@ const (
 
 // AppDeploymentEvent represents fields and annotations for an Event that describes an app deployment.
 type AppDeploymentEvent struct {
+	// ID represents id of application
+	ID string
+	// Name represents name of application
 	Name string
 	// DeploymentVersion represents for which deployment event is associated with
 	DeploymentVersion int
@@ -1078,6 +1125,7 @@ func AppDeploymentEventFromAnnotations(annotations map[string]string) *AppDeploy
 		)
 	}
 	return &AppDeploymentEvent{
+		ID:                annotations[DeploymentAnnotationAppId],
 		Name:              annotations[DeploymentAnnotationAppName],
 		DeploymentVersion: version,
 		Reason:            annotations[DeploymentAnnotationEventName],

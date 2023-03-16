@@ -5,13 +5,16 @@
 // apiVersion: v1
 // kind: ConfigMap
 // metadata:
-//   name: <name>
-//   namespace: ketch-system
+//
+//	name: <name>
+//	namespace: ketch-system
+//
 // data:
-//   services.yaml: |-
-//     ..
-//   deployments.yaml: |-
-//     ..
+//
+//	services.yaml: |-
+//	  ..
+//	deployments.yaml: |-
+//	  ..
 package templates
 
 import (

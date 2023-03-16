@@ -105,7 +105,7 @@ func appInfo(ctx context.Context, cfg config, options appInfoOptions, out io.Wri
 	}
 
 	appPods, err := cfg.KubernetesClient().CoreV1().Pods(app.Namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf(`%s=%s`, utils.KetchAppNameLabel, app.Name),
+		LabelSelector: fmt.Sprintf(`%s=%s`, utils.KetchAppNameLabel, app.AppName()),
 	})
 	if err != nil {
 		return err

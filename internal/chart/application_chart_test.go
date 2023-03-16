@@ -351,8 +351,10 @@ func TestNewApplicationChart(t *testing.T) {
 			if tt.group != "" {
 				original := ketchv1.Group
 				ketchv1.Group = tt.group
+				tt.application.Spec.ID = "id"
 				defer func() {
 					ketchv1.Group = original
+					tt.application.Spec.ID = ""
 				}()
 			}
 			tt.application.Spec.Ingress.Controller = tt.ingressController
@@ -368,7 +370,8 @@ func TestNewApplicationChart(t *testing.T) {
 
 			chartConfig := ChartConfig{
 				Version:            "0.0.1",
-				AppName:            tt.application.Name,
+				AppId:              tt.application.ID(),
+				AppName:            tt.application.AppName(),
 				DeploymentVersions: deploymentVersions(*tt.application),
 			}
 

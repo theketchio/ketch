@@ -76,6 +76,7 @@ func Test_appExport(t *testing.T) {
 			Name: "dashboard",
 		},
 		Spec: ketchv1.AppSpec{
+			ID:        "id",
 			Namespace: "mynamespace",
 			Ingress: ketchv1.IngressSpec{
 				GenerateDefaultCname: true,
@@ -106,7 +107,8 @@ func Test_appExport(t *testing.T) {
 				appName:  "dashboard",
 				filename: "app.yaml",
 			},
-			wantOut: `name: dashboard
+			wantOut: `id: id
+name: dashboard
 namespace: mynamespace
 type: Application
 version: v1
@@ -126,7 +128,8 @@ version: v1
 			options: appExportOptions{
 				appName: "dashboard",
 			},
-			wantOut: `name: dashboard
+			wantOut: `id: id
+name: dashboard
 namespace: mynamespace
 type: Application
 version: v1

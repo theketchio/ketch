@@ -71,7 +71,7 @@ type helmFactoryFn func(namespace string) (Helm, error)
 // Helm has methods to update/delete helm charts.
 type Helm interface {
 	UpdateChart(tv chart.TemplateValuer, config chart.ChartConfig, opts ...chart.InstallOption) (*release.Release, error)
-	DeleteChart(appName string) error
+	DeleteChart(name string) error
 }
 
 const (
@@ -155,11 +155,11 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	if scheduleResult.err != nil {
 		err = scheduleResult.err
-		outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+		outcome := ketchv1.AppReconcileOutcome{AppId: app.ID(), AppName: app.AppName(), DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeWarning, ketchv1.AppReconcileOutcomeReason, outcome.String(err))
 		app.SetCondition(ketchv1.Scheduled, v1.ConditionFalse, scheduleResult.err.Error(), metav1.NewTime(time.Now()))
 	} else {
-		outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+		outcome := ketchv1.AppReconcileOutcome{AppId: app.ID(), AppName: app.AppName(), DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeNormal, ketchv1.AppReconcileOutcomeReason, outcome.String())
 		app.SetCondition(ketchv1.Scheduled, v1.ConditionTrue, "", metav1.NewTime(time.Now()))
 	}
@@ -171,7 +171,7 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			logger.Error(err, "failed to reconcile app status")
 			return ctrl.Result{}, err
 		}
-		outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: app.Spec.DeploymentsCount}
+		outcome := ketchv1.AppReconcileOutcome{AppId: app.ID(), AppName: app.AppName(), DeploymentCount: app.Spec.DeploymentsCount}
 		r.Recorder.Event(&app, v1.EventTypeWarning, ketchv1.AppReconcileOutcomeReason, outcome.String(err))
 		return result, err
 	}
@@ -197,8 +197,10 @@ func hpaTargetMap(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList)
 	hpaTargets := map[string]bool{}
 	for _, deployment := range app.Spec.Deployments {
 		for _, process := range deployment.Processes {
-
 			deploymentName := fmt.Sprintf("%s-%s-%s", app.Name, process.Name, deployment.Version)
+			if len(app.ID()) > 0 {
+				deploymentName = fmt.Sprintf("%s-%s-%s-%s", app.Name, app.ID(), process.Name, deployment.Version)
+			}
 			if details, ok := targets[deploymentName]; ok {
 				// even if a target name is a match, it could be targeting a different kind than deployment
 				if details.Kind == "Deployment" && details.APIVersion == "apps/v1" {
@@ -343,7 +345,7 @@ func (cli workloadClient) Get(ctx context.Context) (*workload, error) {
 func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger logr.Logger) appReconcileResult {
 	if app.Spec.Namespace == "" {
 		return appReconcileResult{
-			err: fmt.Errorf(`app "%s" must be linked to a kubernetes namespace`, app.Name),
+			err: fmt.Errorf(`app "%s" must be linked to a kubernetes namespace`, app.AppName()),
 		}
 	}
 	tpls, err := r.TemplateReader.Get(templates.IngressConfigMapName(app.Spec.Ingress.Controller.IngressType.String()))
@@ -377,7 +379,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 
 		// retry until all pods for canary deployment comes to running state.
-		if _, err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
+		if _, err := checkPodStatus(r.Group, r.Client, app.ID(), app.AppName(), app.Spec.Deployments[1].Version); err != nil {
 
 			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
 				return appReconcileResult{
@@ -435,9 +437,13 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 					err: err,
 				}
 			}
+			workloadName := fmt.Sprintf("%s-%s-%d", app.GetName(), process.Name, latestDeployment.Version)
+			if len(app.ID()) > 0 {
+				workloadName = fmt.Sprintf("%s-%s-%s-%d", app.GetName(), app.ID(), process.Name, latestDeployment.Version)
+			}
 			wc := workloadClient{
 				k8sClient:         cli,
-				workloadName:      fmt.Sprintf("%s-%s-%d", app.GetName(), process.Name, latestDeployment.Version),
+				workloadName:      workloadName,
 				workloadNamespace: app.Spec.Namespace,
 				workloadType:      app.Spec.GetType(),
 			}
@@ -550,7 +556,7 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 		}
 
 		if healthcheckTimeout == nil && wl.UpdatedReplicas == specReplicas {
-			_, err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
+			_, err := checkPodStatus(r.Group, r.Client, app.ID(), app.AppName(), app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 			if err == nil {
 				healthcheckTimeout = time.After(maxWaitTimeDuration)
 				healthcheckEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileUpdate, fmt.Sprintf("waiting healthcheck on %d created units", specReplicas), processName, "")
@@ -589,13 +595,13 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 				recorder.AnnotatedEventf(app, appDeploymentEvent.Annotations, v1.EventTypeNormal, ketchv1.AppReconcileUpdate, appDeploymentEvent.Description)
 			}
 		case <-healthcheckTimeout:
-			podName, _ := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
+			podName, _ := checkPodStatus(r.Group, r.Client, app.ID(), app.AppName(), app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 			err = createDeployTimeoutError(ctx, cli.k8sClient, app, time.Since(now), cli.workloadNamespace, app.GroupVersionKind().Group, "healthcheck")
 			healthcheckTimeoutEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("error waiting for healthcheck: %s", err.Error()), processName, podName)
 			recorder.AnnotatedEventf(app, healthcheckTimeoutEvent.Annotations, v1.EventTypeWarning, healthcheckTimeoutEvent.Reason, healthcheckTimeoutEvent.Description)
 			return err
 		case <-timeout:
-			podName, _ := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
+			podName, _ := checkPodStatus(r.Group, r.Client, app.ID(), app.AppName(), app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 			err = createDeployTimeoutError(ctx, cli.k8sClient, app, time.Since(now), cli.workloadNamespace, app.GroupVersionKind().Group, "full rollout")
 			timeoutEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("deployment timeout: %s", err.Error()), processName, podName)
 			recorder.AnnotatedEventf(app, timeoutEvent.Annotations, v1.EventTypeWarning, timeoutEvent.Reason, timeoutEvent.Description)
@@ -612,7 +618,7 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 			return err
 		}
 		if err != nil && !k8sErrors.IsNotFound(err) {
-			podName, _ := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
+			podName, _ := checkPodStatus(r.Group, r.Client, app.ID(), app.AppName(), app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 			deploymentErrorEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileError, fmt.Sprintf("error getting deployments: %s", err.Error()), processName, podName)
 			recorder.AnnotatedEventf(app, deploymentErrorEvent.Annotations, v1.EventTypeWarning, deploymentErrorEvent.Reason, deploymentErrorEvent.Description)
 			return err
@@ -622,7 +628,7 @@ func (r *AppReconciler) watchFunc(ctx context.Context, cleanup cleanupFunc, app 
 		}
 	}
 
-	outcome := ketchv1.AppReconcileOutcome{AppName: app.Name, DeploymentCount: wl.ReadyReplicas}
+	outcome := ketchv1.AppReconcileOutcome{AppId: app.ID(), AppName: app.AppName(), DeploymentCount: wl.ReadyReplicas}
 	outcomeEvent := newAppDeploymentEvent(app, ketchv1.AppReconcileComplete, outcome.String(), processName, "")
 	recorder.AnnotatedEventf(app, outcomeEvent.Annotations, v1.EventTypeNormal, outcomeEvent.Reason, outcomeEvent.Description)
 	return nil
@@ -639,13 +645,15 @@ func appDeploymentEventFromWatchEvent(watchEvent watch.Event, app *ketchv1.App, 
 		version = int(app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 	}
 	return &ketchv1.AppDeploymentEvent{
-		Name:              app.Name,
+		ID:                app.ID(),
+		Name:              app.AppName(),
 		DeploymentVersion: version,
 		Reason:            event.Reason,
 		Description:       event.Message,
 		ProcessName:       processName,
 		Annotations: map[string]string{
-			ketchv1.DeploymentAnnotationAppName:                 app.Name,
+			ketchv1.DeploymentAnnotationAppId:                   app.ID(),
+			ketchv1.DeploymentAnnotationAppName:                 app.AppName(),
 			ketchv1.DeploymentAnnotationDevelopmentVersion:      strconv.Itoa(version),
 			ketchv1.DeploymentAnnotationEventName:               event.Reason,
 			ketchv1.DeploymentAnnotationDescription:             event.Message,
@@ -665,13 +673,15 @@ func newAppDeploymentEvent(app *ketchv1.App, reason, desc, processName, podName 
 		version = int(app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 	}
 	return &ketchv1.AppDeploymentEvent{
-		Name:              app.Name,
+		ID:                app.ID(),
+		Name:              app.AppName(),
 		DeploymentVersion: version,
 		Reason:            reason,
 		Description:       desc,
 		ProcessName:       processName,
 		Annotations: map[string]string{
-			ketchv1.DeploymentAnnotationAppName:            app.Name,
+			ketchv1.DeploymentAnnotationAppId:              app.ID(),
+			ketchv1.DeploymentAnnotationAppName:            app.AppName(),
 			ketchv1.DeploymentAnnotationDevelopmentVersion: strconv.Itoa(version),
 			ketchv1.DeploymentAnnotationEventName:          reason,
 			ketchv1.DeploymentAnnotationDescription:        desc,
@@ -702,8 +712,12 @@ func createDeployTimeoutError(ctx context.Context, cli kubernetes.Interface, app
 	if len(app.Spec.Deployments) > 0 {
 		deploymentVersion = int(app.Spec.Deployments[len(app.Spec.Deployments)-1].Version)
 	}
+	labelSelector := fmt.Sprintf("%s/app-name=%s,%s/app-deployment-version=%d", group, app.AppName(), group, deploymentVersion)
+	if len(app.ID()) > 0 {
+		labelSelector = fmt.Sprintf("%s,%s/app-id=%s", labelSelector, group, app.ID())
+	}
 	opts := metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s/app-name=%s,%s/app-deployment-version=%d", group, app.Name, group, deploymentVersion),
+		LabelSelector: labelSelector,
 	}
 	pods, err := cli.CoreV1().Pods(app.GetNamespace()).List(ctx, opts)
 	if err != nil {
@@ -756,7 +770,7 @@ func timeoutExpired(t *metav1.Time, now time.Time) bool {
 
 // checkPodStatus checks whether all pods for a deployment are running or not.
 // If a Pod is found in a non-healthy state, it's name is returned
-func checkPodStatus(group string, c client.Client, appName string, depVersion ketchv1.DeploymentVersion) (string, error) {
+func checkPodStatus(group string, c client.Client, appId, appName string, depVersion ketchv1.DeploymentVersion) (string, error) {
 	if c == nil {
 		return "", errors.New("client must be non-nil")
 	}
@@ -772,6 +786,15 @@ func checkPodStatus(group string, c client.Client, appName string, depVersion ke
 		client.MatchingLabels(map[string]string{
 			group + "/app-name":               appName,
 			group + "/app-deployment-version": depVersion.String()}),
+	}
+	if len(appId) > 0 {
+		listOpts = []client.ListOption{
+			// The specified labels below matches with the required deployment pods of the app.
+			client.MatchingLabels(map[string]string{
+				group + "/app-id":                 appId,
+				group + "/app-name":               appName,
+				group + "/app-deployment-version": depVersion.String()}),
+		}
 	}
 
 	if err := c.List(context.Background(), podList, listOpts...); err != nil {
@@ -806,7 +829,11 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 		if err != nil {
 			return err
 		}
-		if err = helmClient.DeleteChart(app.Name); err != nil {
+		chartName := app.GetName()
+		if len(app.ID()) > 0 {
+			chartName = fmt.Sprintf("%s-%s", app.GetName(), app.ID())
+		}
+		if err = helmClient.DeleteChart(chartName); err != nil {
 			return err
 		}
 	}
@@ -819,7 +846,7 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 
 }
 
-//UpdateAppLabelsForIngress updates an app's namespace labels to account for different ingresses.
+// UpdateAppLabelsForIngress updates an app's namespace labels to account for different ingresses.
 // we rely on istio automatic sidecar injection
 // https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
 func UpdateAppLabelsForIngress(app *ketchv1.App) {

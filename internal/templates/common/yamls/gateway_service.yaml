@@ -3,17 +3,23 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
+    {{- if $.Values.app.id }}
+    {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+    {{- end }}
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
     {{- range $i, $label := $.Values.app.Service.Deployment.labels }}
     {{ $label.name }}: {{ $label.value | quote }}
     {{- end }}
-  name: app-{{ $.Values.app.name }}
+  name: app-{{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}
 spec:
   type: ClusterIP
   ports:
 {{ $.Values.app.Service.Process.servicePorts | toYaml | indent 4 }}
   selector:
+    {{- if $.Values.app.id }}
+    {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+    {{- end }}
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{ $.Values.app.group }}/app-process: {{ $.Values.app.Service.Process.name | quote }}
     {{ $.Values.app.group }}/app-deployment-version: {{ $.Values.app.Service.Deployment.version | quote }}

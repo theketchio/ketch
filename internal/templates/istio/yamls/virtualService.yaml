@@ -8,11 +8,14 @@ metadata:
     kubernetes.io/ingress.class: {{ .Values.ingressController.className | quote }}
     {{- end }}
   labels:
+    {{- if $.Values.app.id }}
+    {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+    {{- end }}
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{- with (last $.Values.app.deployments) }}
     {{ $.Values.app.group }}/app-deployment-version: {{ .version | quote }}
     {{- end }}
-  name: {{ $.Values.app.name }}-http
+  name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-http
 spec:
     hosts:
     {{- if  $.Values.app.ingress.http }}
@@ -33,7 +36,7 @@ spec:
         {{- range $_, $process := $deployment.processes }}
         {{- if $process.routable }}{{- if gt $deployment.routingSettings.weight 0.0}}
         - destination:
-            host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+            host: {{empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id)}}-{{ $process.name}}-{{ $deployment.version }}
             port:
               number: {{ $process.publicServicePort }}
             subset: "v{{ $deployment.version }}"

@@ -129,8 +129,8 @@ func New(application *ketchv1.App, opts ...Option) (*ApplicationChart, error) {
 
 	values := &values{
 		App: &app{
-			ID:                  application.Spec.ID,
-			Name:                application.Name,
+			ID:                  application.ID(),
+			Name:                application.AppName(),
 			Ingress:             *ingress,
 			Env:                 application.Spec.Env,
 			Group:               ketchv1.Group,
@@ -235,6 +235,7 @@ appVersion: {{ .AppVersion }}
 type ChartConfig struct {
 	Version            string
 	Description        string
+	AppId              string
 	AppName            string
 	AppVersion         string
 	DeploymentVersions []int
@@ -250,7 +251,8 @@ func NewChartConfig(app ketchv1.App) ChartConfig {
 	return ChartConfig{
 		Version:            chartVersion,
 		Description:        app.Spec.Description,
-		AppName:            app.Name,
+		AppId:              app.ID(),
+		AppName:            app.AppName(),
 		AppVersion:         version,
 		DeploymentVersions: deploymentVersions(app),
 	}
@@ -279,7 +281,8 @@ func (config ChartConfig) render() ([]byte, error) {
 }
 
 // ExportToDirectory saves the chart to the provided directory inside a folder with app_Name_TIMESTAMP
-//  for example, for any app with name `hello`, it will save chart inside a folder with name `hello_11_Dec_20_12_30_IST`
+//
+//	for example, for any app with name `hello`, it will save chart inside a folder with name `hello_11_Dec_20_12_30_IST`
 func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig ChartConfig) error {
 	timestamp := time.Now().Format(time.RFC822)
 	replacer := strings.NewReplacer(" ", "_", ":", "_")
@@ -318,6 +321,9 @@ func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig Cha
 
 // GetName returns the app name, satisfying TemplateValuer
 func (a ApplicationChart) GetName() string {
+	if len(a.values.App.ID) > 0 {
+		return fmt.Sprintf("%s-%s", a.values.App.Name, a.values.App.ID)
+	}
 	return a.values.App.Name
 }
 

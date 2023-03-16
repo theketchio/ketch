@@ -5,6 +5,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
+    {{- if $.Values.app.id }}
+    {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+    {{- end }}
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
     {{ $.Values.app.group }}/app-process-replicas: {{ $process.units | quote }}
@@ -19,13 +22,16 @@ metadata:
     {{ $k }}: {{ $v | quote }}
     {{- end }}
   {{- end }}
-  name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
+  name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-{{ $process.name }}-{{ $deployment.version }}
 spec:
   replicas: {{ $process.units }}
   selector:
     matchLabels:
       app: {{ default $.Values.app.name $.Values.app.id | quote }}
       version: {{ $deployment.version | quote }}
+      {{- if $.Values.app.id }}
+      {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+      {{- end }}
       {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
       {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
       {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
@@ -35,6 +41,9 @@ spec:
       labels:
         app: {{ default $.Values.app.name $.Values.app.id | quote }}
         version: {{ $deployment.version | quote }}
+        {{- if $.Values.app.id }}
+        {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+        {{- end }}
         {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
         {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
         {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}

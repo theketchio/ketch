@@ -15,6 +15,8 @@ type builder interface {
 
 // CreateImageFromSourceRequest contains fields used to build an image from source code.
 type CreateImageFromSourceRequest struct {
+	// ID is the id of te application.
+	ID string
 	// AppName is the name of the application we will deploy to.  It maps to a CRD that contains information
 	// pertaining to our build.
 	AppName string

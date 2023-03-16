@@ -126,11 +126,20 @@ func (i *IngressWatcher) updateAppsIngress(ctx context.Context, ingressControlle
 
 	for _, app := range appList.Items {
 		app.Spec.Ingress.Controller = ingressControllerSpec
-		i.logger.Info("updating app ingress controller", "app", app.Name, "ingress controller", ingressControllerSpec)
+		if !isSupported(app.Spec.Ingress.Controller.IngressType) {
+			return fmt.Errorf("unsupported value. supported values: traefik, istio, nginx")
+		}
+		i.logger.Info("updating app ingress controller", "app", app.AppName(), "ingress controller", ingressControllerSpec)
 		if err := i.client.Update(ctx, &app); err != nil {
-			i.logger.Error(err, "error updating ingress", "app", app.Name)
+			i.logger.Error(err, "error updating ingress", "app", app.AppName())
 			return err
 		}
 	}
 	return nil
+}
+
+func isSupported(ingressType ketchv1.IngressControllerType) bool {
+	return ingressType == ketchv1.NginxIngressControllerType ||
+		ingressType == ketchv1.IstioIngressControllerType ||
+		ingressType == ketchv1.TraefikIngressControllerType
 }

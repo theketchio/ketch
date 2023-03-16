@@ -79,7 +79,7 @@ type InstallOption func(install *action.Install)
 
 // UpdateChart checks if the app chart is already installed and performs "helm install" or "helm update" operation.
 func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...InstallOption) (*release.Release, error) {
-	appName := tv.GetName()
+	chartName := tv.GetName()
 	files, err := bufferedFiles(config, tv.GetTemplates(), tv.GetValues())
 	if err != nil {
 		return nil, err
@@ -94,15 +94,17 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	}
 	getValuesClient := action.NewGetValues(c.cfg)
 	getValuesClient.AllValues = true
-	_, err = getValuesClient.Run(appName)
+	_, err = getValuesClient.Run(chartName)
 	if err != nil && errors.Is(err, driver.ErrReleaseNotFound) {
 		clientInstall := action.NewInstall(c.cfg)
-		clientInstall.ReleaseName = appName
+		clientInstall.ReleaseName = chartName
 		clientInstall.Namespace = c.namespace
+		clientInstall.CreateNamespace = true
 		clientInstall.PostRenderer = &postRender{
 			log:                c.log,
 			cli:                c.c,
 			namespace:          c.namespace,
+			appId:              config.AppId,
 			appName:            config.AppName,
 			deploymentVersions: config.DeploymentVersions,
 		}
@@ -122,27 +124,29 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	// Let's set it to minimal to disable "helm rollback".
 	updateClient.MaxHistory = 1
 	updateClient.PostRenderer = &postRender{
-		cli:                c.c,
-		log:                c.log,
-		namespace:          c.namespace,
+		cli:       c.c,
+		log:       c.log,
+		namespace: c.namespace,
+
+		appId:              config.AppId,
 		appName:            config.AppName,
 		deploymentVersions: config.DeploymentVersions,
 	}
-	shouldUpdate, err := c.isHelmChartStatusActionable(c.statusFunc, appName, helmStatusActionMapUpdate)
+	shouldUpdate, err := c.isHelmChartStatusActionable(c.statusFunc, chartName, helmStatusActionMapUpdate)
 	if err != nil || !shouldUpdate {
 		return nil, err
 	}
-	return updateClient.Run(appName, chrt, vals)
+	return updateClient.Run(chartName, chrt, vals)
 }
 
 // DeleteChart uninstalls the app's helm release. It doesn't return an error if the release is not found.
-func (c HelmClient) DeleteChart(appName string) error {
-	shouldDelete, err := c.isHelmChartStatusActionable(c.statusFunc, appName, helmStatusActionMapDelete)
+func (c HelmClient) DeleteChart(chartName string) error {
+	shouldDelete, err := c.isHelmChartStatusActionable(c.statusFunc, chartName, helmStatusActionMapDelete)
 	if err != nil || !shouldDelete {
 		return err
 	}
 	uninstall := action.NewUninstall(c.cfg)
-	_, err = uninstall.Run(appName)
+	_, err = uninstall.Run(chartName)
 	if err != nil && errors.Is(err, driver.ErrReleaseNotFound) {
 		return nil
 	}
@@ -165,14 +169,14 @@ func getHelmStatus(cfg *action.Configuration, appName string) (*release.Release,
 // isHelmChartStatusActionable returns true if the statusFunc returns an actionable status according to the statusActionMap, false if the status is
 // non-actionable (e.g. "not-found" status for a "delete" action), and an error if the status requires a wait-retry. The retry is expected to be
 // executed by the calling reconciler's inherent looping.
-func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, appName string, statusActionMap map[release.Status]int) (bool, error) {
-	lastRelease, status, err := statusFunc(c.cfg, appName)
+func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, chartName string, statusActionMap map[release.Status]int) (bool, error) {
+	lastRelease, status, err := statusFunc(c.cfg, chartName)
 	if err != nil {
 		return false, err
 	}
 	switch statusActionMap[status] {
 	case noAction:
-		c.log.Info(fmt.Sprintf("helm chart for app %s release already in state %s - no action required", appName, status))
+		c.log.Info(fmt.Sprintf("helm chart for app %s release already in state %s - no action required", chartName, status))
 		return false, nil
 	case takeAction:
 		return true, nil
@@ -188,6 +192,6 @@ func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, appName s
 			}
 			return true, nil
 		}
-		return false, fmt.Errorf("helm chart for app %s in non-actionable status %s", appName, status)
+		return false, fmt.Errorf("helm chart for app %s in non-actionable status %s", chartName, status)
 	}
 }

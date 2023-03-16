@@ -201,6 +201,7 @@ func buildFromSource(ctx context.Context, svc *Services, app *ketchv1.App, appNa
 	return svc.Builder(
 		ctx,
 		&build.CreateImageFromSourceRequest{
+			ID:         app.ID(),
 			Image:      image,
 			AppName:    appName,
 			Builder:    app.Spec.Builder,

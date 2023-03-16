@@ -62,10 +62,14 @@ func GetIngressControllerSpec(ctx context.Context, client client.Client) (*Ingre
 
 // NewIngressControllerSpec creates an IngressControllerSpec from a ConfigMap
 func NewIngressControllerSpec(configmap v1.ConfigMap) *IngressControllerSpec {
+	controllerType := IngressControllerType(configmap.Data["type"])
+	if len(controllerType) == 0 {
+		controllerType = IngressControllerType(configmap.Data["ingressType"])
+	}
 	return &IngressControllerSpec{
 		ClassName:       configmap.Data["className"],
 		ServiceEndpoint: configmap.Data["serviceEndpoint"],
-		IngressType:     IngressControllerType(configmap.Data["type"]),
+		IngressType:     controllerType,
 		ClusterIssuer:   configmap.Data["clusterIssuer"],
 	}
 }

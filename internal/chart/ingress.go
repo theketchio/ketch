@@ -73,14 +73,14 @@ func newIngress(app ketchv1.App, ingressController ketchv1.IngressControllerSpec
 			https = append(https, httpsEndpoint{
 				Cname:      cname.Name,
 				SecretName: cname.SecretName,
-				UniqueName: fmt.Sprintf("%s-https-%s", app.Name, strippedCname),
+				UniqueName: endpointName(app, strippedCname),
 				ManagedBy:  user,
 			})
 		} else {
 			https = append(https, httpsEndpoint{
 				Cname:      cname.Name,
-				SecretName: fmt.Sprintf("%s-cname-%s", app.Name, strippedCname),
-				UniqueName: fmt.Sprintf("%s-https-%s", app.Name, strippedCname),
+				SecretName: secretName(app, strippedCname),
+				UniqueName: endpointName(app, strippedCname),
 				ManagedBy:  certManager,
 			})
 		}
@@ -93,4 +93,18 @@ func newIngress(app ketchv1.App, ingressController ketchv1.IngressControllerSpec
 		Http:  http,
 		Https: https,
 	}, nil
+}
+
+func endpointName(app ketchv1.App, strippedCname string) string {
+	if len(app.ID()) > 0 {
+		return fmt.Sprintf("%s-%s-https-%s", app.AppName(), app.ID(), strippedCname)
+	}
+	return fmt.Sprintf("%s-https-%s", app.AppName(), strippedCname)
+}
+
+func secretName(app ketchv1.App, strippedCname string) string {
+	if len(app.ID()) > 0 {
+		return fmt.Sprintf("%s-%s-cname-%s", app.AppName(), app.ID(), strippedCname)
+	}
+	return fmt.Sprintf("%s-cname-%s", app.AppName(), strippedCname)
 }

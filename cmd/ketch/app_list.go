@@ -56,10 +56,10 @@ func appList(ctx context.Context, cfg config, out io.Writer) error {
 func generateAppListOutput(apps ketchv1.AppList, allPods *corev1.PodList) []appListOutput {
 	var outputs []appListOutput
 	for _, item := range apps.Items {
-		pods := filterAppPods(item.Name, allPods.Items)
+		pods := filterAppPods(item.ID(), item.AppName(), allPods.Items)
 		urls := strings.Join(item.CNames(), " ")
 		outputs = append(outputs, appListOutput{
-			Name:        item.Name,
+			Name:        item.AppName(),
 			Namespace:   item.Spec.Namespace,
 			State:       appState(pods),
 			Addresses:   urls,
@@ -92,11 +92,17 @@ func allAppsPods(ctx context.Context, cfg config, apps []ketchv1.App) (*corev1.P
 	})
 }
 
-func filterAppPods(appName string, pods []corev1.Pod) []corev1.Pod {
+func filterAppPods(appId string, appName string, pods []corev1.Pod) []corev1.Pod {
 	var appPods []corev1.Pod
 	for _, pod := range pods {
 		if pod.Labels[utils.KetchAppNameLabel] == appName {
-			appPods = append(appPods, pod)
+			if len(appId) > 0 {
+				if pod.Labels[utils.KetchAppIdLabel] == appId {
+					appPods = append(appPods, pod)
+				}
+			} else {
+				appPods = append(appPods, pod)
+			}
 		}
 	}
 	return appPods
@@ -111,12 +117,12 @@ func appListNames(cfg config, nameFilter ...string) ([]string, error) {
 	appNames := make([]string, 0)
 	for _, a := range apps.Items {
 		if len(nameFilter) == 0 {
-			appNames = append(appNames, a.Name)
+			appNames = append(appNames, a.AppName())
 		}
 
 		for _, filter := range nameFilter {
-			if strings.Contains(a.Name, filter) {
-				appNames = append(appNames, a.Name)
+			if strings.Contains(a.AppName(), filter) {
+				appNames = append(appNames, a.AppName())
 			}
 		}
 	}

@@ -3,7 +3,7 @@
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
-  name: {{ $.Values.app.name }}-http-ingressroute
+  name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-http-ingressroute
   annotations:
     {{- if .Values.ingressController.className }}
     kubernetes.io/ingress.class: {{ .Values.ingressController.className | quote }}
@@ -14,6 +14,9 @@ metadata:
     {{- $data := dict "kind" "IngressRoute" "apiVersion" "traefik.containo.us/v1alpha1" "metadataItems" $.Values.app.metadataAnnotations }}
     {{- include "ketch.renderMetadata" $data | nindent 4 }}
   labels:
+    {{- if $.Values.app.id }}
+    {{ $.Values.app.group }}/app-id: {{ $.Values.app.id | quote }}
+    {{- end }}
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{- with (last $.Values.app.deployments) }}
     {{ $.Values.app.group }}/app-deployment-version: {{ .version | quote }}
@@ -29,7 +32,7 @@ spec:
     {{- range $_, $deployment := $.Values.app.deployments }}
     {{- range $_, $process := $deployment.processes }}
     {{- if $process.routable }}{{- if gt $deployment.routingSettings.weight 0.0}}
-    - name: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
+    - name: {{ empty $.Values.app.id | ternary $.Values.app.name (printf "%s-%s" $.Values.app.name $.Values.app.id) }}-{{ $process.name }}-{{ $deployment.version }}
       port: {{ $process.publicServicePort }}
       weight: {{$deployment.routingSettings.weight}}
       {{- end }}
