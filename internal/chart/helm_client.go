@@ -169,14 +169,14 @@ func getHelmStatus(cfg *action.Configuration, appName string) (*release.Release,
 // isHelmChartStatusActionable returns true if the statusFunc returns an actionable status according to the statusActionMap, false if the status is
 // non-actionable (e.g. "not-found" status for a "delete" action), and an error if the status requires a wait-retry. The retry is expected to be
 // executed by the calling reconciler's inherent looping.
-func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, appName string, statusActionMap map[release.Status]int) (bool, error) {
-	lastRelease, status, err := statusFunc(c.cfg, appName)
+func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, chartName string, statusActionMap map[release.Status]int) (bool, error) {
+	lastRelease, status, err := statusFunc(c.cfg, chartName)
 	if err != nil {
 		return false, err
 	}
 	switch statusActionMap[status] {
 	case noAction:
-		c.log.Info(fmt.Sprintf("helm chart for app %s release already in state %s - no action required", appName, status))
+		c.log.Info(fmt.Sprintf("helm chart for app %s release already in state %s - no action required", chartName, status))
 		return false, nil
 	case takeAction:
 		return true, nil
@@ -192,6 +192,6 @@ func (c HelmClient) isHelmChartStatusActionable(statusFunc statusFunc, appName s
 			}
 			return true, nil
 		}
-		return false, fmt.Errorf("helm chart for app %s in non-actionable status %s", appName, status)
+		return false, fmt.Errorf("helm chart for app %s in non-actionable status %s", chartName, status)
 	}
 }

@@ -831,7 +831,7 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 		}
 		chartName := app.GetName()
 		if len(app.ID()) > 0 {
-			chartName = fmt.Sprintf("%s-%s", app.ID(), app.GetName())
+			chartName = fmt.Sprintf("%s-%s", app.GetName(), app.ID())
 		}
 		if err = helmClient.DeleteChart(chartName); err != nil {
 			return err
