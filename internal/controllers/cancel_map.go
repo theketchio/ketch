@@ -7,10 +7,10 @@ import (
 
 // CancelMap helps AppReconciler tracking goroutines.
 // There are two use cases:
-// 1. AppReconciler starts a goroutine and forgets about it never trying to cancel it.
-//    cleanupFunc is responsible for calling cancel() and removing all resources associated with it.
-// 1. AppReconciler starts a new goroutine and cancels the previous one.
-//    cleanupFunc of the previous goroutine must not do any cleanup.
+//  1. AppReconciler starts a goroutine and forgets about it never trying to cancel it.
+//     cleanupFunc is responsible for calling cancel() and removing all resources associated with it.
+//  1. AppReconciler starts a new goroutine and cancels the previous one.
+//     cleanupFunc of the previous goroutine must not do any cleanup.
 type CancelMap struct {
 	sync.Mutex
 	generation       int64

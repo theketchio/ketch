@@ -136,7 +136,7 @@ func Read(path string) KetchConfig {
 	return ketchConfig
 }
 
-//Write writes the provided KetchConfig to the given path. In the event the path is not found it will be created
+// Write writes the provided KetchConfig to the given path. In the event the path is not found it will be created
 func Write(ketchConfig KetchConfig, path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		return err

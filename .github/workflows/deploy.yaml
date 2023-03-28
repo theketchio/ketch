@@ -18,7 +18,7 @@ jobs:
         with:
           cluster-name: "test-cluster-1"
           args: --agents 1
-      - name: Install Integration Test Dependencies
+      - name: Install Test Dependencies
         run: |
           # kubebuilder
           make install-kubebuilder KUBEBUILDER_INSTALL_DIR=/tmp/kubebuilder/bin
@@ -29,6 +29,7 @@ jobs:
           chmod a+x /tmp/kubebuilder/bin/kube-apiserver
           cp /tmp/kubebuilder/bin/kube-apiserver /usr/local/bin/kube-apiserver
           export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
+          export KUBEBUILDER_ASSETS=/tmp/kubebuilder/bin/
           
           # etcd
           curl -L -o /tmp/etcd-v3.5.4-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/v3.5.4/etcd-v3.5.4-linux-amd64.tar.gz
@@ -78,7 +79,15 @@ jobs:
           # install bats
           sudo apt-get update -yq && sudo apt-get install bats -y
       - name: Unit Tests
-        run: make test
+        run: |
+          TEST_ASSET_ETCD="/tmp/kubebuilder/bin/etcd" \
+          TEST_ASSET_KUBE_APISERVER="/tmp/kubebuilder/bin/kube-apiserver" \
+          KUBEBUILDER_ASSETS="/tmp/kubebuilder/bin/" \
+          go test ./... -p 1
+          TEST_ASSET_ETCD="/tmp/kubebuilder/bin/etcd" \
+          TEST_ASSET_KUBE_APISERVER="/tmp/kubebuilder/bin/kube-apiserver" \
+          KUBEBUILDER_ASSETS="/tmp/kubebuilder/bin/" \
+          go test ./... -p 1 -coverprofile cover.out | tee coverage.txt
       - name: Checkout unit-test-coverage
         uses: actions/checkout@v2
         with:

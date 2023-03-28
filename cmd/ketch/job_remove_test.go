@@ -16,11 +16,11 @@ import (
 
 func TestJobRemove(t *testing.T) {
 	mockJob := &ketchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{Name: "hello"},
+		ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: "default"},
 		Spec: ketchv1.JobSpec{
 			Name:         "hello",
 			Version:      "v1",
-			Namespace:    "mynamespace",
+			Namespace:    "default",
 			Description:  "test",
 			Parallelism:  1,
 			Completions:  1,
