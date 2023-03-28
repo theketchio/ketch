@@ -109,7 +109,7 @@ description: test`,
 			require.Equal(t, tt.wantOut, out.String())
 
 			gotJob := ketchv1.Job{}
-			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.jobName}, &gotJob)
+			err = tt.cfg.Client().Get(context.Background(), types.NamespacedName{Name: tt.jobName, Namespace: "default"}, &gotJob)
 			require.Nil(t, err)
 			require.Equal(t, tt.wantJobSpec, gotJob.Spec)
 		})

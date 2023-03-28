@@ -17,6 +17,8 @@ GOARCH=$(shell go env GOARCH)
 KUBEBUILDER_VERSION=3.5.0
 KUBEBUILDER_INSTALL_DIR ?= "/usr/local/kubebuilder/bin"
 KUBEBUILDER_RELEASE=kubebuilder_${GOOS}_${GOARCH}
+KUBEBUILDER_ASSETS ?= "/usr/local/kubebuilder/bin"
+TEST_ASSET_KUBE_APISERVER= ?= "/usr/local/kubebuilder/bin/kube-apiserver"
 
 KUSTOMIZE ?= $(shell which kustomize)
 KUSTOMIZE_INSTALL_DIR ?= "/usr/local/bin"
@@ -27,7 +29,8 @@ all: manager ketch
 # Run tests
 .PHONY: test
 test: generate fmt vet manifests
-	go test ./... -coverprofile cover.out | tee coverage.txt
+	go test ./... -p 1
+	go test ./... -p 1 -coverprofile cover.out | tee coverage.txt
 
 # Build manager binary
 .PHONY: manager

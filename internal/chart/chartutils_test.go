@@ -160,7 +160,7 @@ func TestGetValuesMap(t *testing.T) {
 				}},
 				"canary":         map[string]interface{}{},
 				"dockerRegistry": map[string]interface{}{},
-				"ingress":        map[string]interface{}{"generateDefaultCname": false, "controller": map[string]interface{}{"type": ""}},
+				"ingress":        map[string]interface{}{"generateDefaultCname": false, "controller": map[string]interface{}{}},
 			},
 		},
 	}

@@ -819,7 +819,7 @@ func (r *AppReconciler) deleteChart(ctx context.Context, app *ketchv1.App) error
 
 }
 
-//UpdateAppLabelsForIngress updates an app's namespace labels to account for different ingresses.
+// UpdateAppLabelsForIngress updates an app's namespace labels to account for different ingresses.
 // we rely on istio automatic sidecar injection
 // https://istio.io/latest/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection
 func UpdateAppLabelsForIngress(app *ketchv1.App) {

@@ -279,7 +279,8 @@ func (config ChartConfig) render() ([]byte, error) {
 }
 
 // ExportToDirectory saves the chart to the provided directory inside a folder with app_Name_TIMESTAMP
-//  for example, for any app with name `hello`, it will save chart inside a folder with name `hello_11_Dec_20_12_30_IST`
+//
+//	for example, for any app with name `hello`, it will save chart inside a folder with name `hello_11_Dec_20_12_30_IST`
 func (chrt ApplicationChart) ExportToDirectory(directory string, chartConfig ChartConfig) error {
 	timestamp := time.Now().Format(time.RFC822)
 	replacer := strings.NewReplacer(" ", "_", ":", "_")
