@@ -6,6 +6,10 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
     theketch.io/is-isolated-run: "false"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/managed-by: "LensApps"
   name: app-dashboard
 spec:
   type: ClusterIP
@@ -29,6 +33,10 @@ metadata:
     theketch.io/app-process: "web"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "3"
+    app.kubernetes.io/managed-by: "LensApps"
   name: dashboard-web-3
 spec:
   type: ClusterIP
@@ -52,6 +60,10 @@ metadata:
     theketch.io/app-process: "worker"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "3"
+    app.kubernetes.io/managed-by: "LensApps"
   name: dashboard-worker-3
 spec:
   type: ClusterIP
@@ -75,6 +87,10 @@ metadata:
     theketch.io/app-process: "web"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/managed-by: "LensApps"
   annotations:
     theketch.io/test-annotation: "test-annotation-value"
   name: dashboard-web-4
@@ -100,6 +116,10 @@ metadata:
     theketch.io/app-process: "worker"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/managed-by: "LensApps"
   name: dashboard-worker-4
 spec:
   type: ClusterIP
@@ -124,6 +144,10 @@ metadata:
     theketch.io/app-process-replicas: "3"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "3"
+    app.kubernetes.io/managed-by: "LensApps"
     theketch.io/test-label: "test-label-value"
     theketch.io/test-label-all: "test-label-value-all"
   name: dashboard-web-3
@@ -146,6 +170,10 @@ spec:
         theketch.io/app-process: "web"
         theketch.io/app-deployment-version: "3"
         theketch.io/is-isolated-run: "false"
+        app.kubernetes.io/name: "dashboard"
+        app.kubernetes.io/instance: "dashboard"
+        app.kubernetes.io/version: "3"
+        app.kubernetes.io/managed-by: "LensApps"
         pod.io/label: "pod-label"
       annotations:
         pod.io/annotation: "pod-annotation"
@@ -215,6 +243,10 @@ metadata:
     theketch.io/app-process-replicas: "1"
     theketch.io/app-deployment-version: "3"
     theketch.io/is-isolated-run: "false"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "3"
+    app.kubernetes.io/managed-by: "LensApps"
     theketch.io/test-label-all: "test-label-value-all"
   name: dashboard-worker-3
 spec:
@@ -236,6 +268,10 @@ spec:
         theketch.io/app-process: "worker"
         theketch.io/app-deployment-version: "3"
         theketch.io/is-isolated-run: "false"
+        app.kubernetes.io/name: "dashboard"
+        app.kubernetes.io/instance: "dashboard"
+        app.kubernetes.io/version: "3"
+        app.kubernetes.io/managed-by: "LensApps"
     spec:
       containers:
         - name: dashboard-worker-3
@@ -283,6 +319,10 @@ metadata:
     theketch.io/app-process-replicas: "3"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/managed-by: "LensApps"
     theketch.io/test-label-all: "test-label-value-all"
   name: dashboard-web-4
 spec:
@@ -304,6 +344,10 @@ spec:
         theketch.io/app-process: "web"
         theketch.io/app-deployment-version: "4"
         theketch.io/is-isolated-run: "false"
+        app.kubernetes.io/name: "dashboard"
+        app.kubernetes.io/instance: "dashboard"
+        app.kubernetes.io/version: "4"
+        app.kubernetes.io/managed-by: "LensApps"
     spec:
       containers:
         - name: dashboard-web-4
@@ -350,6 +394,10 @@ metadata:
     theketch.io/app-process-replicas: "1"
     theketch.io/app-deployment-version: "4"
     theketch.io/is-isolated-run: "false"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/managed-by: "LensApps"
     theketch.io/test-label-all: "test-label-value-all"
   name: dashboard-worker-4
 spec:
@@ -371,6 +419,10 @@ spec:
         theketch.io/app-process: "worker"
         theketch.io/app-deployment-version: "4"
         theketch.io/is-isolated-run: "false"
+        app.kubernetes.io/name: "dashboard"
+        app.kubernetes.io/instance: "dashboard"
+        app.kubernetes.io/version: "4"
+        app.kubernetes.io/managed-by: "LensApps"
     spec:
       containers:
         - name: dashboard-worker-4
@@ -416,6 +468,10 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
     theketch.io/app-deployment-version: "4"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/managed-by: "LensApps"
 spec:
   secretName: dashboard-cname-theketch-io
   secretTemplate:
@@ -436,6 +492,10 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
     theketch.io/app-deployment-version: "4"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/managed-by: "LensApps"
 spec:
   secretName: dashboard-cname-app-theketch-io
   secretTemplate:
@@ -455,6 +515,10 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
     theketch.io/app-deployment-version: "3"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "3"
+    app.kubernetes.io/managed-by: "LensApps"
 spec:
   host: dashboard-web-3
   subsets:
@@ -462,6 +526,10 @@ spec:
       labels:
         app: "dashboard"
         version: "3"
+        app.kubernetes.io/name: "dashboard"
+        app.kubernetes.io/instance: "dashboard"
+        app.kubernetes.io/version: "3"
+        app.kubernetes.io/managed-by: "LensApps"
 ---
 # Source: dashboard/templates/destinationRule.yaml
 apiVersion: networking.istio.io/v1alpha3
@@ -471,6 +539,10 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
     theketch.io/app-deployment-version: "4"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/managed-by: "LensApps"
 spec:
   host: dashboard-web-4
   subsets:
@@ -478,6 +550,10 @@ spec:
       labels:
         app: "dashboard"
         version: "4"
+        app.kubernetes.io/name: "dashboard"
+        app.kubernetes.io/instance: "dashboard"
+        app.kubernetes.io/version: "4"
+        app.kubernetes.io/managed-by: "LensApps"
 ---
 # Source: dashboard/templates/gateway.yaml
 apiVersion: networking.istio.io/v1alpha3
@@ -486,6 +562,10 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
     theketch.io/app-deployment-version: "4"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/managed-by: "LensApps"
   name: dashboard-http-gateway
   annotations:
     theketch.io/metadata-item-kind: Gateway
@@ -619,6 +699,10 @@ metadata:
   labels:
     theketch.io/app-name: "dashboard"
     theketch.io/app-deployment-version: "4"
+    app.kubernetes.io/version: "4"
+    app.kubernetes.io/name: "dashboard"
+    app.kubernetes.io/instance: "dashboard"
+    app.kubernetes.io/managed-by: "LensApps"
   name: dashboard-http
 spec:
     hosts:

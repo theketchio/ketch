@@ -9,7 +9,11 @@ metadata:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{- with (last $.Values.app.deployments) }}
     {{ $.Values.app.group }}/app-deployment-version: {{ .version | quote }}
+    app.kubernetes.io/version: {{ .version | quote }}
     {{- end }}
+    app.kubernetes.io/name: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/managed-by: "LensApps"
 spec:
   secretName: {{ $https.secretName }}
   secretTemplate:

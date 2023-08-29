@@ -9,6 +9,10 @@ metadata:
     {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
     {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
+    app.kubernetes.io/name: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/version: {{ $deployment.version | quote }}
+    app.kubernetes.io/managed-by: "LensApps"
     {{- range $i, $label := $deployment.labels }}
     {{ $label.name }}: {{ $label.value | quote }}
     {{- end }}

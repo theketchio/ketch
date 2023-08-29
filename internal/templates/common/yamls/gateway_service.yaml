@@ -5,6 +5,10 @@ metadata:
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
+    app.kubernetes.io/name: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/version: {{ $.Values.app.Service.Deployment.version | quote }}
+    app.kubernetes.io/managed-by: "LensApps"
     {{- range $i, $label := $.Values.app.Service.Deployment.labels }}
     {{ $label.name }}: {{ $label.value | quote }}
     {{- end }}
