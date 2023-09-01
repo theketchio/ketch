@@ -8,6 +8,10 @@ metadata:
   labels:
     {{ $.Values.app.group }}/app-name: {{ $.Values.app.name | quote }}
     {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
+    app.kubernetes.io/name: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/version: {{ $deployment.version | quote }}
+    app.kubernetes.io/managed-by: "LensApps"
 spec:
   host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
   subsets:
@@ -15,6 +19,10 @@ spec:
       labels:
         app: {{ default $.Values.app.name $.Values.app.id | quote }}
         version: "{{ $deployment.version }}"
+        app.kubernetes.io/name: {{ $.Values.app.name | quote }}
+        app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
+        app.kubernetes.io/version: {{ $deployment.version | quote }}
+        app.kubernetes.io/managed-by: "LensApps"
 ---
   {{- end }}
   {{- end }}

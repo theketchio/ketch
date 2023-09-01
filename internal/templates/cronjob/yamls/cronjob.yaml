@@ -4,6 +4,12 @@ kind: CronJob
 metadata:
   labels:
     {{ $.Values.job.group }}/job-name: {{ $.Values.job.name | quote }}
+    app.kubernetes.io/name: {{ $.Values.job.name | quote }}
+    app.kubernetes.io/instance: {{ $.Values.job.name | quote }}
+    {{- if $.Values.job.version }}
+    app.kubernetes.io/version: {{ $.Values.job.version | quote }}
+    {{- end }}
+    app.kubernetes.io/managed-by: "LensApps"
   name: {{ $.Values.job.name | quote }}
 spec:
   schedule: {{ $.Values.job.schedule | quote }}
@@ -48,4 +54,10 @@ spec:
         metadata:
           labels:
             {{ $.Values.job.group }}/job-name: {{ $.Values.job.name | quote }}
+            app.kubernetes.io/name: {{ $.Values.job.name | quote }}
+            app.kubernetes.io/instance: {{ $.Values.job.name | quote }}
+            {{- if $.Values.job.version }}
+            app.kubernetes.io/version: {{ $.Values.job.version | quote }}
+            {{- end }}
+            app.kubernetes.io/managed-by: "LensApps"
       {{ end }}

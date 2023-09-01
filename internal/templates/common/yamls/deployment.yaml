@@ -10,6 +10,10 @@ metadata:
     {{ $.Values.app.group }}/app-process-replicas: {{ $process.units | quote }}
     {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
     {{ $.Values.app.group }}/is-isolated-run: "false"
+    app.kubernetes.io/name: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
+    app.kubernetes.io/version: {{ $deployment.version | quote }}
+    app.kubernetes.io/managed-by: "LensApps"
     {{- range $k, $v := $process.deploymentMetadata.labels }}
     {{ $k }}: {{ $v | quote }}
     {{- end}}
@@ -30,6 +34,10 @@ spec:
       {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
       {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
       {{ $.Values.app.group }}/is-isolated-run: "false"
+      app.kubernetes.io/name: {{ $.Values.app.name | quote }}
+      app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
+      app.kubernetes.io/version: {{ $deployment.version | quote }}
+      app.kubernetes.io/managed-by: "LensApps"
   template:
     metadata:
       labels:
@@ -39,6 +47,10 @@ spec:
         {{ $.Values.app.group }}/app-process: {{ $process.name | quote }}
         {{ $.Values.app.group }}/app-deployment-version: {{ $deployment.version | quote }}
         {{ $.Values.app.group }}/is-isolated-run: "false"
+        app.kubernetes.io/name: {{ $.Values.app.name | quote }}
+        app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
+        app.kubernetes.io/version: {{ $deployment.version | quote }}
+        app.kubernetes.io/managed-by: "LensApps"
         {{- range $k, $v := $process.podMetadata.labels }}
         {{ $k }}: {{ $v | quote }}
         {{- end }}
