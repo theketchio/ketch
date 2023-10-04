@@ -26,7 +26,7 @@ spec:
   {{- end }}
   rules:
   {{- range $_, $cname := $.Values.app.ingress.http }}
-  - host: {{ $cname }}
+  - host: {{ $cname | quote }}
     http:
       paths:
       {{- range $_, $process := $deployment.processes }}
@@ -70,12 +70,12 @@ spec:
   tls:
     {{- range $_, $https := $.Values.app.ingress.https }}
     - hosts:
-        - {{ $https.cname }}
+        - {{ $https.cname | quote }}
       secretName: {{ $https.secretName }}
     {{- end }}
   rules:
   {{- range $_, $https := $.Values.app.ingress.https }}
-  - host: {{ $https.cname }}
+  - host: {{ $https.cname | quote }}
     http:
       paths:
       {{- range $_, $process := $deployment.processes }}

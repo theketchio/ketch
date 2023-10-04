@@ -426,7 +426,7 @@ metadata:
 spec:
   ingressClassName: "ingress-class"
   rules:
-  - host: dashboard.10.10.10.10.shipa.cloud
+  - host: "dashboard.10.10.10.10.shipa.cloud"
     http:
       paths:
       - backend:
@@ -457,7 +457,7 @@ metadata:
 spec:
   ingressClassName: "ingress-class"
   rules:
-  - host: dashboard.10.10.10.10.shipa.cloud
+  - host: "dashboard.10.10.10.10.shipa.cloud"
     http:
       paths:
       - backend:
@@ -481,16 +481,16 @@ spec:
   ingressClassName: "ingress-class"
   tls:
     - hosts:
-        - theketch.io
+        - "theketch.io"
       secretName: dashboard-cname-theketch-io
     - hosts:
-        - app.theketch.io
+        - "app.theketch.io"
       secretName: dashboard-cname-app-theketch-io
     - hosts:
-        - darkweb.theketch.io
+        - "darkweb.theketch.io"
       secretName: darkweb-ssl
   rules:
-  - host: theketch.io
+  - host: "theketch.io"
     http:
       paths:
         - path: /
@@ -500,7 +500,7 @@ spec:
               name: dashboard-web-3
               port:
                 number: 9090
-  - host: app.theketch.io
+  - host: "app.theketch.io"
     http:
       paths:
         - path: /
@@ -510,7 +510,7 @@ spec:
               name: dashboard-web-3
               port:
                 number: 9090
-  - host: darkweb.theketch.io
+  - host: "darkweb.theketch.io"
     http:
       paths:
         - path: /
@@ -537,16 +537,16 @@ spec:
   ingressClassName: "ingress-class"
   tls:
     - hosts:
-        - theketch.io
+        - "theketch.io"
       secretName: dashboard-cname-theketch-io
     - hosts:
-        - app.theketch.io
+        - "app.theketch.io"
       secretName: dashboard-cname-app-theketch-io
     - hosts:
-        - darkweb.theketch.io
+        - "darkweb.theketch.io"
       secretName: darkweb-ssl
   rules:
-  - host: theketch.io
+  - host: "theketch.io"
     http:
       paths:
         - path: /
@@ -556,7 +556,7 @@ spec:
               name: dashboard-web-4
               port:
                 number: 9091
-  - host: app.theketch.io
+  - host: "app.theketch.io"
     http:
       paths:
         - path: /
@@ -566,7 +566,7 @@ spec:
               name: dashboard-web-4
               port:
                 number: 9091
-  - host: darkweb.theketch.io
+  - host: "darkweb.theketch.io"
     http:
       paths:
         - path: /
