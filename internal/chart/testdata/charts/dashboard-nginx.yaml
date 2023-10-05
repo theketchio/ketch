@@ -430,7 +430,7 @@ metadata:
 spec:
   ingressClassName: "gke"
   rules:
-  - host: theketch.io
+  - host: "theketch.io"
     http:
       paths:
       - backend:
@@ -439,7 +439,7 @@ spec:
             port:
               number: 9090
         pathType: ImplementationSpecific
-  - host: app.theketch.io
+  - host: "app.theketch.io"
     http:
       paths:
       - backend:
@@ -448,7 +448,7 @@ spec:
             port:
               number: 9090
         pathType: ImplementationSpecific
-  - host: darkweb.theketch.io
+  - host: "darkweb.theketch.io"
     http:
       paths:
       - backend:
@@ -457,7 +457,7 @@ spec:
             port:
               number: 9090
         pathType: ImplementationSpecific
-  - host: dashboard.20.20.20.20.shipa.cloud
+  - host: "dashboard.20.20.20.20.shipa.cloud"
     http:
       paths:
       - backend:
@@ -488,7 +488,7 @@ metadata:
 spec:
   ingressClassName: "gke"
   rules:
-  - host: theketch.io
+  - host: "theketch.io"
     http:
       paths:
       - backend:
@@ -497,7 +497,7 @@ spec:
             port:
               number: 9091
         pathType: ImplementationSpecific
-  - host: app.theketch.io
+  - host: "app.theketch.io"
     http:
       paths:
       - backend:
@@ -506,7 +506,7 @@ spec:
             port:
               number: 9091
         pathType: ImplementationSpecific
-  - host: darkweb.theketch.io
+  - host: "darkweb.theketch.io"
     http:
       paths:
       - backend:
@@ -515,7 +515,7 @@ spec:
             port:
               number: 9091
         pathType: ImplementationSpecific
-  - host: dashboard.20.20.20.20.shipa.cloud
+  - host: "dashboard.20.20.20.20.shipa.cloud"
     http:
       paths:
       - backend:
