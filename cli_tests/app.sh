@@ -15,7 +15,7 @@ setup() {
   fi
   INGRESS_TRAEFIK=$(kubectl get svc traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
   NAMESPACE="appnamespace"
-  APP_IMAGE="gcr.io/shipa-ci/sample-go-app:latest"
+  APP_IMAGE="docker.io/shipasoftware/go-app:latest"
   APP_NAME="sample-app"
   CNAME="my-cname.com"
   TEST_ENVVAR_KEY="FOO"
