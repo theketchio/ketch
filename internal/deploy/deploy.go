@@ -31,7 +31,7 @@ const (
 
 // Client represents go sdk k8s client operations that we need.
 type Client interface {
-	Get(ctx context.Context, key client.ObjectKey, obj client.Object) error
+	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
 	Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
 	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
 }

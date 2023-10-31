@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	registryv1 "github.com/google/go-containerregistry/pkg/v1"
-	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
-	"github.com/theketchio/ketch/internal/chart"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	ketchv1 "github.com/theketchio/ketch/internal/api/v1beta1"
+	"github.com/theketchio/ketch/internal/chart"
 
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +44,7 @@ func newMockClient() *mockClient {
 	}
 }
 
-func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj client.Object) error {
+func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	m.getCounter++
 
 	if f, ok := m.get[m.getCounter]; ok {
