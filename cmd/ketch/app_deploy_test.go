@@ -52,7 +52,7 @@ func newMockClient() *mockClient {
 	}
 }
 
-func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj client.Object) error {
+func (m *mockClient) Get(_ context.Context, _ client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	m.getCounter++
 
 	if f, ok := m.get[m.getCounter]; ok {

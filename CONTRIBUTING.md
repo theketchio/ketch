@@ -10,7 +10,7 @@ stack traces, the command(s) that caused the bug and so on.
 ### Prerequisites
 [Docker](https://docs.docker.com/get-docker/)
 
-[Go version 1.14 or better](https://golang.org/dl/)
+[Go version 1.21 or better](https://golang.org/dl/)
 
 [Kubectl and Kubernetes version 1.17.1 or better](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 

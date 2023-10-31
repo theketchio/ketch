@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.17 as builder
+FROM golang:1.21 as builder
 
 # Copy the Go Modules manifests
 COPY go.mod /go/src/github.com/theketchio/ketch/go.mod

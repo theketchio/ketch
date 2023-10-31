@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type manager interface {
@@ -48,42 +49,42 @@ func (r *Job) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &Job{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Job) ValidateCreate() error {
+func (r *Job) ValidateCreate() (admission.Warnings, error) {
 	joblog.Info("validate create", "name", r.Name)
 	client := jobmgr.GetClient()
 	jobs := JobList{}
 	if err := client.List(context.Background(), &jobs); err != nil {
-		return err
+		return admission.Warnings{}, err
 	}
 	for _, job := range jobs.Items {
 		if job.Spec.Name == r.Spec.Name {
-			return ErrJobExists
+			return admission.Warnings{}, ErrJobExists
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Job) ValidateUpdate(old runtime.Object) error {
+func (r *Job) ValidateUpdate(old runtime.Object) (warnings admission.Warnings, err error) {
 	joblog.Info("validate update", "name", r.Name)
 	oldJob, ok := old.(*Job)
 	if !ok {
-		return fmt.Errorf("can't validate job update")
+		return admission.Warnings{}, fmt.Errorf("can't validate job update")
 	}
 	client := jobmgr.GetClient()
 	jobs := JobList{}
 	if err := client.List(context.Background(), &jobs); err != nil {
-		return err
+		return admission.Warnings{}, err
 	}
 	for _, job := range jobs.Items {
 		if job.Spec.Name == oldJob.Spec.Name {
-			return ErrJobExists
+			return admission.Warnings{}, ErrJobExists
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Job) ValidateDelete() error {
-	return nil
+func (r *Job) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }

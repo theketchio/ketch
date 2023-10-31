@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -12,7 +13,22 @@ type MockClient struct {
 	OnList func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error
 }
 
-func (m MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (m MockClient) SubResource(subResource string) client.SubResourceClient {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m MockClient) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m MockClient) IsObjectNamespaced(obj runtime.Object) (bool, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	panic("implement me")
 }
 

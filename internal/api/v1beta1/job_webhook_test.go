@@ -34,7 +34,7 @@ func TestJob_ValidateDelete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.job.ValidateDelete()
+			_, err := tt.job.ValidateDelete()
 			require.Nil(t, err)
 		})
 	}
@@ -98,7 +98,7 @@ func TestJob_ValidateCreate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			jobmgr = &mockManager{client: tt.client}
-			if err := tt.job.ValidateCreate(); err != tt.wantErr {
+			if _, err := tt.job.ValidateCreate(); err != tt.wantErr {
 				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -174,7 +174,7 @@ func TestJob_ValidateUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			jobmgr = &mockManager{client: tt.client}
-			if err := tt.job.ValidateUpdate(tt.old); err != tt.wantErr {
+			if _, err := tt.job.ValidateUpdate(tt.old); err != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

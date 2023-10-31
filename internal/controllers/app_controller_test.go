@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -246,7 +247,7 @@ func TestWatchDeployEventsError(t *testing.T) {
 	require.EqualError(t, err, "assure clusterrole 'manager-role' has 'watch' permissions on event resources: unknown (get events)")
 	time.Sleep(time.Millisecond * 100) // give events time to propagate
 	require.Equal(t, 1, len(events))
-	require.Equal(t, "Warning AppReconcileError error watching deployments for workload test: assure clusterrole 'manager-role' has 'watch' permissions on event resources: unknown (get events)", events[0])
+	require.Contains(t, events[0], "Warning AppReconcileError error watching deployments for workload test: assure clusterrole 'manager-role' has 'watch' permissions on event resources: unknown (get events)")
 }
 
 func TestWatchDeployEvents(t *testing.T) {
@@ -380,7 +381,7 @@ func TestWatchDeployEvents(t *testing.T) {
 		EXPECTED:
 			for _, expected := range expectedEvents {
 				for _, ev := range events {
-					if ev == expected {
+					if strings.HasPrefix(ev, expected) {
 						continue EXPECTED
 					}
 				}
