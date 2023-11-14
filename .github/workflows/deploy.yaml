@@ -1,6 +1,13 @@
 name: deploy
 
-on: push
+on:
+  push:
+    tags:
+      - "*"
+    branches:
+      - "*"
+  schedule:
+    - cron: "0 0 * * 1"
 
 jobs:
   build:
@@ -103,7 +110,7 @@ jobs:
           cli_tests/job.sh
           cli_tests/app.sh
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -112,3 +119,22 @@ jobs:
         with:
           tags: shipasoftware/ketch:${{github.sha}}
           push: true
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@f78e9ecf42a1271402d4f484518b9313235990e1
+        with:
+          image-ref: shipasoftware/bb:${{ github.sha }}
+          format: "sarif"
+          output: "trivy-results.sarif"
+          exit-code: "1"
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: "trivy-results.sarif"
