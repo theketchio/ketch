@@ -9,7 +9,6 @@ metadata:
     {{- if $.Values.job.version }}
     app.kubernetes.io/version: {{ $.Values.job.version | quote }}
     {{- end }}
-    app.kubernetes.io/managed-by: "LensApps"
   name: {{ $.Values.job.name | quote }}
 spec:
   {{- if $.Values.job.parallelism }}
@@ -41,5 +40,4 @@ spec:
         {{- if $.Values.job.version }}
         app.kubernetes.io/version: {{ $.Values.job.version | quote }}
         {{- end }}
-        app.kubernetes.io/managed-by: "LensApps"
   {{ end }}

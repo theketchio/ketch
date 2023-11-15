@@ -15,7 +15,6 @@ metadata:
     {{- end }}
     app.kubernetes.io/name: {{ $.Values.app.name | quote }}
     app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
-    app.kubernetes.io/managed-by: "LensApps"
   name: {{ $.Values.app.name }}-http
 spec:
     hosts:

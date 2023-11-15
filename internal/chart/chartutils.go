@@ -46,3 +46,18 @@ func getValuesMap(i interface{}) (map[string]interface{}, error) {
 	}
 	return chartutil.ReadValues(bs)
 }
+
+func getTemplatesChartVersion(values map[string]interface{}) int {
+	switch v := values["templatesVersion"].(type) {
+	case int:
+		return v
+	case float64:
+		return int(v)
+	default:
+		return 0
+	}
+}
+
+func setTemplatesChartVersion(values *map[string]interface{}, version int) {
+	(*values)["templatesVersion"] = version
+}

@@ -11,7 +11,6 @@ metadata:
     app.kubernetes.io/name: {{ $.Values.app.name | quote }}
     app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
     app.kubernetes.io/version: {{ $deployment.version | quote }}
-    app.kubernetes.io/managed-by: "LensApps"
 spec:
   host: {{ printf "%s-%s-%v" $.Values.app.name $process.name $deployment.version }}
   subsets:
@@ -22,7 +21,6 @@ spec:
         app.kubernetes.io/name: {{ $.Values.app.name | quote }}
         app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
         app.kubernetes.io/version: {{ $deployment.version | quote }}
-        app.kubernetes.io/managed-by: "LensApps"
 ---
   {{- end }}
   {{- end }}

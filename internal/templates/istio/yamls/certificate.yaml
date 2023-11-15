@@ -13,7 +13,6 @@ metadata:
     {{- end }}
     app.kubernetes.io/name: {{ $.Values.app.name | quote }}
     app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
-    app.kubernetes.io/managed-by: "LensApps"
 spec:
   secretName: {{ $https.secretName }}
   secretTemplate:
