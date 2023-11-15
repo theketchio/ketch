@@ -131,7 +131,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@f78e9ecf42a1271402d4f484518b9313235990e1
         with:
-          image-ref: shipasoftware/bb:${{ github.sha }}
+          image-ref: shipasoftware/ketch:${{ github.sha }}
           format: "sarif"
           output: "trivy-results.sarif"
           exit-code: "1"
