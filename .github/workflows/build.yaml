@@ -51,22 +51,18 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
-          #          - linux/riscv64
+#          - linux/riscv64 # no distroless support
           - linux/ppc64le
           - linux/s390x
-          #          - linux/386 - no distroless support
-          #          - linux/mips64le - no distroless support
-          #          - linux/mips64 - no distroless support
+#          - linux/386 # no distroless support
+#          - linux/mips64le # no distroless support
+#          - linux/mips64 # no distroless support
           - linux/arm/v7
-    #          - linux/arm/v6 - no distroless support
+#          - linux/arm/v6 # no distroless support
     timeout-minutes: 30
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.SHIPA_GITHUB_TOKEN }}
-          ssh-key: ${{ secrets.SSH_KEY }}
-          submodules: recursive
 
       - name: Docker meta
         id: meta
