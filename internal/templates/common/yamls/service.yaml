@@ -12,7 +12,6 @@ metadata:
     app.kubernetes.io/name: {{ $.Values.app.name | quote }}
     app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
     app.kubernetes.io/version: {{ $deployment.version | quote }}
-    app.kubernetes.io/managed-by: "LensApps"
     {{- range $i, $label := $deployment.labels }}
     {{ $label.name }}: {{ $label.value | quote }}
     {{- end }}

@@ -94,8 +94,9 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	}
 	getValuesClient := action.NewGetValues(c.cfg)
 	getValuesClient.AllValues = true
-	_, err = getValuesClient.Run(appName)
+	previousValues, err := getValuesClient.Run(appName)
 	if err != nil && errors.Is(err, driver.ErrReleaseNotFound) {
+		setTemplatesChartVersion(&vals, 1)
 		clientInstall := action.NewInstall(c.cfg)
 		clientInstall.ReleaseName = appName
 		clientInstall.Namespace = c.namespace
@@ -114,6 +115,8 @@ func (c HelmClient) UpdateChart(tv TemplateValuer, config ChartConfig, opts ...I
 	if err != nil {
 		return nil, err
 	}
+
+	setTemplatesChartVersion(&vals, getTemplatesChartVersion(previousValues))
 	updateClient := action.NewUpgrade(c.cfg)
 	updateClient.Namespace = c.namespace
 

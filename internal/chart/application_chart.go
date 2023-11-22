@@ -30,6 +30,7 @@ type ApplicationChart struct {
 type values struct {
 	App               *app                           `json:"app"`
 	IngressController *ketchv1.IngressControllerSpec `json:"ingressController"`
+	TemplatesVersion  int                            `json:"templatesVersion"`
 }
 
 // gatewayService contains values for populating the gateway_service.yaml
@@ -140,6 +141,7 @@ func New(application *ketchv1.App, opts ...Option) (*ApplicationChart, error) {
 			Type:                application.Spec.GetType(),
 		},
 		IngressController: &ingressController,
+		TemplatesVersion:  1,
 	}
 
 	if application.Spec.SecurityContext != nil {

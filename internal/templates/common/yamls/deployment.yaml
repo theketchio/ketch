@@ -13,7 +13,6 @@ metadata:
     app.kubernetes.io/name: {{ $.Values.app.name | quote }}
     app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
     app.kubernetes.io/version: {{ $deployment.version | quote }}
-    app.kubernetes.io/managed-by: "LensApps"
     {{- range $k, $v := $process.deploymentMetadata.labels }}
     {{ $k }}: {{ $v | quote }}
     {{- end}}
@@ -37,7 +36,9 @@ spec:
       app.kubernetes.io/name: {{ $.Values.app.name | quote }}
       app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
       app.kubernetes.io/version: {{ $deployment.version | quote }}
+      {{- if eq $.Values.templatesVersion 0 }}
       app.kubernetes.io/managed-by: "LensApps"
+      {{- end}}
   template:
     metadata:
       labels:
@@ -50,7 +51,9 @@ spec:
         app.kubernetes.io/name: {{ $.Values.app.name | quote }}
         app.kubernetes.io/instance: {{ $.Values.app.name | quote }}
         app.kubernetes.io/version: {{ $deployment.version | quote }}
+        {{- if eq $.Values.templatesVersion 0 }}
         app.kubernetes.io/managed-by: "LensApps"
+        {{- end}}
         {{- range $k, $v := $process.podMetadata.labels }}
         {{ $k }}: {{ $v | quote }}
         {{- end }}
