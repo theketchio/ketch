@@ -27,7 +27,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/release"
-	"k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -191,8 +191,8 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	return result, err
 }
 
-func hpaTargetMap(app *ketchv1.App, hpaList v2beta1.HorizontalPodAutoscalerList) map[string]bool {
-	targets := map[string]v2beta1.CrossVersionObjectReference{}
+func hpaTargetMap(app *ketchv1.App, hpaList autoscalingv2.HorizontalPodAutoscalerList) map[string]bool {
+	targets := map[string]autoscalingv2.CrossVersionObjectReference{}
 	for _, target := range hpaList.Items {
 		targets[target.Spec.ScaleTargetRef.Name] = target.Spec.ScaleTargetRef
 	}
@@ -398,7 +398,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 			}
 		}
 
-		var hpaList v2beta1.HorizontalPodAutoscalerList
+		var hpaList autoscalingv2.HorizontalPodAutoscalerList
 		if err := r.List(ctx, &hpaList, &client.ListOptions{Namespace: app.Spec.Namespace}); err != nil {
 			return appReconcileResult{
 				err: fmt.Errorf("failed to find HPAs"),

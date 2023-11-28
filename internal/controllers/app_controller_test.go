@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/release"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/autoscaling/v2beta1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -736,11 +736,11 @@ func TestIsDeploymentEvent(t *testing.T) {
 }
 
 func TestIsHPATarget(t *testing.T) {
-	hpaList := v2beta1.HorizontalPodAutoscalerList{
-		Items: []v2beta1.HorizontalPodAutoscaler{
+	hpaList := autoscalingv2.HorizontalPodAutoscalerList{
+		Items: []autoscalingv2.HorizontalPodAutoscaler{
 			{
-				Spec: v2beta1.HorizontalPodAutoscalerSpec{
-					ScaleTargetRef: v2beta1.CrossVersionObjectReference{},
+				Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+					ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{},
 				},
 			},
 		},
@@ -767,12 +767,12 @@ func TestIsHPATarget(t *testing.T) {
 	}
 	tests := []struct {
 		name              string
-		hpaScaleTargetRef v2beta1.CrossVersionObjectReference
+		hpaScaleTargetRef autoscalingv2.CrossVersionObjectReference
 		expected          map[string]bool
 	}{
 		{
 			name: "is target",
-			hpaScaleTargetRef: v2beta1.CrossVersionObjectReference{
+			hpaScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				Name:       "app-worker-2",
 				APIVersion: "apps/v1",
 				Kind:       "Deployment",
@@ -781,7 +781,7 @@ func TestIsHPATarget(t *testing.T) {
 		},
 		{
 			name: "not target",
-			hpaScaleTargetRef: v2beta1.CrossVersionObjectReference{
+			hpaScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				Name:       "target",
 				APIVersion: "apps/v1",
 				Kind:       "Deployment",
@@ -790,7 +790,7 @@ func TestIsHPATarget(t *testing.T) {
 		},
 		{
 			name: "mismatched apiVersion/Kind",
-			hpaScaleTargetRef: v2beta1.CrossVersionObjectReference{
+			hpaScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				Name:       "app-worker-2",
 				APIVersion: "fake/v3",
 				Kind:       "TestKind",
