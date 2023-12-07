@@ -14,7 +14,7 @@ on:
 
 env:
   DOCKERHUB_REGISTRY: shipasoftware/ketch
-  ECR_REGISTRY: public.ecr.aws/i0l8a6m7/ketch
+  ECR_REGISTRY: public.ecr.aws/i0l8a6m7/ketch-controller
 
 jobs:
   build-single-platform:
