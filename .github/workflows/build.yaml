@@ -13,7 +13,8 @@ on:
     - cron: "0 0 * * 1"
 
 env:
-  REGISTRY_IMAGE: shipasoftware/ketch
+  DOCKERHUB_REGISTRY: shipasoftware/ketch
+  ECR_REGISTRY: public.ecr.aws/i0l8a6m7/ketch
 
 jobs:
   build-single-platform:
@@ -22,6 +23,9 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SHIPA_GITHUB_TOKEN }}
+          submodules: recursive
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -29,12 +33,36 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+
+      - name: Login to ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.login-ecr.outputs.registry }}
+          username: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
+        env:
+          AWS_REGION: us-east-1
+
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v5
         with:
           push: ${{ github.event_name != 'schedule' }}
-          tags: ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
+          tags: |
+            ${{ env.ECR_REGISTRY }}:${{ github.sha }}
+            ${{ env.DOCKERHUB_REGISTRY }}:${{ github.sha }}
           build-args: |
             github_user=${{ secrets.SHIPA_GITHUB_USERNAME }}
             github_token=${{ secrets.SHIPA_GITHUB_TOKEN }}
@@ -42,8 +70,10 @@ jobs:
             git_commit=${{ github.sha }}
           secrets: |
             GIT_AUTH_TOKEN=${{ secrets.SHIPA_GITHUB_TOKEN }}
+
+
   build-multiplatform:
-    if: ${{ (github.ref == 'refs/heads/main') && (github.event_name != 'schedule') }}
+    if: ${{ (github.ref == 'refs/heads/main') && (github.event_name != 'schedule') && true }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -51,24 +81,30 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
-#          - linux/riscv64 # no distroless support
+          # - linux/riscv64
           - linux/ppc64le
           - linux/s390x
-#          - linux/386 # no distroless support
-#          - linux/mips64le # no distroless support
-#          - linux/mips64 # no distroless support
+          # - linux/386 - no distroless support
+          # - linux/mips64le - no distroless support
+          # - linux/mips64 - no distroless support
           - linux/arm/v7
-#          - linux/arm/v6 # no distroless support
+          # - linux/arm/v6 - no distroless support
     timeout-minutes: 30
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SHIPA_GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.SSH_KEY }}
+          submodules: recursive
 
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY_IMAGE }}
+          images: |
+            ${{ env.DOCKERHUB_REGISTRY }}
+            ${{ env.ECR_REGISTRY }}
           tags: type=raw,value=${{ github.sha }}
 
       - name: Set up QEMU
@@ -78,21 +114,38 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/arm/v7
-
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+      - name: Login to ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.login-ecr.outputs.registry }}
+          username: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
+        env:
+          AWS_REGION: us-east-1
+      - name: Build and upload digest
         id: build
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ env.DOCKERHUB_REGISTRY }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
             github_user=${{ secrets.SHIPA_GITHUB_USERNAME }}
             github_token=${{ secrets.SHIPA_GITHUB_TOKEN }}
@@ -128,21 +181,47 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY_IMAGE }}
+          images: |
+            ${{ env.DOCKERHUB_REGISTRY }}
+            ${{ env.ECR_REGISTRY }}
           tags: type=raw,value=${{ github.sha }}
-      - name: Login to Docker Hub
+
+      - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+      - name: Login to ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.login-ecr.outputs.registry }}
+          username: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
+        env:
+          AWS_REGION: us-east-1
+
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+            $(printf '${{ env.DOCKERHUB_REGISTRY }}@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.ECR_REGISTRY }}@sha256:%s ' *)
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.DOCKERHUB_REGISTRY }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.ECR_REGISTRY }}:${{ steps.meta.outputs.version }}
   security-scan:
     runs-on: ubuntu-latest
     needs:
@@ -151,7 +230,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@f78e9ecf42a1271402d4f484518b9313235990e1
         with:
-          image-ref: ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
+          image-ref: ${{ env.DOCKERHUB_REGISTRY }}:${{ github.sha }}
           format: "sarif"
           output: "trivy-results.sarif"
           exit-code: "1"
