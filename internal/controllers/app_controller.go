@@ -401,7 +401,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		var hpaList autoscalingv2.HorizontalPodAutoscalerList
 		if err := r.List(ctx, &hpaList, &client.ListOptions{Namespace: app.Spec.Namespace}); err != nil {
 			return appReconcileResult{
-				err: fmt.Errorf("failed to find HPAs"),
+				err: fmt.Errorf("failed to find HPAs: %w", err),
 			}
 		}
 
