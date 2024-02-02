@@ -81,6 +81,11 @@ const (
 	maxWaitTimeDuration           = time.Duration(120) * time.Second
 )
 
+var (
+	errNotAllPodsRunning = errors.New("not all pods are running")
+	errNotAllPodsHealthy = errors.New("not all pods are in healthy state")
+)
+
 // +kubebuilder:rbac:groups=theketch.io,resources=apps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=theketch.io,resources=apps/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
@@ -380,9 +385,13 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 
 		// retry until all pods for canary deployment comes to running state.
-		if _, err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
+		if podName, err := checkPodStatus(r.Group, r.Client, app.Name, app.Spec.Deployments[1].Version); err != nil {
 
 			if !timeoutExpired(app.Spec.Canary.Started, r.Now()) {
+				if errors.Is(err, errNotAllPodsRunning) || errors.Is(err, errNotAllPodsHealthy) {
+					logger.Info("waiting for canary pod", "pod", podName, "err", err)
+					return appReconcileResult{}
+				}
 				return appReconcileResult{
 					err:        fmt.Errorf("canary update failed: %w", err),
 					useTimeout: true,
@@ -401,7 +410,7 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		var hpaList autoscalingv2.HorizontalPodAutoscalerList
 		if err := r.List(ctx, &hpaList, &client.ListOptions{Namespace: app.Spec.Namespace}); err != nil {
 			return appReconcileResult{
-				err: fmt.Errorf("failed to find HPAs"),
+				err: fmt.Errorf("failed to find HPAs: %w", err),
 			}
 		}
 
@@ -789,12 +798,12 @@ func checkPodStatus(group string, c client.Client, appName string, depVersion ke
 		}
 
 		if pod.Status.Phase != v1.PodRunning {
-			return pod.Name, errors.New("all pods are not running")
+			return pod.Name, errNotAllPodsRunning
 		}
 
 		for _, c := range pod.Status.Conditions {
 			if c.Status != v1.ConditionTrue {
-				return pod.Name, errors.New("all pods are not in healthy state")
+				return pod.Name, errNotAllPodsHealthy
 			}
 		}
 	}
