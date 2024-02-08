@@ -15,14 +15,15 @@ var (
 )
 
 type process struct {
-	Name              string             `json:"name"`
-	Cmd               []string           `json:"cmd"`
-	Units             int                `json:"units"`
-	Routable          bool               `json:"routable"`
-	ContainerPorts    []v1.ContainerPort `json:"containerPorts"`
-	ServicePorts      []v1.ServicePort   `json:"servicePorts"`
-	PublicServicePort int32              `json:"publicServicePort,omitempty"`
-	Env               []ketchv1.Env      `json:"env"`
+	Name               string             `json:"name"`
+	Cmd                []string           `json:"cmd"`
+	Units              int                `json:"units"`
+	Routable           bool               `json:"routable"`
+	ContainerPorts     []v1.ContainerPort `json:"containerPorts"`
+	ServicePorts       []v1.ServicePort   `json:"servicePorts"`
+	PublicServicePort  int32              `json:"publicServicePort,omitempty"`
+	Env                []ketchv1.Env      `json:"env"`
+	HPACurrentReplicas int                `json:"hpaCurrentReplicas,omitempty"`
 
 	SecurityContext      *v1.SecurityContext      `json:"securityContext,omitempty"`
 	ResourceRequirements *v1.ResourceRequirements `json:"resourceRequirements,omitempty"`
@@ -53,6 +54,13 @@ func withUnits(units *int) processOption {
 		if units != nil {
 			p.Units = *units
 		}
+		return nil
+	}
+}
+
+func withHPACurrentReplicas(count int) processOption {
+	return func(p *process) error {
+		p.HPACurrentReplicas = count
 		return nil
 	}
 }

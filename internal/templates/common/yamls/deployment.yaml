@@ -24,7 +24,11 @@ metadata:
   {{- end }}
   name: {{ $.Values.app.name }}-{{ $process.name }}-{{ $deployment.version }}
 spec:
+  {{- if $process.hpaCurrentReplicas }}
+  replicas: {{ $process.hpaCurrentReplicas }}
+  {{- else }}
   replicas: {{ $process.units }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ default $.Values.app.name $.Values.app.id | quote }}

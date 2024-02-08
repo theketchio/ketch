@@ -196,21 +196,22 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	return result, err
 }
 
-func hpaTargetMap(app *ketchv1.App, hpaList autoscalingv2.HorizontalPodAutoscalerList) map[string]bool {
-	targets := map[string]autoscalingv2.CrossVersionObjectReference{}
+func hpaTargetMap(app *ketchv1.App, hpaList autoscalingv2.HorizontalPodAutoscalerList) map[string]autoscalingv2.HorizontalPodAutoscaler {
+	targets := map[string]autoscalingv2.HorizontalPodAutoscaler{}
 	for _, target := range hpaList.Items {
-		targets[target.Spec.ScaleTargetRef.Name] = target.Spec.ScaleTargetRef
+		targets[target.Spec.ScaleTargetRef.Name] = target
 	}
 
-	hpaTargets := map[string]bool{}
+	hpaTargets := map[string]autoscalingv2.HorizontalPodAutoscaler{}
 	for _, deployment := range app.Spec.Deployments {
 		for _, process := range deployment.Processes {
 
-			deploymentName := fmt.Sprintf("%s-%s-%s", app.Name, process.Name, deployment.Version)
-			if details, ok := targets[deploymentName]; ok {
+			deploymentName := ketchv1.MakeDeploymentName(app.Name, process.Name, deployment.Version)
+			if target, ok := targets[deploymentName]; ok {
+				details := target.Spec.ScaleTargetRef
 				// even if a target name is a match, it could be targeting a different kind than deployment
 				if details.Kind == "Deployment" && details.APIVersion == "apps/v1" {
-					hpaTargets[process.Name] = true
+					hpaTargets[deploymentName] = target
 				}
 			}
 		}
@@ -361,9 +362,18 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 		}
 	}
 
+	var hpaList autoscalingv2.HorizontalPodAutoscalerList
+	if err := r.List(ctx, &hpaList, &client.ListOptions{Namespace: app.Spec.Namespace}); err != nil {
+		return appReconcileResult{
+			err: fmt.Errorf("failed to find HPAs: %w", err),
+		}
+	}
+	hpaMap := hpaTargetMap(app, hpaList)
+
 	appChrt, err := chart.New(app,
 		chart.WithExposedPorts(app.ExposedPorts()),
-		chart.WithTemplates(*tpls))
+		chart.WithTemplates(*tpls),
+		chart.WithHPAMap(hpaMap))
 	if err != nil {
 		return appReconcileResult{err: err}
 	}
@@ -407,15 +417,8 @@ func (r *AppReconciler) reconcile(ctx context.Context, app *ketchv1.App, logger 
 			}
 		}
 
-		var hpaList autoscalingv2.HorizontalPodAutoscalerList
-		if err := r.List(ctx, &hpaList, &client.ListOptions{Namespace: app.Spec.Namespace}); err != nil {
-			return appReconcileResult{
-				err: fmt.Errorf("failed to find HPAs: %w", err),
-			}
-		}
-
 		// Once all pods are running then Perform canary deployment, do not scale pods for a process that is a HPA target.
-		if err = app.DoCanary(metav1.NewTime(r.Now()), logger, r.Recorder, hpaTargetMap(app, hpaList)); err != nil {
+		if err = app.DoCanary(metav1.NewTime(r.Now()), logger, r.Recorder, hpaMap); err != nil {
 			return appReconcileResult{
 				err: fmt.Errorf("canary update failed: %w", err),
 			}

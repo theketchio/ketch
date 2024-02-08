@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 
@@ -562,7 +563,7 @@ func getUpdatedUnits(weight uint8, targetUnits uint16) (int, int) {
 
 // DoCanary checks if canary deployment is needed for an app and gradually increases the traffic weight
 // based on the canary parameters provided by the users. Use it in app controller.
-func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder, disableScaleForProcess map[string]bool) error {
+func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.EventRecorder, disableScaleForProcess map[string]autoscalingv2.HorizontalPodAutoscaler) error {
 	if !app.Spec.Canary.Active {
 		failEvent := newCanaryEvent(app, CanaryNotActiveEvent, CanaryNotActiveEventDesc)
 		recorder.AnnotatedEventf(app, failEvent.Annotations, v1.EventTypeNormal, failEvent.Name, failEvent.Message())
@@ -596,7 +597,8 @@ func (app *App) DoCanary(now metav1.Time, logger logr.Logger, recorder record.Ev
 		if app.Spec.Canary.Target != nil {
 			// scale units based on weight and process target
 			for processName, target := range app.Spec.Canary.Target {
-				if _, disable := disableScaleForProcess[processName]; !disable {
+				deplName := MakeDeploymentName(app.Name, processName, app.Spec.Deployments[1].Version)
+				if _, disable := disableScaleForProcess[deplName]; !disable {
 					p1Units, p2Units := getUpdatedUnits(app.Spec.Deployments[0].RoutingSettings.Weight, target)
 					// might be fine to ignore these errors
 					if err := app.Spec.Deployments[0].setUnits(processName, p1Units); err != nil {
@@ -687,6 +689,10 @@ func (app *App) AddLabel(label map[string]string, target Target) {
 			})
 		}
 	}
+}
+
+func MakeDeploymentName(appName, processName string, deploymentVersion DeploymentVersion) string {
+	return fmt.Sprintf("%s-%s-%s", appName, processName, deploymentVersion)
 }
 
 // PodState describes the simplified state of a pod in the cluster
