@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"helm.sh/helm/v3/pkg/chartutil"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 
@@ -81,6 +82,7 @@ type Options struct {
 	// ExposedPorts are ports exposed by an image of each deployment.
 	ExposedPorts map[ketchv1.DeploymentVersion][]ketchv1.ExposedPort
 	Templates    templates.Templates
+	HPAMap       map[string]autoscalingv2.HorizontalPodAutoscaler
 }
 
 func WithExposedPorts(ports map[ketchv1.DeploymentVersion][]ketchv1.ExposedPort) Option {
@@ -99,6 +101,12 @@ func WithExposedPorts(ports map[ketchv1.DeploymentVersion][]ketchv1.ExposedPort)
 func WithTemplates(tpls templates.Templates) Option {
 	return func(opts *Options) {
 		opts.Templates = tpls
+	}
+}
+
+func WithHPAMap(hpaMap map[string]autoscalingv2.HorizontalPodAutoscaler) Option {
+	return func(opts *Options) {
+		opts.HPAMap = hpaMap
 	}
 }
 
@@ -171,7 +179,7 @@ func New(application *ketchv1.App, opts ...Option) (*ApplicationChart, error) {
 		for _, processSpec := range deploymentSpec.Processes {
 			name := processSpec.Name
 			isRoutable := procfile.IsRoutable(name)
-			process, err := newProcess(name, isRoutable,
+			processOptions := []processOption{
 				withCmd(c.procfile.Processes[name]),
 				withUnits(processSpec.Units),
 				withEnvs(processSpec.Env),
@@ -183,6 +191,16 @@ func New(application *ketchv1.App, opts ...Option) (*ApplicationChart, error) {
 				withVolumeMounts(processSpec.VolumeMounts),
 				withLabels(application.Spec.Labels, deployment.Version),
 				withAnnotations(application.Spec.Annotations, deployment.Version),
+			}
+			if options.HPAMap != nil {
+				deplName := ketchv1.MakeDeploymentName(application.Name, processSpec.Name, deployment.Version)
+				if hpa, ok := options.HPAMap[deplName]; ok {
+					processOptions = append(processOptions, withHPACurrentReplicas(int(hpa.Status.CurrentReplicas)))
+				}
+			}
+
+			process, err := newProcess(name, isRoutable,
+				processOptions...,
 			)
 			if err != nil {
 				return nil, err

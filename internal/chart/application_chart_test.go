@@ -12,6 +12,7 @@ import (
 	"helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,6 +39,19 @@ func TestNewApplicationChart(t *testing.T) {
 		ClusterIssuer:   "letsencrypt-production"}
 	ingressControllerWithoutClusterIssuer := ketchv1.IngressControllerSpec{ClassName: "gke",
 		ServiceEndpoint: "20.20.20.20"}
+
+	hpaMap := map[string]autoscalingv2.HorizontalPodAutoscaler{
+		"dashboard-web-3": {
+			Status: autoscalingv2.HorizontalPodAutoscalerStatus{
+				CurrentReplicas: 10,
+			},
+		},
+		"dashboard-worker-4": {
+			Status: autoscalingv2.HorizontalPodAutoscalerStatus{
+				CurrentReplicas: 11,
+			},
+		},
+	}
 
 	dashboard := &ketchv1.App{
 		ObjectMeta: metav1.ObjectMeta{
@@ -263,6 +277,17 @@ func TestNewApplicationChart(t *testing.T) {
 			application:       setServiceAccount(convertSecureEndpoints(dashboard)),
 			ingressController: ingressControllerWithoutClusterIssuer,
 			wantYamlsFilename: "dashboard-nginx",
+		},
+		{
+			name: "nginx templates with HPA",
+			opts: []Option{
+				WithTemplates(templates.NginxDefaultTemplates),
+				WithExposedPorts(exportedPorts),
+				WithHPAMap(hpaMap),
+			},
+			application:       setServiceAccount(convertSecureEndpoints(dashboard)),
+			ingressController: ingressControllerWithoutClusterIssuer,
+			wantYamlsFilename: "dashboard-nginx-hpa",
 		},
 		{
 			name: "istio templates with cluster issuer",

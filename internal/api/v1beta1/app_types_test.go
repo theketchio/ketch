@@ -10,6 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -943,7 +944,7 @@ func TestApp_DoCanary(t *testing.T) {
 		name           string
 		app            App
 		now            metav1.Time
-		disableScaling map[string]bool
+		disableScaling map[string]autoscalingv2.HorizontalPodAutoscaler
 		wantNoChanges  bool
 		wantApp        App
 		wantErr        string
@@ -1166,6 +1167,9 @@ func TestApp_DoCanary(t *testing.T) {
 			name: "disable pod scaling per process",
 			now:  *timeRef(10, 31),
 			app: App{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
 				Spec: AppSpec{
 					Canary: CanarySpec{
 						Steps:             5,
@@ -1182,8 +1186,14 @@ func TestApp_DoCanary(t *testing.T) {
 					},
 				},
 			},
-			disableScaling: map[string]bool{"p1": true},
+			disableScaling: map[string]autoscalingv2.HorizontalPodAutoscaler{
+				"test-p1-2": {},
+				"test-p1-3": {},
+			},
 			wantApp: App{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
 				Spec: AppSpec{
 					Canary: CanarySpec{
 						Steps:             5,

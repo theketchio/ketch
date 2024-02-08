@@ -768,7 +768,7 @@ func TestIsHPATarget(t *testing.T) {
 	tests := []struct {
 		name              string
 		hpaScaleTargetRef autoscalingv2.CrossVersionObjectReference
-		expected          map[string]bool
+		expected          map[string]autoscalingv2.HorizontalPodAutoscaler
 	}{
 		{
 			name: "is target",
@@ -777,7 +777,7 @@ func TestIsHPATarget(t *testing.T) {
 				APIVersion: "apps/v1",
 				Kind:       "Deployment",
 			},
-			expected: map[string]bool{"worker": true},
+			expected: map[string]autoscalingv2.HorizontalPodAutoscaler{"app-worker-2": hpaList.Items[0]},
 		},
 		{
 			name: "not target",
@@ -786,7 +786,7 @@ func TestIsHPATarget(t *testing.T) {
 				APIVersion: "apps/v1",
 				Kind:       "Deployment",
 			},
-			expected: map[string]bool{},
+			expected: map[string]autoscalingv2.HorizontalPodAutoscaler{},
 		},
 		{
 			name: "mismatched apiVersion/Kind",
@@ -795,13 +795,18 @@ func TestIsHPATarget(t *testing.T) {
 				APIVersion: "fake/v3",
 				Kind:       "TestKind",
 			},
-			expected: map[string]bool{},
+			expected: map[string]autoscalingv2.HorizontalPodAutoscaler{},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			hpaList.Items[0].Spec.ScaleTargetRef = tc.hpaScaleTargetRef
-			require.Equal(t, tc.expected, hpaTargetMap(&app, hpaList))
+			got := hpaTargetMap(&app, hpaList)
+			require.Equal(t, len(tc.expected), len(got))
+			for k := range tc.expected {
+				_, ok := got[k]
+				require.True(t, ok)
+			}
 		})
 	}
 }
