@@ -543,7 +543,7 @@ func Test_checkPodStatus(t *testing.T) {
 				createPod("theketch.io", "my-app", "5", v1.PodStatus{Phase: v1.PodPending}),
 			},
 			expectedPod: "my-app-5",
-			wantErr:     `all pods are not running`,
+			wantErr:     `not all pods are running`,
 		},
 		{
 			name:       "pod in Pending state but group doesn't match",
